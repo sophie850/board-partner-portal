@@ -14,10 +14,17 @@ import { env } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 
-/** Enough to confirm the right value is set, not enough to use it. */
+/**
+ * Enough to tell one key from another, nothing more.
+ *
+ * Length alone distinguishes a Supabase secret key from a
+ * publishable one, which is the mistake worth catching. This
+ * endpoint is reachable without the passphrase, so it deliberately
+ * does not echo any part of a value.
+ */
 function fingerprint(value: string | undefined): string {
   if (!value) return 'not set';
-  return `set (${value.length} chars, ends …${value.slice(-4)})`;
+  return `set (${value.length} chars)`;
 }
 
 export async function GET() {
