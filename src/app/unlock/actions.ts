@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { env } from '@/lib/env';
 import { GATE_COOKIE, gateToken, safeEqual } from '@/lib/gate';
 
 /** Only same-site paths, so the gate cannot be used as an open redirect. */
@@ -12,7 +13,7 @@ function safeNext(next?: string): string {
 }
 
 export async function unlock(passphrase: string, next?: string) {
-  const expected = process.env.PORTAL_PASSPHRASE;
+  const expected = env('PORTAL_PASSPHRASE');
 
   // No passphrase configured means the gate is off; nothing to check.
   if (!expected) redirect(safeNext(next));
@@ -26,7 +27,7 @@ export async function unlock(passphrase: string, next?: string) {
   store.set(GATE_COOKIE, await gateToken(expected), {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: env('NODE_ENV') === 'production',
     path: '/',
     // A working week, so the team is not re-entering it constantly.
     maxAge: 60 * 60 * 24 * 7,

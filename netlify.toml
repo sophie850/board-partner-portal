@@ -16,26 +16,19 @@
   NODE_VERSION = "22"
 
   # ---- Secrets scanning -------------------------------------
-  # Netlify scans build files for the values of environment
-  # variables. Two adjustments, both deliberately narrow.
+  # Every environment variable is read at request time through
+  # src/lib/env.ts rather than as a static `process.env.NAME`, which
+  # the compiler would replace with the literal value at build time.
+  # Verified by building with the real values and grepping: none of
+  # them appear anywhere in .next outside the cache.
   #
-  # 1. Omit the Turbopack build cache. Verified by building with the
-  #    real values and grepping the output: PORTAL_PASSPHRASE appears
-  #    ONLY under .next/cache/turbopack — never in .next/static (what
-  #    browsers download) and never in .next/server. The cache is a
-  #    build artifact that is never served, so scanning it produces
-  #    false positives on values that are not actually exposed.
-  SECRETS_SCAN_OMIT_PATHS = ".next/cache/**"
-
-  # 2. Omit only the two keys that are designed to be public. A
-  #    Supabase publishable key is meant to sit in client code — it
-  #    is subject to row-level security, which this project has
-  #    enabled with no policies, so it grants nothing.
+  # So no key is exempted from scanning — if a value ever does reach
+  # a real artifact, the build should fail and say so.
   #
-  #    PORTAL_PASSPHRASE is deliberately NOT listed here. It stays
-  #    under active scanning, so if it ever is inlined into a real
-  #    artifact the build fails and says so.
-  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,NEXT_PUBLIC_SUPABASE_URL"
+  # The only omission is Turbopack's persistent build cache, which
+  # records the build environment. It is never served and never part
+  # of the deploy; Netlify keeps it in its own cache store.
+  SECRETS_SCAN_OMIT_PATHS = ".next/cache/**,.netlify/.next/cache/**"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

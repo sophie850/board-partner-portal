@@ -5,7 +5,7 @@ import { cache } from 'react';
 import { seed } from '@/data/seed';
 import type { Db, FormField, Id, InventoryItem, RequestedFile } from '@/lib/types';
 
-import { supabase, supabaseConfigured } from './client';
+import { supabase } from './client';
 import {
   rowToAuditEntry,
   rowToContentCategory,
@@ -277,4 +277,3 @@ export function mintId(prefix: string): Id {
   return `${prefix}_${Date.now().toString(36)}${rand}`;
 }
 
-export { supabaseConfigured };

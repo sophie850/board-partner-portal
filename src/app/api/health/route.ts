@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { supabase, supabaseConfigured } from '@/lib/db/client';
+import { isSupabaseConfigured, supabase } from '@/lib/db/client';
+import { env } from '@/lib/env';
 
 /* ============================================================
    Configuration health check
@@ -20,17 +21,18 @@ function fingerprint(value: string | undefined): string {
 }
 
 export async function GET() {
+  const configured = isSupabaseConfigured();
   const checks: Record<string, unknown> = {
-    supabaseUrl: process.env.SUPABASE_URL ?? 'not set',
-    supabaseSecretKey: fingerprint(process.env.SUPABASE_SECRET_KEY),
-    publicSupabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'not set',
-    publishableKey: fingerprint(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
-    portalPassphrase: process.env.PORTAL_PASSPHRASE ? 'set' : 'not set — site is open',
-    supabaseConfigured,
-    dataSource: supabaseConfigured ? 'supabase' : 'bundled fixtures',
+    supabaseUrl: env('SUPABASE_URL') ?? 'not set',
+    supabaseSecretKey: fingerprint(env('SUPABASE_SECRET_KEY')),
+    publicSupabaseUrl: env('NEXT_PUBLIC_SUPABASE_URL') ?? 'not set',
+    publishableKey: fingerprint(env('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY')),
+    portalPassphrase: env('PORTAL_PASSPHRASE') ? 'set' : 'not set — site is open',
+    supabaseConfigured: configured,
+    dataSource: configured ? 'supabase' : 'bundled fixtures',
   };
 
-  if (!supabaseConfigured) {
+  if (!configured) {
     checks.verdict =
       'Running on bundled fixtures. Set SUPABASE_URL and SUPABASE_SECRET_KEY to use the database.';
     return NextResponse.json(checks, { status: 200 });

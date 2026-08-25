@@ -2,6 +2,8 @@ import 'server-only';
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+import { env } from '@/lib/env';
+
 /* ============================================================
    Supabase — server-side only
 
@@ -11,11 +13,10 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
    rather than a leak.
    ============================================================ */
 
-const url = process.env.SUPABASE_URL;
-const secret = process.env.SUPABASE_SECRET_KEY;
-
 /** Whether a Supabase project is configured for this deployment. */
-export const supabaseConfigured = Boolean(url && secret);
+export function isSupabaseConfigured(): boolean {
+  return Boolean(env('SUPABASE_URL') && env('SUPABASE_SECRET_KEY'));
+}
 
 let cached: SupabaseClient | null = null;
 
@@ -25,10 +26,12 @@ let cached: SupabaseClient | null = null;
  * store without needing a project.
  */
 export function supabase(): SupabaseClient | null {
-  if (!supabaseConfigured) return null;
+  const url = env('SUPABASE_URL');
+  const secret = env('SUPABASE_SECRET_KEY');
+  if (!url || !secret) return null;
   if (cached) return cached;
 
-  cached = createClient(url!, secret!, {
+  cached = createClient(url, secret, {
     auth: {
       // No user session on the server: never persist or refresh.
       persistSession: false,

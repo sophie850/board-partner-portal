@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { env } from '@/lib/env';
 import { GATE_COOKIE, gateToken, safeEqual } from '@/lib/gate';
 
 /**
@@ -10,7 +11,7 @@ import { GATE_COOKIE, gateToken, safeEqual } from '@/lib/gate';
  * route handlers, which is the part a page-level check would miss.
  */
 export async function proxy(request: NextRequest) {
-  const passphrase = process.env.PORTAL_PASSPHRASE;
+  const passphrase = env('PORTAL_PASSPHRASE');
 
   // No passphrase configured: the site is intentionally open.
   if (!passphrase) return NextResponse.next();
