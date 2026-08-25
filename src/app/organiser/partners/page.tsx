@@ -143,6 +143,12 @@ export default async function PartnersPage() {
                 >
                   Preview
                 </Link>
+                <Link
+                  href={`/organiser/partners/${row.partner.id}/configure`}
+                  className="rounded-pill bg-brand px-[14px] py-[6px] text-[12px] text-on-brand no-underline hover:bg-brand-hover hover:text-on-brand"
+                >
+                  Configure
+                </Link>
               </div>
             </div>
           ))}

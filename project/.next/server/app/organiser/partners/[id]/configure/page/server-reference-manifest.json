@@ -1,0 +1,71 @@
+{
+  "node": {
+    "708f919e628cb5aedf8d9a1468bdcdbed964178c4f": {
+      "workers": {
+        "app/organiser/partners/[id]/configure/page": {
+          "moduleId": 31473,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "exportedName": "saveContract",
+      "filename": "src/app/organiser/partners/actions.ts"
+    },
+    "70e268b8fd08b96c909fdf079493397fd28d1eaa54": {
+      "workers": {
+        "app/organiser/partners/[id]/configure/page": {
+          "moduleId": 31473,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "exportedName": "saveInventory",
+      "filename": "src/app/organiser/partners/actions.ts"
+    },
+    "709fa7a5ee587c8f34ee6493b24c78455e25d10411": {
+      "workers": {
+        "app/organiser/partners/[id]/configure/page": {
+          "moduleId": 31473,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "exportedName": "saveLead",
+      "filename": "src/app/organiser/partners/actions.ts"
+    },
+    "702dcde894d9901c3d6f2996b38bbe0425eaff072c": {
+      "workers": {
+        "app/organiser/partners/[id]/configure/page": {
+          "moduleId": 31473,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "exportedName": "saveParticipation",
+      "filename": "src/app/organiser/partners/actions.ts"
+    },
+    "6047355ab40af27cb37d53c892b1dfe8d5b49e9ef8": {
+      "workers": {
+        "app/organiser/partners/[id]/configure/page": {
+          "moduleId": 31473,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "exportedName": "savePartnerDetails",
+      "filename": "src/app/organiser/partners/actions.ts"
+    },
+    "70bbe28b1ae491fae4ffd8d06e0da030bb6865f9e1": {
+      "workers": {
+        "app/organiser/partners/[id]/configure/page": {
+          "moduleId": 31473,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "exportedName": "saveRequestedFiles",
+      "filename": "src/app/organiser/partners/actions.ts"
+    }
+  },
+  "edge": {}
+}

@@ -105,12 +105,20 @@ export default async function PartnerSummary({
             {part.standRef && ` · Stand ${part.standRef}`}
           </div>
         </div>
-        <Link
-          href={`/portal/${partner.id}`}
-          className="shrink-0 rounded-pill border border-accent-line px-[15px] py-2 text-[12.5px] text-accent no-underline hover:bg-accent-fill hover:text-accent"
-        >
-          Preview their portal
-        </Link>
+        <div className="flex shrink-0 gap-2">
+          <Link
+            href={`/portal/${partner.id}`}
+            className="rounded-pill border border-accent-line px-[15px] py-2 text-[12.5px] text-accent no-underline hover:bg-accent-fill hover:text-accent"
+          >
+            Preview
+          </Link>
+          <Link
+            href={`/organiser/partners/${partner.id}/configure`}
+            className="rounded-pill bg-brand px-[18px] py-2 text-[12.5px] text-on-brand no-underline hover:bg-brand-hover hover:text-on-brand"
+          >
+            Configure
+          </Link>
+        </div>
       </div>
 
       {/* ---- stats ---- */}
