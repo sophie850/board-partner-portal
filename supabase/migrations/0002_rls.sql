@@ -114,3 +114,54 @@ $$;
 -- and maintenance run as the owner. BYPASSRLS roles (the secret key)
 -- are unaffected either way; the browser roles are already denied by
 -- both the revoke above and the absence of policies.
+
+-- ------------------------------------------------------------
+-- 3. Verify
+-- ------------------------------------------------------------
+--
+-- To confirm step 1 took effect, filter by schema:
+--
+--   select count(*) from information_schema.table_privileges
+--   where grantee in ('anon','authenticated') and table_schema = 'public';
+--
+-- That must be 0. Without the table_schema filter the count also
+-- picks up Supabase's own storage and realtime tables (buckets,
+-- objects, messages), which carry grants by design and are nothing
+-- to do with this schema.
+--
+-- Note that privileges and RLS are independent gates, and RLS is the
+-- one that decides whether rows come back: a table with RLS enabled
+-- and no policies returns nothing to a non-BYPASSRLS role and
+-- rejects every write, whatever the privilege list says. Step 2 is
+-- applied by ALTER TABLE as owner, so it always succeeds.
+--
+-- The check that proves it end to end, run with the PUBLISHABLE key —
+-- the one a browser holds:
+--
+--   curl -s "$SUPABASE_URL/rest/v1/partner_organisations?select=*" \
+--     -H "apikey: $NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+--
+-- An empty array or a permission error is correct. Any partner row
+-- coming back means something is wrong: stop and fix it.
+
+do $$
+declare
+  unprotected text[];
+begin
+  select array_agg(c.relname order by c.relname)
+    into unprotected
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public'
+    and c.relkind = 'r'
+    and not c.relrowsecurity;
+
+  if unprotected is not null then
+    raise exception
+      'Row-level security is not enabled on: %. Refusing to leave these open.',
+      array_to_string(unprotected, ', ');
+  end if;
+
+  raise notice 'Row-level security enabled on every public table.';
+end;
+$$;
