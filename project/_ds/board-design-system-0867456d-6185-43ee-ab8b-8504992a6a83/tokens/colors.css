@@ -1,0 +1,125 @@
+/* ============================================================
+   BOARD · Colour tokens
+   Sourced from the official "BOARD colours quick ref" swatch
+   and the fluted-gradient brand graphic.
+   ============================================================ */
+
+:root {
+  /* ---- Core brand palette (from quick-ref sheet) ---- */
+  --board-rich-black: #000000;   /* primary ground */
+  --board-off-white:  #F1F1E4;   /* warm paper — primary light */
+  --board-pure-white: #FFFFFF;   /* max contrast, sparingly */
+  --board-teal:       #016972;   /* heritage teal */
+  --board-blue:       #1A4DE7;   /* BOARD Blue — primary accent */
+
+  /* ---- Gradient-derived accents (from the fluted graphic) ---- */
+  --board-aqua:       #31F9E5;   /* bright spark / highlight peak */
+  --board-cyan:       #00B7C4;   /* teal→aqua midpoint */
+  --board-deep-blue:  #000D44;   /* darkest gradient valley */
+  --board-ink-blue:   #01347C;   /* mid gradient blue */
+
+  /* ---- Warm editorial accent ----
+     Amber for inline sub-labels / benefit beats (e.g. "BRAND THE ACCESS").
+     Confirmed in use alongside the core palette. */
+  --board-amber:      #C8763C;
+
+  /* ---- Neutral ramp (cool, tuned to the black ground) ---- */
+  --board-black-900:  #050608;
+  --board-black-800:  #0B0D11;
+  --board-black-700:  #14171D;
+  --board-gray-600:   #2A2F38;
+  --board-gray-500:   #454C58;
+  --board-gray-400:   #6B7280;
+  --board-gray-300:   #9AA1AD;
+  --board-gray-200:   #C6CAD2;
+  --board-gray-100:   #E4E5DE;
+
+  /* =========================================================
+     Semantic aliases — reference these in components
+     ========================================================= */
+
+  /* Surfaces (dark-first) — LITERAL values (chained var() drops in DOM-
+     serialization renderers, so semantic aliases are de-chained here). */
+  --surface-page:     #000000;
+  --surface-raised:   #0B0D11;
+  --surface-card:     #14171D;
+  --surface-inset:    #050608;
+  --surface-inverse:  #F1F1E4;   /* light sections */
+
+  /* Text */
+  --text-primary:     #F1F1E4;
+  --text-strong:      #FFFFFF;
+  --text-secondary:   #9AA1AD;
+  --text-muted:       #6B7280;
+  --text-on-light:    #000000;
+  --text-accent:      #31F9E5;
+  --text-accent-warm: #C8763C;  /* brochure sub-labels */
+
+  /* Accents / interactive */
+  --accent-primary:   #1A4DE7;
+  --accent-hover:     #3563EC;
+  --accent-active:    #123CBE;
+  --accent-teal:      #016972;
+  --accent-spark:     #31F9E5;
+
+  /* Borders & lines */
+  --border-subtle:    rgba(241, 241, 228, 0.10);
+  --border-default:   rgba(241, 241, 228, 0.18);
+  --border-strong:    rgba(241, 241, 228, 0.34);
+  --border-accent:    #1A4DE7;
+  --border-on-light:  rgba(0, 0, 0, 0.14);
+
+  /* Focus ring */
+  --focus-ring:       #31F9E5;
+
+  /* Data-viz palette — ordered, brand-first (use in this order for charts) */
+  --chart-1: #1A4DE7;   /* BOARD Blue */
+  --chart-2: #016972;   /* Teal */
+  --chart-3: #31F9E5;   /* Aqua */
+  --chart-4: #01347C;   /* Ink blue */
+  --chart-5: #C8763C;   /* Amber */
+  --chart-6: #9AA1AD;   /* Gray */
+  --chart-grid: rgba(241,241,228,0.12);
+
+  /* ---- Signature gradient (the fluted brand graphic) ----
+     Declared LAST: multi-value declarations can trip lightweight CSS
+     processors, so nothing critical is defined after them. */
+  --board-gradient: linear-gradient(90deg, #31F9E5 0%, #00B7C4 22%, #0157A5 48%, #1A4DE7 70%, #000D44 100%); /* @kind color */
+  --board-gradient-soft: linear-gradient(120deg, #016972 0%, #01347C 55%, #000D44 100%); /* @kind color */
+}
+
+/* =========================================================
+   Light theme scope — for Off-White sections / documents.
+   Apply to any container: <div data-theme="light"> or class .theme-light.
+   Semantic aliases flip; component code stays the same.
+   ========================================================= */
+[data-theme="light"],
+.theme-light {
+  --surface-page:   #F1F1E4;
+  --surface-raised: #FFFFFF;
+  --surface-card:   #FFFFFF;
+  --surface-inset:  #E8E8DC;
+  --surface-inverse: #000000;
+
+  --text-primary:   #000000;
+  --text-strong:    #000000;
+  --text-secondary: rgba(0,0,0,0.66);
+  --text-muted:     rgba(0,0,0,0.48);
+  --text-on-light:  #000000;
+
+  --border-subtle:  rgba(0,0,0,0.08);
+  --border-default: rgba(0,0,0,0.14);
+  --border-strong:  rgba(0,0,0,0.28);
+
+  /* Aqua is invisible on light — accents/links switch to teal/blue */
+  --text-accent:    #016972;
+  --accent-spark:   #016972;
+  --focus-ring:     #1A4DE7;
+
+  color: var(--text-primary);
+  background: var(--surface-page);
+}
+
+/* Link hover must stay dark on light grounds (base a:hover is Pure White) */
+[data-theme="light"] a:hover,
+.theme-light a:hover { color: var(--board-rich-black); }

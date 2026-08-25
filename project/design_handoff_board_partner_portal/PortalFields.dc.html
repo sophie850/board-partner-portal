@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="font-family:var(--font-display,'Ambit',system-ui,sans-serif)">
+  <sc-for list="{{ fields }}" as="f" hint-placeholder-count="4">
+    <div style="margin-bottom:18px">
+
+      <sc-if value="{{ f.isHeading }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#31F9E5;border-bottom:1px solid rgba(241,241,228,0.12);padding-bottom:8px;margin-top:6px">{{ f.label }}</div>
+      </sc-if>
+
+      <sc-if value="{{ f.isGuidance }}" hint-placeholder-val="{{ false }}">
+        <p style="font-size:13px;color:#9AA1AD;line-height:1.5;margin:0">{{ f.label }}</p>
+      </sc-if>
+
+      <sc-if value="{{ f.isText }}" hint-placeholder-val="{{ false }}">
+        <label style="display:block;font-size:13px;color:#C6CAD2;margin-bottom:7px">{{ f.label }} <span style="color:#C8763C">{{ f.reqMark }}</span></label>
+        <input type="{{ f.inputType }}" value="{{ f.textValue }}" onChange="{{ f.onInput }}" placeholder="{{ f.placeholder }}" style="width:100%;background:#0B0D11;border:1px solid {{ f.fieldBorder }};border-radius:9px;padding:11px 13px;color:#F1F1E4;font-family:inherit;font-size:14px;outline:none">
+      </sc-if>
+
+      <sc-if value="{{ f.isTextarea }}" hint-placeholder-val="{{ false }}">
+        <label style="display:block;font-size:13px;color:#C6CAD2;margin-bottom:7px">{{ f.label }} <span style="color:#C8763C">{{ f.reqMark }}</span></label>
+        <textarea value="{{ f.textValue }}" onChange="{{ f.onInput }}" rows="3" style="width:100%;background:#0B0D11;border:1px solid {{ f.fieldBorder }};border-radius:9px;padding:11px 13px;color:#F1F1E4;font-family:inherit;font-size:14px;outline:none;resize:vertical"></textarea>
+      </sc-if>
+
+      <sc-if value="{{ f.isSelect }}" hint-placeholder-val="{{ false }}">
+        <label style="display:block;font-size:13px;color:#C6CAD2;margin-bottom:7px">{{ f.label }} <span style="color:#C8763C">{{ f.reqMark }}</span></label>
+        <select value="{{ f.textValue }}" onChange="{{ f.onInput }}" style="width:100%;background:#0B0D11;border:1px solid {{ f.fieldBorder }};border-radius:9px;padding:11px 13px;color:#F1F1E4;font-family:inherit;font-size:14px;outline:none">
+          <option value="">Select…</option>
+          <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+        </select>
+      </sc-if>
+
+      <sc-if value="{{ f.isRadio }}" hint-placeholder-val="{{ false }}">
+        <label style="display:block;font-size:13px;color:#C6CAD2;margin-bottom:9px">{{ f.label }} <span style="color:#C8763C">{{ f.reqMark }}</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:9px">
+          <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="3">
+            <button onClick="{{ o.onClick }}" style="display:flex;align-items:center;gap:9px;background:{{ o.bg }};border:1px solid {{ o.border }};color:{{ o.fg }};border-radius:999px;padding:8px 15px;font-family:inherit;font-size:13px;cursor:pointer">
+              <span style="width:12px;height:12px;border-radius:999px;border:1.5px solid {{ o.border }};background:{{ o.dot }};display:inline-block"></span>{{ o.label }}
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ f.isBool }}" hint-placeholder-val="{{ false }}">
+        <label style="display:block;font-size:13px;color:#C6CAD2;margin-bottom:9px">{{ f.label }} <span style="color:#C8763C">{{ f.reqMark }}</span></label>
+        <div style="display:flex;gap:10px">
+          <button onClick="{{ f.onBoolYes }}" style="background:{{ f.yesBg }};border:1px solid {{ f.yesBorder }};color:{{ f.yesFg }};border-radius:999px;padding:9px 24px;font-family:inherit;font-size:13px;cursor:pointer">Yes</button>
+          <button onClick="{{ f.onBoolNo }}" style="background:{{ f.noBg }};border:1px solid {{ f.noBorder }};color:{{ f.noFg }};border-radius:999px;padding:9px 24px;font-family:inherit;font-size:13px;cursor:pointer">No</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ f.isMulti }}" hint-placeholder-val="{{ false }}">
+        <label style="display:block;font-size:13px;color:#C6CAD2;margin-bottom:9px">{{ f.label }} <span style="color:#C8763C">{{ f.reqMark }}</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:9px">
+          <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="3">
+            <button onClick="{{ o.onClick }}" style="display:flex;align-items:center;gap:9px;background:{{ o.bg }};border:1px solid {{ o.border }};color:{{ o.fg }};border-radius:8px;padding:8px 15px;font-family:inherit;font-size:13px;cursor:pointer">
+              <span style="width:14px;height:14px;border-radius:4px;border:1.5px solid {{ o.border }};background:{{ o.dot }};display:inline-block"></span>{{ o.label }}
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ f.isContact }}" hint-placeholder-val="{{ false }}">
+        <label style="display:block;font-size:13px;color:#C6CAD2;margin-bottom:9px">{{ f.label }} <span style="color:#C8763C">{{ f.reqMark }}</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <input value="{{ f.cName }}" onChange="{{ f.onContactName }}" placeholder="Full name" style="background:#0B0D11;border:1px solid {{ f.fieldBorder }};border-radius:9px;padding:10px 12px;color:#F1F1E4;font-family:inherit;font-size:13.5px;outline:none;grid-column:1 / -1">
+          <input value="{{ f.cEmail }}" onChange="{{ f.onContactEmail }}" placeholder="Email" style="background:#0B0D11;border:1px solid {{ f.fieldBorder }};border-radius:9px;padding:10px 12px;color:#F1F1E4;font-family:inherit;font-size:13.5px;outline:none">
+          <input value="{{ f.cPhone }}" onChange="{{ f.onContactPhone }}" placeholder="Telephone" style="background:#0B0D11;border:1px solid {{ f.fieldBorder }};border-radius:9px;padding:10px 12px;color:#F1F1E4;font-family:inherit;font-size:13.5px;outline:none">
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ f.isUpload }}" hint-placeholder-val="{{ false }}">
+        <label style="display:block;font-size:13px;color:#C6CAD2;margin-bottom:7px">{{ f.label }} <span style="color:#C8763C">{{ f.reqMark }}</span></label>
+        <button onClick="{{ f.onUpload }}" style="display:flex;align-items:center;gap:10px;width:100%;background:#0B0D11;border:1px dashed {{ f.uploadBorder }};border-radius:9px;padding:13px;color:{{ f.uploadColor }};font-family:inherit;font-size:13.5px;cursor:pointer;text-align:left">
+          <span style="font-size:16px">{{ f.uploadIcon }}</span><span>{{ f.uploadText }}</span>
+        </button>
+      </sc-if>
+
+      <sc-if value="{{ f.isAck }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ f.onAck }}" style="display:flex;align-items:flex-start;gap:11px;width:100%;background:transparent;border:none;padding:0;cursor:pointer;text-align:left">
+          <span style="width:20px;height:20px;border-radius:5px;border:1.5px solid {{ f.ackBorder }};background:{{ f.ackBg }};flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;color:#050608;font-size:13px">{{ f.ackMark }}</span>
+          <span style="font-size:13.5px;color:#C6CAD2;line-height:1.45">{{ f.label }}</span>
+        </button>
+      </sc-if>
+
+      <sc-if value="{{ f.help }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:11.5px;color:#6B7280;margin-top:6px">{{ f.help }}</div>
+      </sc-if>
+      <sc-if value="{{ f.error }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:12px;color:#C8763C;margin-top:6px">{{ f.error }}</div>
+      </sc-if>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;520px&quot;,&quot;height&quot;:&quot;400px&quot;}}"></script>
+</body>
+</html>

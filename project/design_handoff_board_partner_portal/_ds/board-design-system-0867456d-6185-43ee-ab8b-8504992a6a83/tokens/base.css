@@ -1,0 +1,76 @@
+/* ============================================================
+   BOARD · Base element defaults + utility helpers
+   Applied lightly so specimen cards & kits share a baseline.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-body-m);
+  line-height: var(--lh-body);
+  letter-spacing: var(--ls-body);
+  color: var(--text-primary);
+  background: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* BRAND RULE: text is never heavier than Regular. Neutralise stray bold. */
+b, strong { font-weight: var(--fw-regular); }
+
+/* Links — BOARD Blue, brightening on hover (never browser blue) */a {
+  color: var(--accent-spark);
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-standard),
+              opacity var(--dur-fast) var(--ease-standard);
+}
+a:hover { color: var(--board-pure-white); }
+
+/* ---- Display / heading helpers ---- */
+.board-display {
+  font-family: var(--font-display);
+  font-weight: var(--type-hero-weight);
+  font-size: var(--fs-display-l);
+  line-height: var(--lh-display);
+  letter-spacing: var(--ls-display);
+  text-transform: uppercase;
+  margin: 0;
+}
+.board-heading {
+  font-family: var(--font-display);
+  font-weight: var(--type-heading-weight);
+  font-size: var(--fs-heading-l);
+  line-height: var(--lh-heading);
+  letter-spacing: var(--ls-heading);
+  margin: 0;
+}
+
+/* ---- Overline / section eyebrow ---- */
+.board-overline {
+  font-size: var(--fs-overline);
+  font-weight: var(--fw-regular);
+  letter-spacing: var(--ls-overline);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* ---- The signature gradient text/fills ---- */
+.board-gradient-text {
+  background: var(--board-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.board-gradient-fill { background: var(--board-gradient); }
+
+/* ---- Focus visibility ---- */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- Selection ---- */
+::selection { background: var(--board-blue); color: var(--board-off-white); }

@@ -1,0 +1,47 @@
+/* ============================================================
+   BOARD · Effects — shadow, blur, motion
+   Dark UI: elevation reads through subtle borders + soft glows,
+   not heavy drop shadows. Motion is calm and precise.
+   ============================================================ */
+
+:root {
+  /* ---- Shadows (restrained on dark ground) ---- */
+  --shadow-none: none;
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md:  0 8px 24px rgba(0,0,0,0.45);
+  --shadow-lg:  0 24px 60px rgba(0,0,0,0.55);
+  --shadow-xl:  0 40px 120px rgba(0,0,0,0.6);
+
+  /* Accent glows — for the fluted / spark motif */
+  --glow-blue:  0 0 40px rgba(26, 77, 231, 0.35);
+  --glow-aqua:  0 0 32px rgba(49, 249, 229, 0.30);
+  --glow-teal:  0 0 40px rgba(1, 105, 114, 0.40);
+
+  /* Shadow for light sections */
+  --shadow-on-light: 0 12px 40px rgba(0, 13, 68, 0.10);
+
+  /* ---- Blur / glass ---- */
+  --blur-sm: 8px; /* @kind spacing */
+  --blur-md: 16px; /* @kind spacing */
+  --blur-lg: 28px; /* @kind spacing */
+  --glass-dark:  rgba(11, 13, 17, 0.55); /* @kind color */
+  --glass-light: rgba(241, 241, 228, 0.06); /* @kind color */
+
+  /* ---- Motion ---- */
+  --ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1); /* @kind other */   /* default UI ease */
+  --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1); /* @kind other */       /* entrances */
+  --ease-exit:     cubic-bezier(0.4, 0, 1, 1); /* @kind other */
+  --dur-fast:   120ms; /* @kind other */
+  --dur-base:   220ms; /* @kind other */
+  --dur-slow:   420ms; /* @kind other */
+  --dur-slower: 720ms; /* @kind other */
+
+  /* Interaction: hover lifts opacity/brightness; press shrinks slightly */
+  --press-scale: 0.98; /* @kind other */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms; /* @kind other */ --dur-base: 0ms; /* @kind other */ --dur-slow: 0ms; /* @kind other */ --dur-slower: 0ms; /* @kind other */
+  }
+}

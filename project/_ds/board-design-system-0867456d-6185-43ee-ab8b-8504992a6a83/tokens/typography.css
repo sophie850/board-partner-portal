@@ -1,0 +1,64 @@
+/* ============================================================
+   BOARD · Typography tokens
+   Typeface: Ambit (all weights self-hosted, see fonts.css)
+   Voice: confident, editorial. Display set in ALL CAPS, tight.
+   ============================================================ */
+
+:root {
+  /* ---- Families ---- */
+  --font-display: "Ambit", "Helvetica Neue", Arial, sans-serif;
+  --font-body:    "Ambit", "Helvetica Neue", Arial, sans-serif;
+  --font-mono:    ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* ---- Weights ----
+     Ambit ships Thin→Black, but BRAND RULE: never set text heavier than
+     Regular (400). Light (300) & Regular (400) do the everyday work; Thin
+     (100) & ExtraLight (200) are reserved for large display and oversized
+     numerals. Hierarchy otherwise comes from size, caps, tracking, colour.
+     (600/700/900 remain as tokens only; do not use them for text.) */
+  --fw-thin:       100; /* @kind font */
+  --fw-extralight: 200; /* @kind font */
+  --fw-light:      300; /* @kind font */
+  --fw-regular:    400; /* @kind font */
+  --fw-semibold:   600; /* @kind font */
+  --fw-bold:       700; /* @kind font */
+  --fw-black:      900; /* @kind font */
+
+  /* ---- Type scale (px, 1.250 major-third-ish, display-heavy) ---- */
+  --fs-display-xl: 96px;   /* hero display */
+  --fs-display-l:  72px;
+  --fs-display-m:  54px;
+  --fs-display-s:  40px;
+  --fs-heading-l:  32px;
+  --fs-heading-m:  24px;
+  --fs-heading-s:  20px;
+  --fs-body-l:     18px;
+  --fs-body-m:     16px;   /* base */
+  --fs-body-s:     14px;
+  --fs-caption:    13px;
+  --fs-overline:   12px;   /* section labels, eyebrows */
+
+  /* ---- Line heights ---- */
+  --lh-display:    0.98; /* @kind other */
+  --lh-tight:      1.08; /* @kind other */
+  --lh-heading:    1.15; /* @kind other */
+  --lh-snug:       1.35; /* @kind other */
+  --lh-body:       1.55; /* @kind other */
+  --lh-relaxed:    1.7; /* @kind other */
+
+  /* ---- Letter spacing ---- */
+  --ls-display:   -0.02em; /* @kind other */
+  --ls-heading:   -0.01em; /* @kind other */
+  --ls-body:       0em; /* @kind other */
+  --ls-overline:   0.18em; /* @kind other */
+  --ls-mono:       0.02em; /* @kind other */
+
+  /* =========================================================
+     Semantic type roles
+     ========================================================= */
+  --type-hero-weight:    var(--fw-light); /* @kind font */
+  --type-display-weight: var(--fw-light); /* @kind font */
+  --type-heading-weight: var(--fw-regular); /* @kind font */
+  --type-body-weight:    var(--fw-regular); /* @kind font */
+  --type-label-weight:   var(--fw-regular); /* @kind font */
+}

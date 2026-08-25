@@ -1,0 +1,48 @@
+/* ============================================================
+   BOARD · Spacing, radii, layout tokens
+   8px base grid. Generous, editorial whitespace.
+   ============================================================ */
+
+:root {
+  /* ---- Spacing scale (8px base) ---- */
+  --space-0:   0;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   24px;
+  --space-6:   32px;
+  --space-7:   48px;
+  --space-8:   64px;
+  --space-9:   96px;
+  --space-10: 128px;
+  --space-11: 160px;
+
+  /* ---- Radii — BOARD leans crisp; corners are modest ---- */
+  --radius-none: 0;
+  --radius-xs:   4px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --radius-pill: 999px;   /* the BOARD Blue capsule (see quick-ref) */
+
+  /* ---- Layout ---- */
+  --container-max: 1280px;
+  --container-wide: 1440px;
+  --gutter:        24px;
+  --gutter-lg:     48px;
+  --section-y:     96px;   /* vertical rhythm between sections */
+
+  /* ---- Border widths ---- */
+  --bw-hair:  1px;
+  --bw-med:   1.5px;
+  --bw-thick: 2px;
+
+  /* ---- Responsive breakpoints (min-width, mobile-first) ---- */
+  --bp-sm:  480px;   /* large phone */
+  --bp-md:  768px;   /* tablet */
+  --bp-lg:  1024px;  /* small laptop */
+  --bp-xl:  1280px;  /* desktop — container-max */
+  --bp-2xl: 1440px;  /* wide */
+}
