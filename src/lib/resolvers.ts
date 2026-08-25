@@ -230,6 +230,46 @@ export function formsNeedingReminder(db: Db, part: Participation): ResolvedForm[
   );
 }
 
+/**
+ * The three action badges, guaranteed disjoint.
+ *
+ * Tasks is the canonical action list. Forms and Requests count only
+ * work that no outstanding task already represents, so the three sum
+ * exactly to the combined Actions badge and one unit of work is
+ * never counted twice.
+ */
+export function actionCounts(
+  db: Db,
+  part: Participation,
+): { tasks: number; forms: number; requests: number; total: number; overdue: number } {
+  const tasks = resolveTasks(db, part);
+  const outstanding = tasks.filter((t) => !t.completed);
+
+  const covered = new Set(
+    outstanding
+      .filter((t) => t.link?.type === 'form' && t.link.target)
+      .map((t) => t.link.target as string),
+  );
+
+  const forms = resolveForms(db, part).filter(
+    (f) => isFormActionable(f.state.status) && !covered.has(f.id),
+  ).length;
+
+  const requests = db.requests.filter(
+    (r) => r.participationId === part.id && r.status === 'more_info',
+  ).length;
+
+  const overdue = tasks.filter((t) => isOverdue(t.dueDate, t.completed)).length;
+
+  return {
+    tasks: outstanding.length,
+    forms,
+    requests,
+    total: outstanding.length + forms + requests,
+    overdue,
+  };
+}
+
 export function isFormSettled(status: string): boolean {
   return status === 'approved' || status === 'submitted' || status === 'under_review';
 }
@@ -443,6 +483,7 @@ export function terms(db: Db) {
     lower: {
       partner: t.partner.toLowerCase(),
       partners: (t.partnerPlural || plural(t.partner)).toLowerCase(),
+      participation: t.participation.toLowerCase(),
       task: t.task.toLowerCase(),
       tasks: (t.taskPlural || plural(t.task)).toLowerCase(),
       request: t.request.toLowerCase(),
