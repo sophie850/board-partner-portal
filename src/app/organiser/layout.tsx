@@ -17,6 +17,15 @@ import { AppShell, type NavEntry } from '@/components/shell/AppShell';
 import { getDb } from '@/lib/db/store';
 import { fmtDate, terms } from '@/lib/resolvers';
 
+/**
+ * Nothing under the organiser portal is prerendered.
+ *
+ * Every screen reads live event data, so a build-time snapshot would
+ * serve stale counts and stale content — and would make the build
+ * itself depend on the database being reachable.
+ */
+export const dynamic = 'force-dynamic';
+
 export default async function OrganiserLayout({
   children,
 }: {
