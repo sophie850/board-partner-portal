@@ -26,6 +26,7 @@ import type {
   ResolvedForm,
   ResolvedTask,
   TaskTemplate,
+  Terminology,
   VisibilityRule,
 } from './types';
 
@@ -467,9 +468,28 @@ export function plural(singular: string): string {
   return s + 's';
 }
 
-/** Terminology lookup with inferred plurals, for nav, headings and body copy. */
+/** Falls back to the product's own vocabulary if a key is missing. */
+const DEFAULT_TERMS: Terminology = {
+  partner: 'Partner',
+  partnerPlural: 'Partners',
+  partnerPortal: 'Partner Portal',
+  participation: 'Participation',
+  task: 'Task',
+  taskPlural: 'Tasks',
+  request: 'Request',
+  requestPlural: 'Requests',
+};
+
+/**
+ * Terminology lookup with inferred plurals, for nav, headings and
+ * body copy.
+ *
+ * Every key is defaulted: terminology is a JSONB column, so a
+ * partially-populated or empty object is a realistic state, and a
+ * missing key must not take down every page that renders a heading.
+ */
 export function terms(db: Db) {
-  const t = db.event.terminology;
+  const t = { ...DEFAULT_TERMS, ...(db.event?.terminology ?? {}) };
   return {
     partner: t.partner,
     partners: t.partnerPlural || plural(t.partner),

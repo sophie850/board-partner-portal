@@ -18,8 +18,14 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // The unlock screen and its action must stay reachable, or there
-  // is no way in.
-  if (pathname === '/unlock' || pathname.startsWith('/api/unlock')) {
+  // is no way in. The health check is deliberately open too: it
+  // returns configuration shape and row counts only — never data —
+  // and its whole purpose is diagnosing a site you cannot get into.
+  if (
+    pathname === '/unlock' ||
+    pathname.startsWith('/api/unlock') ||
+    pathname === '/api/health'
+  ) {
     return NextResponse.next();
   }
 
