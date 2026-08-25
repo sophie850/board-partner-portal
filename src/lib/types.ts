@@ -331,7 +331,8 @@ export type ContentBlock =
   | { type: 'callout'; tone: 'info' | 'warn'; text: string }
   | { type: 'divider' }
   | { type: 'video'; url: string; caption?: string }
-  | { type: 'download'; name: string; note?: string }
+  /** `url` is an app path served by /api/files/*, not a public link. */
+  | { type: 'download'; name: string; note?: string; url?: string }
   | { type: 'timeline'; items: TimelineItem[] };
 
 export interface ContentPage {

@@ -123,6 +123,11 @@ function Block({ block }: { block: ContentBlock }): ReactNode {
               fill
               sizes="(max-width: 768px) 100vw, 700px"
               className="object-cover"
+              /* Uploaded files live behind /api/files/*, which is
+                 gated. The image optimiser fetches server-side
+                 without the gate cookie, so it would get a redirect
+                 rather than the image — serve these unoptimised. */
+              unoptimized={block.src.startsWith('/api/files/')}
             />
           </div>
           {block.caption && (
@@ -196,9 +201,9 @@ function Block({ block }: { block: ContentBlock }): ReactNode {
       );
     }
 
-    case 'download':
-      return (
-        <div className="flex items-center gap-3 rounded-lg border border-line-3 bg-inset px-[17px] py-[14px]">
+    case 'download': {
+      const body = (
+        <>
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-line-3 bg-chip text-accent">
             <Download size={16} />
           </span>
@@ -206,8 +211,28 @@ function Block({ block }: { block: ContentBlock }): ReactNode {
             <div className="truncate text-[13.5px] text-ink">{block.name}</div>
             {block.note && <div className="mt-[2px] text-[11.5px] text-ink-4">{block.note}</div>}
           </div>
-        </div>
+        </>
       );
+
+      const shell =
+        'flex items-center gap-3 rounded-lg border border-line-3 bg-inset px-[17px] py-[14px]';
+
+      // Only app-served paths are linked. The file lives in a private
+      // bucket behind /api/files/*, so this is never an external URL.
+      if (block.url?.startsWith('/api/files/')) {
+        return (
+          <a
+            href={block.url}
+            download
+            className={`${shell} no-underline transition-colors hover:border-accent-line`}
+          >
+            {body}
+          </a>
+        );
+      }
+
+      return <div className={shell}>{body}</div>;
+    }
 
     case 'timeline':
       return <KeyDates items={block.items} />;

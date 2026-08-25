@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 
 import { BlockRenderer, blocksToText } from '@/components/content/BlockRenderer';
+import { FileUpload } from '@/components/ui/FileUpload';
 import {
   Button,
   Callout,
@@ -70,6 +71,17 @@ const BLOCK_LABEL: Record<BlockKind, string> = {
   download: 'Download',
   timeline: 'Key dates',
 };
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function extensionOf(name: string): string {
+  const ext = name.split('.').pop();
+  return ext ? ext.toUpperCase() : 'File';
+}
 
 function emptyBlock(kind: BlockKind): ContentBlock {
   switch (kind) {
@@ -304,7 +316,7 @@ export function ContentEditor({
 
           {/* ---- cover ---- */}
           <Label>Cover image</Label>
-          <div className="mb-2 flex flex-wrap gap-2">
+          <div className="mb-3 flex flex-wrap gap-2">
             <CoverSwatch
               src={autoCover}
               selected={cover === null}
@@ -312,6 +324,15 @@ export function ContentEditor({
               caption="Auto"
               title="Automatic — a BOARD gradient chosen from the category"
             />
+            {/* An uploaded cover sits first, so it is obvious it won. */}
+            {cover && !GRADIENTS.includes(cover) && (
+              <CoverSwatch
+                src={cover}
+                selected
+                onClick={() => setCover(cover)}
+                title="Your uploaded cover"
+              />
+            )}
             {GRADIENTS.map((src) => (
               <CoverSwatch
                 key={src}
@@ -322,9 +343,16 @@ export function ContentEditor({
               />
             ))}
           </div>
+          <FileUpload
+            purpose="image"
+            folder="covers"
+            label="Upload your own cover"
+            compact
+            onUploaded={(f) => setCover(f.url)}
+          />
           <Help>
-            Uploading your own cover needs file storage, which is not wired up yet — for now
-            pick a BOARD gradient, or leave it on Auto.
+            Wide images work best — covers are cropped to a letterbox. Leave it on Auto to
+            use a BOARD gradient chosen from the category.
           </Help>
 
           {/* ---- visibility ---- */}
@@ -517,13 +545,28 @@ function BlockFields({
     case 'image':
       return (
         <div className="flex flex-col gap-2">
+          {block.src && (
+            <div
+              className="h-[92px] rounded-sm border border-line-3 bg-cover bg-center"
+              style={{ backgroundImage: `url('${block.src}')` }}
+              role="img"
+              aria-label={block.caption || 'Selected image'}
+            />
+          )}
+          <FileUpload
+            purpose="image"
+            folder="content"
+            label={block.src ? 'Replace image' : 'Upload an image'}
+            compact
+            onUploaded={(f) => onChange({ ...block, src: f.url })}
+          />
           <select
             className={clsx(small, 'cursor-pointer')}
-            value={block.src}
+            value={GRADIENTS.includes(block.src) ? block.src : ''}
             onChange={(e) => onChange({ ...block, src: e.target.value })}
-            aria-label={`Image, block ${index + 1}`}
+            aria-label={`Or choose a BOARD gradient, block ${index + 1}`}
           >
-            <option value="">Choose an image…</option>
+            <option value="">…or choose a BOARD gradient</option>
             {GRADIENTS.map((src, i) => (
               <option key={src} value={src}>
                 BOARD gradient {i + 1}
@@ -575,11 +618,27 @@ function BlockFields({
     case 'download':
       return (
         <div className="flex flex-col gap-2">
+          <FileUpload
+            purpose="document"
+            folder="downloads"
+            label={block.url ? 'Replace file' : 'Upload the file'}
+            compact
+            onUploaded={(f) =>
+              onChange({
+                ...block,
+                url: f.url,
+                // Prefill the label and note from the file itself, so
+                // the common case needs no typing at all.
+                name: block.name || f.name,
+                note: block.note || `${formatBytes(f.size)} · ${extensionOf(f.name)}`,
+              })
+            }
+          />
           <input
             className={small}
             value={block.name}
             onChange={(e) => onChange({ ...block, name: e.target.value })}
-            placeholder="File name"
+            placeholder="Link text, e.g. Grimaldi Forum floor plan (PDF)"
             aria-label={`Download name, block ${index + 1}`}
           />
           <input
@@ -589,6 +648,12 @@ function BlockFields({
             placeholder="Note e.g. 2.4 MB · PDF"
             aria-label={`Download note, block ${index + 1}`}
           />
+          {!block.url && (
+            <div className="text-[11.5px] text-ink-4">
+              Without a file this shows as a heading only — partners will have nothing to
+              download.
+            </div>
+          )}
         </div>
       );
 
