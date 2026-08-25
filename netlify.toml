@@ -1,0 +1,41 @@
+# ============================================================
+# BOARD Partner Portal — Netlify
+#
+# The Next.js runtime plugin handles server components, server
+# actions and middleware. Environment variables are set in the
+# Netlify UI (Site configuration -> Environment variables), never
+# committed here — SUPABASE_SECRET_KEY in particular must only ever
+# exist as a server-side variable.
+# ============================================================
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Long-lived caching for the self-hosted brand faces and the
+# gradient assets: they are content-stable and heavy.
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# The portal holds commercial data about named organisations; keep
+# it out of search results and out of frames.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
