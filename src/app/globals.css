@@ -1,0 +1,298 @@
+@import "tailwindcss";
+
+/* ============================================================
+   BOARD Partner Portal — global stylesheet
+
+   Layer 1: the BOARD design-system tokens, carried across from
+            _ds/tokens/*.css unchanged so the brand contract holds.
+   Layer 2: semantic app tokens (--bp-*) that flip between themes.
+            The prototype hard-coded hex inline and remapped the
+            light theme by matching serialised style strings; here
+            each role is a variable, so light mode is a token swap.
+   Layer 3: the Tailwind v4 theme, mapped `inline` so utilities
+            emit var() references and follow the theme swap.
+   ============================================================ */
+
+/* ---------- Ambit — BOARD's brand typeface, self-hosted ---------- */
+@font-face { font-family: "Ambit"; src: url("/fonts/Ambit-Thin.otf") format("opentype"); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: "Ambit"; src: url("/fonts/Ambit-ThinItalic.otf") format("opentype"); font-weight: 100; font-style: italic; font-display: swap; }
+@font-face { font-family: "Ambit"; src: url("/fonts/Ambit-ExtraLight.otf") format("opentype"); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: "Ambit"; src: url("/fonts/Ambit-ExtraLightItalic.otf") format("opentype"); font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: "Ambit"; src: url("/fonts/Ambit-Light.otf") format("opentype"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Ambit"; src: url("/fonts/Ambit-LightItalic.otf") format("opentype"); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: "Ambit"; src: url("/fonts/Ambit-Regular.otf") format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Ambit"; src: url("/fonts/Ambit-Italic.otf") format("opentype"); font-weight: 400; font-style: italic; font-display: swap; }
+
+:root {
+  /* ================= BOARD brand palette (tokens/colors.css) ================= */
+  --board-rich-black: #000000;
+  --board-off-white: #f1f1e4;
+  --board-pure-white: #ffffff;
+  --board-teal: #016972;
+  --board-blue: #1a4de7;
+  --board-aqua: #31f9e5;
+  --board-cyan: #00b7c4;
+  --board-deep-blue: #000d44;
+  --board-ink-blue: #01347c;
+  --board-amber: #c8763c;
+
+  --board-black-900: #050608;
+  --board-black-800: #0b0d11;
+  --board-black-700: #14171d;
+  --board-gray-600: #2a2f38;
+  --board-gray-500: #454c58;
+  --board-gray-400: #6b7280;
+  --board-gray-300: #9aa1ad;
+  --board-gray-200: #c6cad2;
+  --board-gray-100: #e4e5de;
+
+  --board-gradient: linear-gradient(90deg, #31f9e5 0%, #00b7c4 22%, #0157a5 48%, #1a4de7 70%, #000d44 100%);
+  --board-gradient-soft: linear-gradient(120deg, #016972 0%, #01347c 55%, #000d44 100%);
+
+  /* ================= Motion (tokens/effects.css) ================= */
+  --ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 420ms;
+  --press-scale: 0.98;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+  --glow-blue: 0 0 40px rgba(26, 77, 231, 0.35);
+  --glow-aqua: 0 0 32px rgba(49, 249, 229, 0.3);
+
+  /* ================= Semantic app tokens — DARK (default) ================= */
+  color-scheme: dark;
+
+  /* Grounds. Every surface paints its own background (BOARD rule). */
+  --bp-canvas: #000000;        /* app canvas */
+  --bp-inset: #050608;         /* header, sidebar, form fields, sub-cards */
+  --bp-panel: #0b0d11;         /* panels & cards */
+  --bp-panel-alt: #080a0d;     /* nested panel shade */
+  --bp-chip: #14171d;          /* chips, muted fills, hover rows */
+
+  /* Text ramp */
+  --bp-text: #f1f1e4;          /* primary */
+  --bp-text-2: #c6cad2;        /* secondary */
+  --bp-text-3: #9aa1ad;        /* tertiary */
+  --bp-text-4: #6b7280;        /* muted / meta */
+  --bp-text-5: #454c58;        /* nav section labels */
+
+  /* Accents. Contrast rule: aqua on dark, teal on light. */
+  --bp-accent: #31f9e5;        /* accent (dark ground) */
+  --bp-blue: #1a4de7;          /* primary action */
+  --bp-blue-hover: #3563ec;
+  --bp-amber: #c8763c;         /* warning / overdue */
+  --bp-info: #9db2f0;          /* info accent */
+  --bp-on-brand: #ffffff;      /* text on solid brand fills */
+
+  /* Tinted fills */
+  --bp-accent-fill: rgba(49, 249, 229, 0.12);
+  --bp-accent-line: rgba(49, 249, 229, 0.32);
+  --bp-blue-fill: rgba(26, 77, 231, 0.14);
+  --bp-blue-line: rgba(26, 77, 231, 0.4);
+  --bp-amber-fill: rgba(200, 118, 60, 0.12);
+  --bp-amber-line: rgba(200, 118, 60, 0.34);
+
+  /* Hairlines — the elevation system on dark is borders, not shadows */
+  --bp-line: rgba(241, 241, 228, 0.06);
+  --bp-line-2: rgba(241, 241, 228, 0.1);
+  --bp-line-3: rgba(241, 241, 228, 0.14);
+  --bp-line-4: rgba(241, 241, 228, 0.18);
+  --bp-line-5: rgba(241, 241, 228, 0.24);
+
+  --bp-scrim: rgba(0, 0, 0, 0.66);
+  --bp-shadow-panel: 0 18px 44px rgba(0, 0, 0, 0.6);
+  --bp-focus: #31f9e5;
+}
+
+/* ================= Semantic app tokens — LIGHT =================
+   Rich Black grounds map to warm off-white; off-white text to ink;
+   aqua to teal per the BOARD contrast rule. Solid brand fills keep
+   light text, so --bp-on-brand does not flip. */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bp-canvas: #e4e4d6;
+  --bp-inset: #f5f5ec;
+  --bp-panel: #ffffff;
+  --bp-panel-alt: #ededf1;
+  --bp-chip: #e7e7da;
+
+  --bp-text: #1a1d22;
+  --bp-text-2: #33383f;
+  --bp-text-3: #565c64;
+  --bp-text-4: #74797f;
+  --bp-text-5: #8b9099;
+
+  --bp-accent: #016972;
+  --bp-blue: #1a4de7;
+  --bp-blue-hover: #123cbe;
+  --bp-amber: #a85e28;
+  --bp-info: #1a4de7;
+
+  --bp-accent-fill: rgba(1, 105, 114, 0.1);
+  --bp-accent-line: rgba(1, 105, 114, 0.32);
+  --bp-blue-fill: rgba(26, 77, 231, 0.1);
+  --bp-blue-line: rgba(26, 77, 231, 0.34);
+  --bp-amber-fill: rgba(168, 94, 40, 0.1);
+  --bp-amber-line: rgba(168, 94, 40, 0.32);
+
+  --bp-line: rgba(0, 0, 0, 0.09);
+  --bp-line-2: rgba(0, 0, 0, 0.12);
+  --bp-line-3: rgba(0, 0, 0, 0.14);
+  --bp-line-4: rgba(0, 0, 0, 0.18);
+  --bp-line-5: rgba(0, 0, 0, 0.24);
+
+  --bp-scrim: rgba(26, 29, 34, 0.44);
+  --bp-shadow-panel: 0 12px 40px rgba(0, 13, 68, 0.12);
+  --bp-focus: #1a4de7;
+}
+
+/* The login brand panel is a permanent dark hero — exempt from the
+   light remap so the gradient keeps its scrim and light type. */
+[data-theme="light"] .bp-on-dark {
+  --bp-canvas: #000000;
+  --bp-inset: #050608;
+  --bp-panel: #0b0d11;
+  --bp-chip: #14171d;
+  --bp-text: #f1f1e4;
+  --bp-text-2: #c6cad2;
+  --bp-text-3: #9aa1ad;
+  --bp-text-4: #6b7280;
+  --bp-accent: #31f9e5;
+  --bp-line: rgba(241, 241, 228, 0.06);
+  --bp-line-2: rgba(241, 241, 228, 0.1);
+  --bp-line-3: rgba(241, 241, 228, 0.14);
+  --bp-line-4: rgba(241, 241, 228, 0.18);
+}
+
+/* ================= Tailwind theme =================
+   `inline` keeps utilities emitting var() so they follow the swap. */
+@theme inline {
+  --font-sans: "Ambit", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Ambit", "Helvetica Neue", Arial, sans-serif;
+
+  --color-canvas: var(--bp-canvas);
+  --color-inset: var(--bp-inset);
+  --color-panel: var(--bp-panel);
+  --color-panel-alt: var(--bp-panel-alt);
+  --color-chip: var(--bp-chip);
+
+  --color-ink: var(--bp-text);
+  --color-ink-2: var(--bp-text-2);
+  --color-ink-3: var(--bp-text-3);
+  --color-ink-4: var(--bp-text-4);
+  --color-ink-5: var(--bp-text-5);
+
+  --color-accent: var(--bp-accent);
+  --color-brand: var(--bp-blue);
+  --color-brand-hover: var(--bp-blue-hover);
+  --color-warn: var(--bp-amber);
+  --color-info: var(--bp-info);
+  --color-on-brand: var(--bp-on-brand);
+
+  --color-accent-fill: var(--bp-accent-fill);
+  --color-accent-line: var(--bp-accent-line);
+  --color-brand-fill: var(--bp-blue-fill);
+  --color-brand-line: var(--bp-blue-line);
+  --color-warn-fill: var(--bp-amber-fill);
+  --color-warn-line: var(--bp-amber-line);
+
+  --color-line: var(--bp-line);
+  --color-line-2: var(--bp-line-2);
+  --color-line-3: var(--bp-line-3);
+  --color-line-4: var(--bp-line-4);
+  --color-line-5: var(--bp-line-5);
+
+  --color-board-teal: var(--board-teal);
+  --color-board-aqua: var(--board-aqua);
+  --color-board-blue: var(--board-blue);
+  --color-board-off-white: var(--board-off-white);
+
+  /* BOARD leans crisp: 0–16px corners, with the pill as the one curve */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+  --radius-pill: 999px;
+
+  --ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-rise: bpFade 0.3s var(--ease-emphasis) both;
+}
+
+@keyframes bpFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ================= Base ================= */
+@layer base {
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--bp-canvas);
+    color: var(--bp-text);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* BRAND RULE: text is never heavier than Regular. */
+  b, strong { font-weight: 400; }
+
+  h1, h2, h3, h4, h5, h6 { font-weight: 300; margin: 0; }
+
+  a {
+    color: var(--bp-accent);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-standard);
+  }
+  a:hover { color: var(--bp-text); }
+
+  :focus-visible {
+    outline: 2px solid var(--bp-focus);
+    outline-offset: 2px;
+  }
+
+  ::selection { background: var(--board-blue); color: var(--board-off-white); }
+
+  /* Native controls inherit the brand face rather than the UA default */
+  input, select, textarea, button { font-family: inherit; }
+}
+
+@layer utilities {
+  /* Wide-tracked uppercase eyebrow — the BOARD section label */
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+}
+
+/* Scrollbars — hairline thumb, no track */
+.bp-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.bp-scroll::-webkit-scrollbar-thumb { background: var(--bp-line-3); border-radius: 8px; }
+.bp-scroll::-webkit-scrollbar-track { background: transparent; }
+.bp-scroll { scrollbar-width: thin; scrollbar-color: var(--bp-line-3) transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

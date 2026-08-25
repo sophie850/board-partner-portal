@@ -1,0 +1,573 @@
+/* ============================================================
+   BOARD Partner Portal — the personalisation engine
+
+   These are the rules that decide what each partner sees. In the
+   prototype they ran in the browser; here they are pure functions so
+   the same logic can run on the server, where it is enforceable.
+
+   IMPORTANT: client-side use of these is presentation only. Every
+   visibility rule below is also an authorisation requirement — a
+   partner must not be able to read another partner's data by any
+   means, which is enforced in the data layer and (once auth lands)
+   by row-level security in Postgres.
+   ============================================================ */
+
+import type {
+  Db,
+  FieldValue,
+  FormDef,
+  FormField,
+  FormValues,
+  Id,
+  IsoDate,
+  Participation,
+  PartnerUser,
+  Product,
+  ResolvedForm,
+  ResolvedTask,
+  TaskTemplate,
+  VisibilityRule,
+} from './types';
+
+/* ---------------------------------------------------------------
+   Entitlements
+   --------------------------------------------------------------- */
+
+/**
+ * The partner's effective entitlement set.
+ *
+ * Precedence: partner override → event default. Package templates
+ * were removed during design; `packageId` is still honoured so any
+ * legacy record resolves, and so templates can return later.
+ */
+export function entitlementSet(db: Db, part: Participation): Set<string> {
+  const pkg = db.packageTemplates.find((p) => p.id === part.packageId);
+  const set = new Set<string>(pkg ? pkg.entitlements : []);
+  (part.addedEntitlements || []).forEach((k) => set.add(k));
+  (part.removedEntitlements || []).forEach((k) => set.delete(k));
+  return set;
+}
+
+export function hasEnt(db: Db, part: Participation, key: string): boolean {
+  return entitlementSet(db, part).has(key);
+}
+
+/** Entitlements with provenance, for the organiser's effective-config view. */
+export function entitlementsWithSource(
+  db: Db,
+  part: Participation,
+): Array<{ key: string; source: 'override' }> {
+  const out: Array<{ key: string; source: 'override' }> = [];
+  new Set(part.addedEntitlements || []).forEach((k) => {
+    if ((part.removedEntitlements || []).includes(k)) return;
+    out.push({ key: k, source: 'override' });
+  });
+  return out;
+}
+
+/**
+ * Normalise the entitlement keys a rule carries. Supports the
+ * multi-key `{ keys: [] }` shape and the legacy single-key
+ * `{ key }` / `{ requires }` shapes.
+ */
+export function entKeys(rule: VisibilityRule | undefined | null): string[] {
+  if (!rule) return [];
+  if (Array.isArray(rule.keys)) return rule.keys;
+  const k = rule.key || rule.requires;
+  return k ? [k] : [];
+}
+
+/** ANY-of: the partner needs at least one of the listed keys. */
+export function hasAnyEnt(db: Db, part: Participation, keys: string[]): boolean {
+  if (!keys || !keys.length) return true;
+  return keys.some((k) => hasEnt(db, part, k));
+}
+
+/* ---------------------------------------------------------------
+   Visibility — one rule shape, used everywhere
+   --------------------------------------------------------------- */
+
+/**
+ * The shared visibility check, applied identically to shop products,
+ * content pages, files, tasks and individual form fields. Gating a
+ * form field with this is how two partners receive the same form but
+ * see different fields.
+ */
+export function ruleMatches(
+  db: Db,
+  rule: VisibilityRule | undefined | null,
+  part: Participation,
+): boolean {
+  if (!rule || rule.type === 'all' || Object.keys(rule).length === 0) return true;
+  if (rule.type === 'entitlement' || rule.requires || rule.keys) {
+    return hasAnyEnt(db, part, entKeys(rule));
+  }
+  if (rule.type === 'package') return (rule.packages || []).includes(part.packageId ?? '');
+  if (rule.type === 'partner') return (rule.partners || []).includes(part.partnerId);
+  if (rule.type === 'except') return !(rule.partners || []).includes(part.partnerId);
+  return true;
+}
+
+export function productVisible(db: Db, product: Product, part: Participation): boolean {
+  if (!product.active) return false;
+  return ruleMatches(db, product.visibility, part);
+}
+
+/** Partner-specific price beats the catalogue price. */
+export function priceFor(part: Participation, product: Product): number | null {
+  const o = (part.priceOverrides || []).find((p) => p.productId === product.id);
+  return o ? o.price : product.basePrice;
+}
+
+/** A field is shown when its visibility rule passes AND its condition holds. */
+export function fieldVisible(
+  db: Db,
+  field: FormField,
+  part: Participation,
+  values?: FormValues,
+): boolean {
+  if (field.visibility && !ruleMatches(db, field.visibility, part)) return false;
+  if (field.condition) {
+    const v = values ? values[field.condition.field] : undefined;
+    if (v !== field.condition.equals) return false;
+  }
+  return true;
+}
+
+export function formApplies(db: Db, form: FormDef, part: Participation): boolean {
+  return ruleMatches(db, form.assign, part);
+}
+
+export function contentVisible(
+  db: Db,
+  page: { visibility: VisibilityRule },
+  part: Participation,
+): boolean {
+  return ruleMatches(db, page.visibility, part);
+}
+
+export function taskApplies(db: Db, tpl: TaskTemplate, part: Participation): boolean {
+  const keys = Array.isArray(tpl.requires) ? tpl.requires : tpl.requires ? [tpl.requires] : [];
+  return hasAnyEnt(db, part, keys);
+}
+
+/* ---------------------------------------------------------------
+   Resolution — template + per-partner state + deadline override
+   --------------------------------------------------------------- */
+
+/**
+ * The partner's ordered task list.
+ *
+ * Deadline resolution: partner override → event default → none.
+ * A task with no resolved date shows "Date to be confirmed" and is
+ * never flagged overdue.
+ */
+export function resolveTasks(db: Db, part: Participation): ResolvedTask[] {
+  return db.taskTemplates
+    .filter((t) => taskApplies(db, t, part))
+    .map((t) => {
+      const st = (part.taskState && part.taskState[t.id]) || {};
+      const override = part.taskDueDates && part.taskDueDates[t.id];
+      const dueDate = override || t.dueDate || null;
+      return {
+        ...t,
+        ...st,
+        dueDate,
+        deadlineOverridden: !!override,
+        completed: !!st.completed,
+      };
+    });
+}
+
+/** The partner's forms, merged with their submission state. */
+export function resolveForms(db: Db, part: Participation): ResolvedForm[] {
+  return db.forms
+    .filter((f) => formApplies(db, f, part))
+    .map((f) => {
+      const st = (part.formState && part.formState[f.id]) || { status: 'not_started' as const };
+      const override = part.formDueDates && part.formDueDates[f.id];
+      const dueDate = override || f.dueDate || null;
+      return { ...f, dueDate, deadlineOverridden: !!override, state: st };
+    });
+}
+
+/** The fields of a form this partner actually sees, given current answers. */
+export function visibleFields(
+  db: Db,
+  form: FormDef,
+  part: Participation,
+  values?: FormValues,
+): FormField[] {
+  return form.fields.filter((f) => fieldVisible(db, f, part, values));
+}
+
+/* ---------------------------------------------------------------
+   De-duplication — Tasks / Forms / Requests badges must be disjoint
+   --------------------------------------------------------------- */
+
+/**
+ * Form ids that are represented by an outstanding linked task.
+ *
+ * A form with a linked outstanding task is *represented by that
+ * task*. This keeps the nav badges disjoint (they sum exactly to the
+ * Actions badge) and stops a partner receiving two reminder emails
+ * for one unit of work.
+ */
+export function formsCoveredByTasks(db: Db, part: Participation): Set<Id> {
+  const covered = new Set<Id>();
+  resolveTasks(db, part).forEach((t) => {
+    if (t.completed) return;
+    if (t.link?.type === 'form' && t.link.target) covered.add(t.link.target);
+  });
+  return covered;
+}
+
+/** Forms that should fire their own reminder — i.e. have no linked task. */
+export function formsNeedingReminder(db: Db, part: Participation): ResolvedForm[] {
+  const covered = formsCoveredByTasks(db, part);
+  return resolveForms(db, part).filter(
+    (f) => !covered.has(f.id) && !isFormSettled(f.state.status),
+  );
+}
+
+export function isFormSettled(status: string): boolean {
+  return status === 'approved' || status === 'submitted' || status === 'under_review';
+}
+
+/** A form still needs the partner to do something. */
+export function isFormActionable(status: string): boolean {
+  return status === 'not_started' || status === 'in_progress' || status === 'changes_required';
+}
+
+/* ---------------------------------------------------------------
+   Modules — which nav items this partner and user can see
+   --------------------------------------------------------------- */
+
+export interface ModuleDef {
+  key: string;
+  label: string;
+  icon: string;
+}
+
+const BASE_MODULES: ModuleDef[] = [
+  { key: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
+  { key: 'timeline', label: 'Timeline', icon: 'calendar-clock' },
+  { key: 'participation', label: 'My participation', icon: 'package' },
+  { key: 'tasks', label: 'Tasks', icon: 'circle-check' },
+  { key: 'forms', label: 'Forms', icon: 'file-text' },
+  { key: 'requests', label: 'Requests', icon: 'message-square-warning' },
+  { key: 'information', label: 'Information', icon: 'book-open' },
+  { key: 'shop', label: 'Shop', icon: 'shopping-bag' },
+  { key: 'orders', label: 'Orders', icon: 'receipt' },
+  { key: 'files', label: 'Files & assets', icon: 'folder' },
+  { key: 'promote', label: 'Promote', icon: 'megaphone' },
+  { key: 'team', label: 'Team', icon: 'users' },
+];
+
+/** Entitlements that give a partner something to buy. */
+const SHOP_KEYS = [
+  'can_order_av',
+  'can_order_furniture',
+  'can_order_signage',
+  'can_order_catering',
+  'has_exhibition_space',
+  'has_hospitality_activation',
+  'has_branding_inventory',
+];
+
+/** Info-only modules are always on; the rest map to a permission key. */
+const ALWAYS_ON = new Set(['dashboard', 'timeline', 'information', 'files']);
+
+const PERMISSION_KEY: Record<string, keyof import('./types').PartnerPermissions> = {
+  tasks: 'tasks',
+  forms: 'forms',
+  requests: 'requests',
+  shop: 'shop',
+  orders: 'orders',
+  participation: 'profile',
+  promote: 'profile',
+  team: 'team',
+};
+
+/**
+ * The modules this partner — and this signed-in user — can see.
+ *
+ * Gating here is presentation. The same checks must be enforced
+ * server-side: hiding a nav item is not access control.
+ */
+export function visibleModules(
+  db: Db,
+  part: Participation,
+  user?: PartnerUser | null,
+): ModuleDef[] {
+  const canShop = SHOP_KEYS.some((k) => hasEnt(db, part, k));
+  const perm = user && user.permissions !== 'all' ? user.permissions : null;
+
+  return BASE_MODULES.filter((m) => {
+    if (part.moduleOverrides && part.moduleOverrides[m.key] === false) return false;
+    if ((m.key === 'shop' || m.key === 'orders') && !canShop) return false;
+    if (perm && !ALWAYS_ON.has(m.key)) {
+      const k = PERMISSION_KEY[m.key];
+      if (k && !perm[k]) return false;
+    }
+    return true;
+  });
+}
+
+/* ---------------------------------------------------------------
+   Money — one helper, driven by the event currency
+   --------------------------------------------------------------- */
+
+/**
+ * All monetary values display exc. tax, rounded to the nearest euro.
+ * Changing the event currency reformats every price in the product.
+ */
+export function money(db: Db, n: number | null | undefined): string {
+  const sym = db.event?.currencySymbol || '€';
+  return sym + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
+}
+
+/* ---------------------------------------------------------------
+   Dates
+   --------------------------------------------------------------- */
+
+/** "Date to be confirmed" — used wherever no deadline resolves. */
+export const NO_DATE_LABEL = 'Date to be confirmed';
+
+export function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+export function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return (
+    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
+    ', ' +
+    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  );
+}
+
+export function daysLeft(iso: string | null | undefined, now: Date = new Date()): number | null {
+  if (!iso) return null;
+  return Math.round((new Date(iso).getTime() - now.getTime()) / 86_400_000);
+}
+
+/** A task or form with no resolved date is never overdue. */
+export function isOverdue(
+  iso: string | null | undefined,
+  done?: boolean,
+  now: Date = new Date(),
+): boolean {
+  return !done && !!iso && new Date(iso) < now;
+}
+
+/** Upcoming only — the dashboard deadline list never shows past dates. */
+export function isUpcoming(iso: string | null | undefined, now: Date = new Date()): boolean {
+  return !!iso && new Date(iso) >= now;
+}
+
+/* ---------------------------------------------------------------
+   Status vocabulary
+   --------------------------------------------------------------- */
+
+/** Maps a status to a semantic token, not a raw hex, so themes hold. */
+export type StatusTone = 'good' | 'warn' | 'neutral' | 'muted';
+
+const STATUS_TONE: Record<string, StatusTone> = {
+  confirmed: 'good',
+  approved: 'good',
+  completed: 'good',
+  delivered: 'good',
+  partially_confirmed: 'good',
+  in_fulfilment: 'good',
+  submitted: 'neutral',
+  under_review: 'warn',
+  more_info: 'warn',
+  quote_requested: 'warn',
+  awaiting_information: 'warn',
+  changes_required: 'warn',
+  quoted: 'warn',
+  failed: 'warn',
+  rejected: 'muted',
+  cancelled: 'muted',
+  draft: 'muted',
+  closed: 'muted',
+  not_started: 'muted',
+  in_progress: 'neutral',
+};
+
+export function statusTone(status: string): StatusTone {
+  return STATUS_TONE[status] || 'neutral';
+}
+
+export function statusLabel(s: string | null | undefined): string {
+  const raw = String(s || '').replace(/_/g, ' ');
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+/* ---------------------------------------------------------------
+   Terminology — plurals are inferred from the singular
+   --------------------------------------------------------------- */
+
+/**
+ * Infer a plural: `-y` → `-ies`, sibilants → `-es`, else `+s`.
+ * The organiser edits singulars only.
+ */
+export function plural(singular: string): string {
+  const s = (singular || '').trim();
+  if (!s) return '';
+  if (/[^aeiou]y$/i.test(s)) return s.slice(0, -1) + 'ies';
+  if (/(s|x|z|ch|sh)$/i.test(s)) return s + 'es';
+  return s + 's';
+}
+
+/** Terminology lookup with inferred plurals, for nav, headings and body copy. */
+export function terms(db: Db) {
+  const t = db.event.terminology;
+  return {
+    partner: t.partner,
+    partners: t.partnerPlural || plural(t.partner),
+    partnerPortal: t.partnerPortal,
+    participation: t.participation,
+    task: t.task,
+    tasks: t.taskPlural || plural(t.task),
+    request: t.request,
+    requests: t.requestPlural || plural(t.request),
+    /** Lower-cased forms, for mid-sentence body copy. */
+    lower: {
+      partner: t.partner.toLowerCase(),
+      partners: (t.partnerPlural || plural(t.partner)).toLowerCase(),
+      task: t.task.toLowerCase(),
+      tasks: (t.taskPlural || plural(t.task)).toLowerCase(),
+      request: t.request.toLowerCase(),
+      requests: (t.requestPlural || plural(t.request)).toLowerCase(),
+    },
+  };
+}
+
+/* ---------------------------------------------------------------
+   Derived figures
+   --------------------------------------------------------------- */
+
+/** Order totals are the sum of supplier-order subtotals — exc. tax. */
+export function orderTotal(db: Db, orderId: Id): number {
+  return db.supplierOrders
+    .filter((s) => s.orderId === orderId)
+    .reduce((a, s) => a + s.subtotal, 0);
+}
+
+/** Value of everything the partner bought up front, exc. tax. */
+export function packageValue(part: Participation): number {
+  return (part.inventory || []).reduce((a, i) => a + i.cost * (i.quantity || 1), 0);
+}
+
+/** The next deadline across a set of linked tasks and forms. */
+export function nextDeadline(
+  db: Db,
+  part: Participation,
+  refs: Array<{ kind: 'task' | 'form'; id: Id }>,
+  now: Date = new Date(),
+): IsoDate | null {
+  const tasks = resolveTasks(db, part);
+  const forms = resolveForms(db, part);
+  const dates: string[] = [];
+
+  refs.forEach((r) => {
+    if (r.kind === 'task') {
+      const t = tasks.find((x) => x.id === r.id);
+      if (t && !t.completed && t.dueDate) dates.push(t.dueDate);
+    } else {
+      const f = forms.find((x) => x.id === r.id);
+      if (f && !isFormSettled(f.state.status) && f.dueDate) dates.push(f.dueDate);
+    }
+  });
+
+  const upcoming = dates.filter((d) => isUpcoming(d, now)).sort();
+  return upcoming[0] || null;
+}
+
+/** Progress across a partner's required tasks, for the "Eight of 12" copy. */
+export function taskProgress(db: Db, part: Participation): { done: number; total: number } {
+  const tasks = resolveTasks(db, part);
+  return { done: tasks.filter((t) => t.completed).length, total: tasks.length };
+}
+
+/* ---------------------------------------------------------------
+   Deterministic gradient assignment
+   --------------------------------------------------------------- */
+
+const GRADIENTS = Array.from({ length: 9 }, (_, i) => `/assets/board-bg-${i + 1}.png`);
+
+/**
+ * Pick a BOARD gradient for a record with no uploaded image. Stable
+ * for a given id, so a card does not change picture between renders.
+ */
+export function gradientFor(key: string): string {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return GRADIENTS[h % GRADIENTS.length];
+}
+
+/* ---------------------------------------------------------------
+   Inline markdown — **bold**, _italic_, [links](url)
+   --------------------------------------------------------------- */
+
+/** Strip inline markdown, for card snippets and plain-text contexts. */
+export function stripMarkdown(text: string): string {
+  return (text || '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/_([^_]+)_/g, '$1');
+}
+
+/* ---------------------------------------------------------------
+   Field value helpers
+   --------------------------------------------------------------- */
+
+export function isUploadField(type: string): boolean {
+  return type === 'file_upload' || type === 'image_upload' || type === 'document_upload';
+}
+
+export function isPresentationField(type: string): boolean {
+  return type === 'section_heading' || type === 'guidance';
+}
+
+/** Whether a required field has been answered. */
+export function hasValue(v: FieldValue): boolean {
+  if (v === null || v === undefined) return false;
+  if (typeof v === 'string') return v.trim().length > 0;
+  if (typeof v === 'boolean') return true;
+  if (typeof v === 'number') return true;
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.values(v).some((x) => !!x);
+  return false;
+}
+
+/**
+ * Validate a submission against the fields the partner can actually
+ * see — a hidden required field must never block submission.
+ */
+export function validateForm(
+  db: Db,
+  form: FormDef,
+  part: Participation,
+  values: FormValues,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  visibleFields(db, form, part, values).forEach((f) => {
+    if (isPresentationField(f.type)) return;
+    if (!f.required) return;
+    if (f.type === 'acknowledgement') {
+      if (values[f.key] !== true) errors[f.key] = 'Please confirm to continue.';
+      return;
+    }
+    if (!hasValue(values[f.key])) errors[f.key] = 'This field is required.';
+  });
+  return errors;
+}
