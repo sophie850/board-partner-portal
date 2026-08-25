@@ -173,8 +173,17 @@ export const getDb = cache(async (): Promise<Db> => {
   ]);
 
   if (!events.length) {
+    // Reaching here means the query succeeded but returned nothing.
+    // With RLS enabled and no policies, that is exactly what a
+    // non-privileged key sees — so the usual cause is the
+    // publishable key having been set as SUPABASE_SECRET_KEY, not a
+    // missing seed. Name both, since the fix differs.
     throw new DataUnavailableError(
-      'No event found. Run the seed against your Supabase project.',
+      'Connected to Supabase but read no event. Either SUPABASE_SECRET_KEY is not the ' +
+        'secret key (a publishable key returns zero rows, because row-level security is ' +
+        'enabled with no policies), or the seed has not been run. Check /api/health: if ' +
+        'every row count is 0, it is the key; if the tables are empty, run ' +
+        'supabase/SEED_SUPABASE.sql.',
     );
   }
 
