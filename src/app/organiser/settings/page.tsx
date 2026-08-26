@@ -9,7 +9,7 @@ import { requireArea } from '@/lib/auth/session';
 export const dynamic = 'force-dynamic';
 
 export default async function OrganiserSettings() {
-  await requireArea('settings', '/organiser/settings');
+  const session = await requireArea('settings', '/organiser/settings');
 
   const db = await getDb();
   const event = db.event;
@@ -47,6 +47,8 @@ export default async function OrganiserSettings() {
       permissions: u.permissions ?? {},
     })),
     provider: emailProvider(),
+    viewerIsSuperAdmin:
+      session.kind === 'organiser' && session.user.role === 'super_admin',
     // Twelve is enough to see what has been happening; the full log
     // is exported from Reporting rather than scrolled through here.
     outbox: outbox.slice(0, 12).map((m) => ({

@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { Plus, X } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
+import { HandLinkButton } from '@/components/auth/HandLinkButton';
 import {
   Button,
   Callout,
@@ -53,9 +54,16 @@ export interface TeamMember {
 export function Team({
   partnerId,
   members,
+  viewerIsOrganiser,
 }: {
   partnerId: string;
   members: TeamMember[];
+  /**
+   * A BOARD organiser previewing this partner's portal. They get the
+   * "sign-in link" control, for the call that starts "I never got
+   * the email" — the partner's own colleagues do not.
+   */
+  viewerIsOrganiser: boolean;
 }) {
   const [inviting, setInviting] = useState(false);
   const [name, setName] = useState('');
@@ -111,9 +119,9 @@ export function Team({
             </div>
 
             <Help>
-              They are added straight away with no access to anything. Grant the areas they
-              need below. Sign-in by email link is not switched on yet, so no invitation is
-              sent.
+              They are added straight away with no access to anything — grant the areas they
+              need below. No invitation is emailed yet, so tell them they have been added:
+              they can then request their own sign-in link from the sign-in page.
             </Help>
 
             <div className="mt-4 flex flex-wrap gap-3">
@@ -130,7 +138,12 @@ export function Team({
 
       <div className="flex flex-col gap-3">
         {members.map((member) => (
-          <Member key={member.id} partnerId={partnerId} member={member} />
+          <Member
+            key={member.id}
+            partnerId={partnerId}
+            member={member}
+            viewerIsOrganiser={viewerIsOrganiser}
+          />
         ))}
       </div>
     </>
@@ -141,7 +154,15 @@ export function Team({
    One colleague
    --------------------------------------------------------------- */
 
-function Member({ partnerId, member }: { partnerId: string; member: TeamMember }) {
+function Member({
+  partnerId,
+  member,
+  viewerIsOrganiser,
+}: {
+  partnerId: string;
+  member: TeamMember;
+  viewerIsOrganiser: boolean;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -179,6 +200,10 @@ function Member({ partnerId, member }: { partnerId: string; member: TeamMember }
           </div>
           <div className="mt-[2px] text-[12px] text-ink-4">{member.email}</div>
         </div>
+
+        {viewerIsOrganiser && (
+          <HandLinkButton kind="partner" userId={member.id} name={member.name} />
+        )}
 
         {!isLead && (
           <Button

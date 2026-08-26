@@ -5,10 +5,21 @@ import { redirect } from 'next/navigation';
 import { cache } from 'react';
 
 import { readSession, SESSION_COOKIE } from '@/lib/auth/cookie';
+import {
+  canReachArea,
+  mayIssueLinkFor,
+  partnerUserOf,
+  type Session,
+} from '@/lib/auth/permissions';
 import { getDb } from '@/lib/db/store';
 import { visibleModules } from '@/lib/resolvers';
 import { env } from '@/lib/env';
-import type { Id, OrganiserPermissions, OrganiserUser, PartnerUser } from '@/lib/types';
+import type { Id, OrganiserPermissions } from '@/lib/types';
+
+// The rules themselves live in permissions.ts, which is pure and
+// testable; they are re-exported here so callers have one import.
+export { canReachArea, mayIssueLinkFor, partnerUserOf };
+export type { Session };
 
 /* ============================================================
    Who is signed in, and what they may reach
@@ -21,10 +32,6 @@ import type { Id, OrganiserPermissions, OrganiserUser, PartnerUser } from '@/lib
    Everything below is the enforcement point. Hiding a nav item is
    presentation; these are the checks that decide.
    ============================================================ */
-
-export type Session =
-  | { kind: 'organiser'; user: OrganiserUser }
-  | { kind: 'partner'; user: PartnerUser; partnerId: Id };
 
 /** Whether sign-in is switched on for this deployment. */
 export function authConfigured(): boolean {
@@ -147,26 +154,6 @@ export async function requirePartnerAccess(
 /* ---------------------------------------------------------------
    Finer-grained permissions
    --------------------------------------------------------------- */
-
-/** The partner user for a session, or null when an organiser is previewing. */
-export function partnerUserOf(session: Session): PartnerUser | null {
-  return session.kind === 'partner' ? session.user : null;
-}
-
-/**
- * Whether a session may reach one area of the organiser portal.
- *
- * A super admin may reach everything, including Event settings. A
- * team member is limited to the areas ticked against them.
- */
-export function canReachArea(
-  session: Session,
-  area: keyof OrganiserPermissions,
-): boolean {
-  if (session.kind !== 'organiser') return false;
-  if (session.user.role === 'super_admin') return true;
-  return Boolean(session.user.permissions?.[area]);
-}
 
 export async function requireArea(
   area: keyof OrganiserPermissions,

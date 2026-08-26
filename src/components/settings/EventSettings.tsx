@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useState, useTransition } from 'react';
 
+import { HandLinkButton } from '@/components/auth/HandLinkButton';
 import { FileUpload } from '@/components/ui/FileUpload';
 import {
   Button,
@@ -74,6 +75,12 @@ export interface SettingsData {
   }>;
   /** Which provider is wired up, or null. */
   provider: string | null;
+  /**
+   * Whether the person reading this is a super admin. Only they may
+   * hand out a sign-in link for another BOARD account — see the
+   * comment on createSignInLink.
+   */
+  viewerIsSuperAdmin: boolean;
   outbox: Array<{
     id: string;
     subject: string;
@@ -170,7 +177,11 @@ export function EventSettings({
         'team',
         'The BOARD team',
         `${data.team.length} ${data.team.length === 1 ? 'person' : 'people'} · what each can reach`,
-        <TeamSection team={data.team} run={run} />,
+        <TeamSection
+          team={data.team}
+          run={run}
+          canHandLinks={data.viewerIsSuperAdmin}
+        />,
       )}
 
       {section(
@@ -294,7 +305,15 @@ function Terms({
    The team
    --------------------------------------------------------------- */
 
-function TeamSection({ team, run }: { team: SettingsData['team']; run: Runner }) {
+function TeamSection({
+  team,
+  run,
+  canHandLinks,
+}: {
+  team: SettingsData['team'];
+  run: Runner;
+  canHandLinks: boolean;
+}) {
   return (
     <div className="flex flex-col gap-3">
       {team.map((user) => (
@@ -314,6 +333,10 @@ function TeamSection({ team, run }: { team: SettingsData['team']; run: Runner })
                 {[user.title, user.email].filter(Boolean).join(' · ')}
               </div>
             </div>
+
+            {canHandLinks && (
+              <HandLinkButton kind="organiser" userId={user.id} name={user.name} />
+            )}
           </div>
 
           <div className="mt-3">
@@ -348,8 +371,8 @@ function TeamSection({ team, run }: { team: SettingsData['team']; run: Runner })
       ))}
 
       <Help>
-        Sign-in by email link is not switched on yet, so these permissions are recorded but
-        not yet enforced at the door.
+        These permissions are enforced on every screen and every action, not just in the
+        navigation. A BOARD account is still added directly in the database.
       </Help>
     </div>
   );

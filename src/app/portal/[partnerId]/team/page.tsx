@@ -1,4 +1,4 @@
-import { requireModule } from '@/lib/auth/session';
+import { partnerUserOf, requireModule } from '@/lib/auth/session';
 import { notFound } from 'next/navigation';
 
 import { Team, type TeamMember } from '@/components/team/Team';
@@ -14,7 +14,7 @@ export default async function PartnerTeam({
   params: Promise<{ partnerId: string }>;
 }) {
   const { partnerId } = await params;
-  await requireModule(partnerId, 'team');
+  const session = await requireModule(partnerId, 'team');
   const db = await getDb();
 
   const part = db.participations.find((p) => p.partnerId === partnerId);
@@ -52,7 +52,11 @@ export default async function PartnerTeam({
         do what. Turn an area on to grant access to it.
       </p>
 
-      <Team partnerId={partnerId} members={members} />
+      <Team
+        partnerId={partnerId}
+        members={members}
+        viewerIsOrganiser={partnerUserOf(session) === null}
+      />
     </Rise>
   );
 }

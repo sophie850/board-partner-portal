@@ -15,6 +15,15 @@ import type { Id } from '@/lib/types';
 /** Long enough to arrive and be clicked, short enough to be useless later. */
 export const LINK_MINUTES = 20;
 
+/**
+ * A link an organiser hands over themselves.
+ *
+ * Longer, because it goes into Teams or a text message and gets read
+ * when the person next looks — twenty minutes would expire in the
+ * gap. Still single-use, which is the protection that matters.
+ */
+export const HANDED_LINK_MINUTES = 120;
+
 /** Live links one address may hold at once, before we stop issuing more. */
 const MAX_LIVE_PER_EMAIL = 5;
 
@@ -91,11 +100,16 @@ export async function issueToken(
   recipient: Recipient,
   nextPath: string,
   requestedBy: string,
+  minutes: number = LINK_MINUTES,
 ): Promise<IssueResult> {
-  const client = requireSupabase();
   const now = new Date();
 
   try {
+    // Inside the try: building the client can fail (misconfiguration,
+    // a missing key after a bad deploy) and that has to come back as
+    // a refusal the caller can show, not an unhandled rejection.
+    const client = requireSupabase();
+
     // Opportunistic housekeeping: spent and long-expired rows are of
     // no further use, and clearing them here means no scheduled job.
     await client
@@ -132,7 +146,7 @@ export async function issueToken(
       // link into an open redirect.
       next_path: safeNextPath(nextPath),
       created_at: now.toISOString(),
-      expires_at: new Date(now.getTime() + LINK_MINUTES * 60_000).toISOString(),
+      expires_at: new Date(now.getTime() + minutes * 60_000).toISOString(),
       used_at: null,
       requested_by: requestedBy.slice(0, 120),
     });
@@ -163,6 +177,18 @@ export type ConsumeResult =
 export async function consumeToken(token: string): Promise<ConsumeResult> {
   if (!token) return { ok: false, reason: 'invalid' };
 
+  try {
+    return await claim(token);
+  } catch (e) {
+    // A link that cannot be checked is not a link that works. The
+    // person gets "not recognised" and can ask for another, rather
+    // than a stack trace.
+    console.error('[auth] could not verify a sign-in link:', e);
+    return { ok: false, reason: 'invalid' };
+  }
+}
+
+async function claim(token: string): Promise<ConsumeResult> {
   const client = requireSupabase();
   const hash = await hashToken(token);
 
