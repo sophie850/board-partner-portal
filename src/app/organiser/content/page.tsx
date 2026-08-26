@@ -6,7 +6,7 @@ import { getDb } from '@/lib/db/store';
 import { fmtDate } from '@/lib/resolvers';
 import type { ContentPage, Db } from '@/lib/types';
 
-import { PublishToggle } from './PublishToggle';
+import { RowActions } from './RowActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,7 +107,7 @@ export default async function ContentPage() {
 
 function PageRow({ page, db }: { page: ContentPage; db: Db }) {
   return (
-    <div className="flex items-center gap-[14px] rounded-xl border border-line-2 bg-panel px-4 py-[13px] max-md:flex-wrap">
+    <div className="flex flex-wrap items-center gap-[14px] rounded-xl border border-line-2 bg-panel px-4 py-[13px]">
       <div className="min-w-0 flex-1">
         <Link
           href={`/organiser/content/${page.id}`}
@@ -139,7 +139,7 @@ function PageRow({ page, db }: { page: ContentPage; db: Db }) {
         Edit
       </Link>
 
-      <PublishToggle id={page.id} published={page.published !== false} />
+      <RowActions id={page.id} title={page.title} published={page.published !== false} />
     </div>
   );
 }
