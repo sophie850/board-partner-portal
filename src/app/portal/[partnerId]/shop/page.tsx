@@ -1,5 +1,84 @@
-import { NotBuiltYet } from '@/components/ui/NotBuiltYet';
+import { notFound } from 'next/navigation';
 
-export default function Page() {
-  return <NotBuiltYet title="Shop" summary="Products filtered to what this partner can order, with options, quantity limits and a multi-supplier cart." meanwhile="" />;
+import { CartProvider } from '@/components/shop/CartProvider';
+import { Shop, type ShopProduct } from '@/components/shop/Shop';
+import { Eyebrow, PageTitle, Panel, Rise } from '@/components/ui/primitives';
+import { getDb } from '@/lib/db/store';
+import { fmtDate, gradientFor, money, priceFor, productVisible, terms } from '@/lib/resolvers';
+
+export const dynamic = 'force-dynamic';
+
+export default async function ShopPage({
+  params,
+}: {
+  params: Promise<{ partnerId: string }>;
+}) {
+  const { partnerId } = await params;
+  const db = await getDb();
+
+  const part = db.participations.find((p) => p.partnerId === partnerId);
+  if (!part) notFound();
+
+  const t = terms(db);
+
+  /*
+   * Filtering happens here, on the server. A product this partner
+   * may not order never reaches their browser at all — hiding it in
+   * the interface would still ship its price and detail.
+   */
+  const visible = db.products.filter((p) => productVisible(db, p, part));
+
+  const products: ShopProduct[] = visible.map((p) => {
+    const price = priceFor(part, p);
+    const quote = price === null;
+
+    return {
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      unit: p.unit,
+      price,
+      priceLabel: quote ? 'Quote required' : `${money(db, price)} / ${p.unit}`,
+      hasOverride: (part.priceOverrides ?? []).some((o) => o.productId === p.id),
+      supplierName: db.suppliers.find((s) => s.id === p.supplierId)?.name ?? 'BOARD',
+      categoryId: p.categoryId,
+      image: p.image ?? gradientFor(p.categoryId || p.id),
+      minQty: p.minQty,
+      maxQty: p.maxQty,
+      deadlineLabel: p.orderDeadline ? `Order by ${fmtDate(p.orderDeadline)}` : null,
+      approvalMode: p.approvalMode,
+      options: p.options,
+      questions: p.questions,
+    };
+  });
+
+  const categories = db.shopCategories.filter((c) =>
+    products.some((p) => p.categoryId === c.id),
+  );
+
+  return (
+    <CartProvider partnerId={partnerId}>
+      <Rise>
+        <Eyebrow className="mb-2">{t.partnerPortal}</Eyebrow>
+        <PageTitle>Shop</PageTitle>
+        <p className="mt-2 mb-7 max-w-[62ch] text-[13.5px] leading-relaxed text-ink-3">
+          Everything you can order on top of your package. Prices exclude tax. Nothing is
+          charged here — orders are invoiced separately once confirmed.
+        </p>
+
+        {products.length === 0 ? (
+          <Panel className="px-[22px] py-6 text-[13.5px] text-ink-3">
+            There is nothing for you to order. If you were expecting to see something here,
+            your BOARD contact can check what your participation includes.
+          </Panel>
+        ) : (
+          <Shop
+            products={products}
+            categories={categories}
+            cartHref={`/portal/${partnerId}/shop/cart`}
+          />
+        )}
+      </Rise>
+    </CartProvider>
+  );
 }
