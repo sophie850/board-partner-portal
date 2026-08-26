@@ -72,6 +72,8 @@ export interface SettingsData {
     role: 'super_admin' | 'team';
     permissions: Partial<OrganiserPermissions>;
   }>;
+  /** Which provider is wired up, or null. */
+  provider: string | null;
   outbox: Array<{
     id: string;
     subject: string;
@@ -364,11 +366,20 @@ function EmailSection({ data, run }: { data: SettingsData; run: Runner }) {
 
   return (
     <div className="flex flex-col gap-7">
-      <Callout>
-        No email provider is connected yet, so nothing is actually sent. Templates and the
-        sender identity are stored ready for when one is, and the log below records what
-        would have gone out.
-      </Callout>
+      {data.provider ? (
+        <Callout>
+          Connected to <strong className="font-normal text-ink">{data.provider}</strong>.
+          Sign-in links and anything sent from a template below go out for real, from the
+          address set here.
+        </Callout>
+      ) : (
+        <Callout tone="warn">
+          No email provider is connected, so nothing is sent — including sign-in links. Set{' '}
+          <code className="text-[12px]">RESEND_API_KEY</code> to turn delivery on. Templates
+          and the sender identity are stored ready for it, and the log below records every
+          attempt, successful or not.
+        </Callout>
+      )}
 
       {/* ---- sender ---- */}
       <section>

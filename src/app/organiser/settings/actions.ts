@@ -1,5 +1,6 @@
 'use server';
 
+import { guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { CURRENCIES } from '@/data/seed';
@@ -34,6 +35,9 @@ const PROFILE_FIELDS = {
 export async function saveEventProfile(
   patch: Partial<Record<keyof typeof PROFILE_FIELDS, string>>,
 ): Promise<Result> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
   try {
     const db = await getDb();
     const row: Record<string, string | null> = {};
@@ -66,6 +70,9 @@ export async function saveEventProfile(
 }
 
 export async function saveCurrency(code: string): Promise<Result> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
   const currency = CURRENCIES.find((c) => c.code === code);
   if (!currency) return { ok: false, error: 'Unknown currency.' };
 
@@ -89,6 +96,9 @@ export async function saveCurrency(code: string): Promise<Result> {
 }
 
 export async function saveTerminology(patch: Partial<Terminology>): Promise<Result> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
   try {
     const db = await getDb();
     const merged = { ...(db.event.terminology ?? {}), ...patch };
@@ -108,6 +118,9 @@ export async function saveTerminology(patch: Partial<Terminology>): Promise<Resu
 }
 
 export async function saveSender(patch: Partial<EventSender>): Promise<Result> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
   if (patch.logo && !storageKeyFrom(patch.logo)) {
     return { ok: false, error: 'That logo was not stored correctly. Upload it again.' };
   }
@@ -138,6 +151,9 @@ export async function saveEmailTemplate(
   id: Id,
   patch: { name?: string; subject?: string; body?: string; enabled?: boolean },
 ): Promise<Result> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
   try {
     const row: Record<string, string | boolean> = {};
     if (patch.name !== undefined) row.name = patch.name;
@@ -162,6 +178,9 @@ export async function saveEmailTemplate(
 }
 
 export async function createEmailTemplate(name: string): Promise<Result> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
   if (!name.trim()) return { ok: false, error: 'Give the template a name.' };
 
   try {
@@ -188,6 +207,9 @@ export async function createEmailTemplate(name: string): Promise<Result> {
 }
 
 export async function deleteEmailTemplate(id: Id): Promise<Result> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase().from('email_templates').delete().eq('id', id);
     if (error) return { ok: false, error: error.message };
@@ -208,6 +230,9 @@ export async function setOrganiserPermission(
   area: keyof OrganiserPermissions,
   granted: boolean,
 ): Promise<Result> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
   try {
     const db = await getDb();
     const user = db.organiserUsers.find((u) => u.id === userId);

@@ -4,6 +4,7 @@ import { FormBuilder } from '@/components/forms/FormBuilder';
 import { getDb } from '@/lib/db/store';
 
 import { deleteForm, saveForm } from '../../actions';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,8 @@ export default async function FormBuilderPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireArea('forms', '/organiser/forms/[id]/edit');
+
   const { id } = await params;
   const db = await getDb();
 

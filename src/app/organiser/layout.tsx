@@ -14,8 +14,32 @@ import {
 } from 'lucide-react';
 
 import { AppShell, type NavEntry } from '@/components/shell/AppShell';
+import { canReachArea, requireOrganiser } from '@/lib/auth/session';
 import { getDb } from '@/lib/db/store';
 import { fmtDate, terms } from '@/lib/resolvers';
+import type { OrganiserPermissions } from '@/lib/types';
+
+/**
+ * Which permission each nav entry needs.
+ *
+ * Dashboard is absent because everybody on the team gets it — it is
+ * the landing page, and its contents are already filtered to what
+ * the reader may see. Entitlements is part of configuring partners,
+ * so it rides on the same permission.
+ */
+const AREA_FOR: Record<string, keyof OrganiserPermissions> = {
+  partners: 'partners',
+  entitlements: 'partners',
+  tasks: 'tasks',
+  forms: 'forms',
+  content: 'content',
+  products: 'products',
+  suppliers: 'suppliers',
+  orders: 'orders',
+  requests: 'requests',
+  reporting: 'reporting',
+  settings: 'settings',
+};
 
 /**
  * Nothing under the organiser portal is prerendered.
@@ -31,13 +55,15 @@ export default async function OrganiserLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const session = await requireOrganiser('/organiser');
+
   const db = await getDb();
   const t = terms(db);
   const ev = db.event;
 
   const size = 17;
 
-  const nav: NavEntry[] = [
+  const allNav: NavEntry[] = [
     {
       key: 'dashboard',
       label: 'Dashboard',
@@ -112,6 +138,16 @@ export default async function OrganiserLayout({
     },
   ];
 
+  /*
+   * Hidden here and refused in the route itself. This is the tidy
+   * half — a nav full of links that turn people away is no use to
+   * anybody — but it is not the control. `requireArea` is.
+   */
+  const nav = allNav.filter((entry) => {
+    const area = AREA_FOR[entry.key];
+    return !area || canReachArea(session, area);
+  });
+
   const meta = `${ev.venue}, ${ev.city} · ${fmtDate(ev.startDate)} – ${fmtDate(ev.endDate)}`;
 
   return (
@@ -121,6 +157,11 @@ export default async function OrganiserLayout({
       eventMeta={meta}
       supportContact={ev.sender.email}
       nav={nav}
+      user={{
+        name: session.user.name,
+        email: session.user.email,
+        detail: session.user.role === 'super_admin' ? 'Super admin' : 'BOARD team',
+      }}
     >
       {children}
     </AppShell>

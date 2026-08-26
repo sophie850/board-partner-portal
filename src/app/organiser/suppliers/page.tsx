@@ -1,6 +1,7 @@
 import { SupplierList, type SupplierView } from '@/components/suppliers/SupplierList';
 import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +9,8 @@ export const dynamic = 'force-dynamic';
 const OPEN_STATES = new Set(['under_review', 'quote_requested', 'quoted']);
 
 export default async function SuppliersPage() {
+  await requireArea('suppliers', '/organiser/suppliers');
+
   const db = await getDb();
 
   /*

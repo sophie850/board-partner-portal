@@ -53,11 +53,9 @@ const DECISIONS: Array<{ value: RequestStatus; label: string }> = [
 
 export function RequestInbox({
   requests,
-  actor,
   owners,
 }: {
   requests: InboxRequest[];
-  actor: string;
   owners: string[];
 }) {
   const [filter, setFilter] = useState('open');
@@ -106,8 +104,8 @@ export function RequestInbox({
               <div className="mb-[6px] px-[18px] text-[11.5px] tracking-[0.06em] text-ink-4 uppercase">
                 {request.partnerName}
               </div>
-              <Thread request={request} author={actor} role="organiser" showReply={false}>
-                <Controls request={request} actor={actor} owners={owners} />
+              <Thread request={request} role="organiser" showReply={false}>
+                <Controls request={request} owners={owners} />
               </Thread>
             </div>
           ))}
@@ -123,11 +121,9 @@ export function RequestInbox({
 
 function Controls({
   request,
-  actor,
   owners,
 }: {
   request: InboxRequest;
-  actor: string;
   owners: string[];
 }) {
   const [status, setStatus] = useState<RequestStatus>(request.status as RequestStatus);
@@ -141,7 +137,7 @@ function Controls({
   function apply() {
     setError(null);
     startTransition(async () => {
-      const result = await setRequestStatus(request.id, status, message, actor);
+      const result = await setRequestStatus(request.id, status, message);
       if (!result.ok) {
         setError(result.error);
         return;

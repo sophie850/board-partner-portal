@@ -2,11 +2,15 @@ import { CURRENCIES } from '@/data/seed';
 import { EventSettings, type SettingsData } from '@/components/settings/EventSettings';
 import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
+import { emailProvider } from '@/lib/email';
 import { fmtDateTime } from '@/lib/resolvers';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 export default async function OrganiserSettings() {
+  await requireArea('settings', '/organiser/settings');
+
   const db = await getDb();
   const event = db.event;
 
@@ -42,6 +46,7 @@ export default async function OrganiserSettings() {
       role: u.role,
       permissions: u.permissions ?? {},
     })),
+    provider: emailProvider(),
     // Twelve is enough to see what has been happening; the full log
     // is exported from Reporting rather than scrolled through here.
     outbox: outbox.slice(0, 12).map((m) => ({

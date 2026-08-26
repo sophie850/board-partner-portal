@@ -1,3 +1,4 @@
+import { requireArea } from '@/lib/auth/session';
 import { Headlines, Reporting, type Report } from '@/components/reporting/Reporting';
 import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
@@ -14,6 +15,8 @@ import {
 export const dynamic = 'force-dynamic';
 
 export default async function OrganiserReporting() {
+  await requireArea('reporting', '/organiser/reporting');
+
   const db = await getDb();
   const currency = db.event.currency;
 

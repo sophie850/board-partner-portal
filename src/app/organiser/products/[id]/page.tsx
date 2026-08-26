@@ -4,6 +4,7 @@ import { ProductEditor } from '@/components/products/ProductEditor';
 import { getDb } from '@/lib/db/store';
 
 import { saveProduct, setProductActive } from '../actions';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,8 @@ export default async function ProductEditorPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireArea('products', '/organiser/products/[id]');
+
   const { id } = await params;
   const db = await getDb();
 

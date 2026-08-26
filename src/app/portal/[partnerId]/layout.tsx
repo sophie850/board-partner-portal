@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { AppShell, type NavEntry } from '@/components/shell/AppShell';
+import { partnerUserOf, requirePartnerAccess } from '@/lib/auth/session';
 import { getDb } from '@/lib/db/store';
 import { actionCounts, fmtDate, terms, visibleModules } from '@/lib/resolvers';
 
@@ -48,6 +49,14 @@ export default async function PartnerLayout({
   params: Promise<{ partnerId: string }>;
 }) {
   const { partnerId } = await params;
+
+  /*
+   * The check that matters. An organiser may open any partner's
+   * portal; a partner user may only ever open their own. Everything
+   * below — including the nav — is presentation on top of this.
+   */
+  const session = await requirePartnerAccess(partnerId, `/portal/${partnerId}`);
+
   const db = await getDb();
 
   const partner = db.partners.find((p) => p.id === partnerId);
@@ -58,10 +67,11 @@ export default async function PartnerLayout({
   const ev = db.event;
   const base = `/portal/${partnerId}`;
 
-  // No authentication yet, so there is no signed-in user to gate on.
-  // Once magic links land this becomes the session's partner user,
-  // and module permissions start applying.
-  const modules = visibleModules(db, part, null);
+  // A partner user sees only the modules their Lead granted. An
+  // organiser previewing sees everything the partner would, which is
+  // the point of the preview.
+  const partnerUser = partnerUserOf(session);
+  const modules = visibleModules(db, part, partnerUser);
   const counts = actionCounts(db, part);
 
   const nav: NavEntry[] = [];
@@ -124,7 +134,16 @@ export default async function PartnerLayout({
       eventMeta={meta}
       supportContact={ev.sender.email}
       nav={nav}
-      banner={<PreviewBanner partnerName={partner.name} />}
+      user={{
+        name: session.user.name,
+        email: session.user.email,
+        detail: partnerUser
+          ? partnerUser.role === 'lead'
+            ? 'Partner lead'
+            : 'Partner user'
+          : 'BOARD team',
+      }}
+      banner={partnerUser ? null : <PreviewBanner partnerName={partner.name} />}
     >
       {children}
     </AppShell>
@@ -132,9 +151,10 @@ export default async function PartnerLayout({
 }
 
 /**
- * Until sign-in exists, every partner view is reached by an
- * organiser looking at it. Saying so plainly stops anyone mistaking
- * this for the partner's own session.
+ * Shown only to an organiser, who is looking at somebody else's
+ * portal. Saying so plainly stops anyone mistaking it for the
+ * partner's own session — and a partner never sees it, because for
+ * them it is not a preview.
  */
 function PreviewBanner({ partnerName }: { partnerName: string }) {
   return (

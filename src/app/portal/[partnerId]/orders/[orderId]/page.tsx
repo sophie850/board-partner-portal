@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -44,6 +45,7 @@ export default async function OrderDetailPage({
   searchParams: Promise<{ placed?: string }>;
 }) {
   const { partnerId, orderId } = await params;
+  await requireModule(partnerId, 'orders');
   const { placed } = await searchParams;
   const db = await getDb();
 

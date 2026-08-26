@@ -5,10 +5,13 @@ import { EmptyState, Eyebrow, PageTitle, Rise, StatusPill } from '@/components/u
 import { getDb } from '@/lib/db/store';
 import { fmtDate, isOverdue, NO_DATE_LABEL, resolveTasks, taskApplies, terms } from '@/lib/resolvers';
 import type { Db, TaskTemplate } from '@/lib/types';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TasksPage() {
+  await requireArea('tasks', '/organiser/tasks');
+
   const db = await getDb();
   const t = terms(db);
 

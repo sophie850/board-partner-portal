@@ -1,9 +1,11 @@
 'use server';
 
+import { getSession, guardPartner } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
 import { getDb, mintId } from '@/lib/db/store';
+import type { Refusal } from '@/lib/auth/session';
 import type { Id, PartnerPermissions } from '@/lib/types';
 
 /* ============================================================
@@ -40,6 +42,28 @@ function noPermissions(): PartnerPermissions {
   };
 }
 
+/**
+ * Changing the team is the Lead's alone.
+ *
+ * The `team` permission lets a colleague *see* who is on the team;
+ * granting access, handing over the lead role and removing people
+ * stay with the Lead, or with the BOARD team acting for them.
+ * Otherwise anyone given sight of the page could grant themselves
+ * everything else.
+ */
+async function requireLead(partnerId: Id): Promise<Refusal | null> {
+  const session = await getSession();
+
+  // No sign-in configured, or an organiser acting for the partner.
+  if (!session || session.kind === 'organiser') return null;
+
+  if (session.partnerId !== partnerId || session.user.role !== 'lead') {
+    return { ok: false, error: 'Only the Partner Lead can change who has access.' };
+  }
+
+  return null;
+}
+
 /** Confirm a user belongs to this partner before touching them. */
 async function belongsToPartner(userId: Id, partnerId: Id): Promise<boolean> {
   const { data } = await requireSupabase()
@@ -56,6 +80,12 @@ export async function inviteColleague(
   name: string,
   email: string,
 ): Promise<Result> {
+  const refused = await guardPartner(partnerId, 'team');
+  if (refused) return refused;
+
+  const notLead = await requireLead(partnerId);
+  if (notLead) return notLead;
+
   if (!name.trim()) return { ok: false, error: 'Enter their name.' };
   if (!email.trim() || !email.includes('@')) {
     return { ok: false, error: 'Enter a valid email address.' };
@@ -112,6 +142,12 @@ export async function setPermission(
   module: keyof PartnerPermissions,
   granted: boolean,
 ): Promise<Result> {
+  const refused = await guardPartner(partnerId, 'team');
+  if (refused) return refused;
+
+  const notLead = await requireLead(partnerId);
+  if (notLead) return notLead;
+
   if (!MODULES.includes(module)) return { ok: false, error: 'Unknown area.' };
 
   try {
@@ -153,6 +189,12 @@ export async function setPermission(
  * replaced.
  */
 export async function makeLead(partnerId: Id, userId: Id): Promise<Result> {
+  const refused = await guardPartner(partnerId, 'team');
+  if (refused) return refused;
+
+  const notLead = await requireLead(partnerId);
+  if (notLead) return notLead;
+
   try {
     if (!(await belongsToPartner(userId, partnerId))) {
       return { ok: false, error: 'That person is not on your team.' };
@@ -208,6 +250,12 @@ export async function makeLead(partnerId: Id, userId: Id): Promise<Result> {
 }
 
 export async function removeColleague(partnerId: Id, userId: Id): Promise<Result> {
+  const refused = await guardPartner(partnerId, 'team');
+  if (refused) return refused;
+
+  const notLead = await requireLead(partnerId);
+  if (notLead) return notLead;
+
   try {
     if (!(await belongsToPartner(userId, partnerId))) {
       return { ok: false, error: 'That person is not on your team.' };

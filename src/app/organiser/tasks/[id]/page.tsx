@@ -4,6 +4,7 @@ import { TaskEditor } from '@/components/tasks/TaskEditor';
 import { getDb } from '@/lib/db/store';
 
 import { deleteTask, saveTask } from '../actions';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,8 @@ export default async function TaskEditorPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireArea('tasks', '/organiser/tasks/[id]');
+
   const { id } = await params;
   const db = await getDb();
 

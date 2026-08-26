@@ -1,5 +1,6 @@
 'use server';
 
+import { guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -49,6 +50,9 @@ const NEEDS_TARGET: Partial<Record<TaskLinkType, string>> = {
 };
 
 export async function saveTask(input: TaskInput): Promise<ActionResult> {
+  const refused = await guardOrganiser('tasks');
+  if (refused) return refused;
+
   if (!input.title.trim()) return { ok: false, error: 'Give the task a title.' };
 
   const missing = NEEDS_TARGET[input.linkType];
@@ -99,6 +103,9 @@ export async function saveTask(input: TaskInput): Promise<ActionResult> {
  * returns, so does the history.
  */
 export async function deleteTask(id: Id): Promise<ActionResult> {
+  const refused = await guardOrganiser('tasks');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase().from('task_templates').delete().eq('id', id);
     if (error) return { ok: false, error: error.message };
@@ -120,6 +127,9 @@ export async function reopenTask(
   participationId: Id,
   taskId: Id,
 ): Promise<ActionResult> {
+  const refused = await guardOrganiser('tasks');
+  if (refused) return refused;
+
   try {
     const client = requireSupabase();
 

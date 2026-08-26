@@ -5,10 +5,13 @@ import { EmptyState, Eyebrow, PageTitle, Rise, StatusPill } from '@/components/u
 import { getDb } from '@/lib/db/store';
 import { fmtDate, gradientFor, money, terms } from '@/lib/resolvers';
 import type { Db, Product } from '@/lib/types';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProductsPage() {
+  await requireArea('products', '/organiser/products');
+
   const db = await getDb();
   const t = terms(db);
 

@@ -32,14 +32,12 @@ export function FormFiller({
   participation,
   form,
   submission,
-  submittedBy,
   entitlementKeys,
 }: {
   partnerId: string;
   participation: Participation;
   form: FormDef;
   submission: FormSubmission;
-  submittedBy: string;
   entitlementKeys: string[];
 }) {
   const router = useRouter();
@@ -103,13 +101,7 @@ export function FormFiller({
     setMessage(null);
     setErrors({});
     startTransition(async () => {
-      const result = await submitForm(
-        partnerId,
-        participation.id,
-        form.id,
-        values,
-        submittedBy,
-      );
+      const result = await submitForm(partnerId, participation.id, form.id, values);
       if (!result.ok) {
         setErrors(result.fieldErrors ?? {});
         setMessage({ tone: 'warn', text: result.error });
@@ -167,9 +159,8 @@ export function FormFiller({
           field, where it drowned out the questions. */}
       {!locked && hasUploads && (
         <Callout className="mb-6">
-          File storage is not connected yet. File names are recorded so you can complete the
-          form, but the files themselves are not uploaded — your BOARD contact will ask for
-          them separately.
+          Files are uploaded as soon as you choose them, and saved with your answers. Nothing
+          reaches the BOARD team until you submit.
         </Callout>
       )}
 

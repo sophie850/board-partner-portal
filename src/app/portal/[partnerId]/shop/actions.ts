@@ -1,5 +1,6 @@
 'use server';
 
+import { guardPartner } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -60,6 +61,9 @@ export async function checkout(
   billing: OrderBilling,
   termsAccepted: boolean,
 ): Promise<CheckoutResult> {
+  const refused = await guardPartner(partnerId, 'shop');
+  if (refused) return refused;
+
   if (!lines.length) return { ok: false, error: 'Your cart is empty.' };
   if (!termsAccepted) {
     return { ok: false, error: 'Please accept the terms before submitting your order.' };
@@ -304,6 +308,9 @@ export async function respondToQuote(
   supplierOrderId: Id,
   accept: boolean,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const refused = await guardPartner(partnerId, 'shop');
+  if (refused) return refused;
+
   try {
     const client = requireSupabase();
 

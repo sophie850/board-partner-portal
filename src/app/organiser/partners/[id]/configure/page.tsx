@@ -6,6 +6,7 @@ import { PartnerConfigure } from '@/components/partners/PartnerConfigure';
 import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
 import { terms } from '@/lib/resolvers';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,8 @@ export default async function ConfigurePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireArea('partners', '/organiser/partners/[id]/configure');
+
   const { id } = await params;
   const db = await getDb();
 

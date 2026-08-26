@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import { notFound } from 'next/navigation';
 
 import { CartProvider } from '@/components/shop/CartProvider';
@@ -15,6 +16,7 @@ export default async function CartPage({
   params: Promise<{ partnerId: string }>;
 }) {
   const { partnerId } = await params;
+  await requireModule(partnerId, 'shop');
   const db = await getDb();
 
   const partner = db.partners.find((p) => p.id === partnerId);

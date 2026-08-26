@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import { FolderOpen } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
@@ -25,6 +26,7 @@ export default async function PartnerFiles({
   params: Promise<{ partnerId: string }>;
 }) {
   const { partnerId } = await params;
+  await requireModule(partnerId, 'files');
   const db = await getDb();
 
   const part = db.participations.find((p) => p.partnerId === partnerId);
@@ -80,11 +82,7 @@ export default async function PartnerFiles({
       {slots.length > 0 && (
         <section className="mb-9">
           <SectionTitle className="mb-3">Files we need from you</SectionTitle>
-          <RequestedFiles
-            partnerId={partnerId}
-            slots={slots}
-            uploadedBy={lead?.name ?? 'Partner'}
-          />
+          <RequestedFiles partnerId={partnerId} slots={slots} />
         </section>
       )}
 

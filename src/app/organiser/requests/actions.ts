@@ -1,5 +1,6 @@
 'use server';
 
+import { actorName, guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -25,8 +26,14 @@ export async function setRequestStatus(
   requestId: Id,
   status: RequestStatus,
   message: string,
-  actor: string,
 ): Promise<Result> {
+  const refused = await guardOrganiser('requests');
+  if (refused) return refused;
+
+  // The name on the message comes from the session. A decision a
+  // partner reads must be attributable to whoever actually made it.
+  const actor = await actorName();
+
   if (NEEDS_MESSAGE.has(status) && !message.trim()) {
     return {
       ok: false,
@@ -77,6 +84,9 @@ export async function setRequestStatus(
 
 /** Hand a request to a different person on the BOARD team. */
 export async function assignRequest(requestId: Id, owner: string): Promise<Result> {
+  const refused = await guardOrganiser('requests');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase()
       .from('requests')

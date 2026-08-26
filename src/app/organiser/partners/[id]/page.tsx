@@ -1,3 +1,4 @@
+import { requireArea } from '@/lib/auth/session';
 import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -36,6 +37,8 @@ export default async function PartnerSummary({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireArea('partners', '/organiser/partners/[id]');
+
   const { id } = await params;
   const db = await getDb();
 

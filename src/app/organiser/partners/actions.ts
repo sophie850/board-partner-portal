@@ -1,5 +1,6 @@
 'use server';
 
+import { guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -33,6 +34,9 @@ export async function savePartnerDetails(
   partnerId: Id,
   input: { name: string; sector: string; billing: BillingDetails },
 ): Promise<ActionResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
   if (!input.name.trim()) return { ok: false, error: 'The organisation needs a name.' };
 
   try {
@@ -71,6 +75,9 @@ export async function saveParticipation(
     standRef: string | null;
   },
 ): Promise<ActionResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase()
       .from('event_participations')
@@ -121,6 +128,9 @@ export async function saveInventory(
   participationId: Id,
   items: InventoryItem[],
 ): Promise<ActionResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
   const named = items.filter((i) => i.name.trim() || i.passType);
   if (named.length !== items.length) {
     return { ok: false, error: 'Every package item needs a name before saving.' };
@@ -169,6 +179,9 @@ export async function saveRequestedFiles(
   participationId: Id,
   files: RequestedFile[],
 ): Promise<ActionResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
   if (files.some((f) => !f.label.trim())) {
     return { ok: false, error: 'Every requested file needs a label.' };
   }
@@ -214,6 +227,9 @@ export async function saveContract(
   participationId: Id,
   contract: { name: string; url: string } | null,
 ): Promise<ActionResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase()
       .from('event_participations')
@@ -241,6 +257,9 @@ export async function saveLead(
   leadUserId: Id | null,
   input: { name: string; email: string; telephone: string },
 ): Promise<ActionResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
   const email = input.email.trim().toLowerCase();
   if (!input.name.trim()) return { ok: false, error: 'The contact needs a name.' };
   if (!email || !email.includes('@')) return { ok: false, error: 'That email does not look right.' };

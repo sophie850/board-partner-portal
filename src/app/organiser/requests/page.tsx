@@ -1,3 +1,4 @@
+import { requireArea } from '@/lib/auth/session';
 import { RequestInbox, type InboxRequest } from '@/components/requests/RequestInbox';
 import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
@@ -22,6 +23,8 @@ const URGENCY: Record<string, number> = {
 };
 
 export default async function OrganiserRequests() {
+  await requireArea('requests', '/organiser/requests');
+
   const db = await getDb();
 
   const requests: InboxRequest[] = db.requests
@@ -87,11 +90,7 @@ export default async function OrganiserRequests() {
         outcome.
       </p>
 
-      <RequestInbox
-        requests={requests}
-        actor={db.organiserUsers[0]?.name ?? 'BOARD team'}
-        owners={owners}
-      />
+      <RequestInbox requests={requests} owners={owners} />
     </Rise>
   );
 }

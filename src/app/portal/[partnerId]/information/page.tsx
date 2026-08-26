@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -14,6 +15,7 @@ export default async function InformationCentre({
   params: Promise<{ partnerId: string }>;
 }) {
   const { partnerId } = await params;
+  await requireModule(partnerId, 'information');
   const db = await getDb();
 
   const part = db.participations.find((p) => p.partnerId === partnerId);

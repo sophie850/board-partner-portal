@@ -1,5 +1,6 @@
 'use server';
 
+import { guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -25,6 +26,9 @@ function revalidateAll() {
 
 /** Keys are referenced from rules and arrays, so they never change. */
 export async function saveEntitlement(key: string, label: string): Promise<ActionResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
   if (!label.trim()) return { ok: false, error: 'Give the entitlement a label.' };
 
   try {
@@ -42,6 +46,9 @@ export async function saveEntitlement(key: string, label: string): Promise<Actio
 }
 
 export async function createEntitlement(label: string): Promise<ActionResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
   const trimmed = label.trim();
   if (!trimmed) return { ok: false, error: 'Give the entitlement a label.' };
 
@@ -88,6 +95,9 @@ export async function createEntitlement(label: string): Promise<ActionResult> {
  * touching it. The caller checks usage first; this is the backstop.
  */
 export async function deleteEntitlement(key: string): Promise<ActionResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
   try {
     const client = requireSupabase();
 
@@ -142,6 +152,9 @@ export async function setGating(
   key: string,
   attached: boolean,
 ): Promise<ActionResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
   const { table, column } = TABLE[surface];
 
   try {

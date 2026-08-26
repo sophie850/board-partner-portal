@@ -27,7 +27,7 @@ on conflict (id) do nothing;
 -- ---- organiser users ----
 insert into organiser_users ("id", "name", "title", "email", "role", "permissions") values
   ('org_anna', 'Anna Lewis', 'Operations Coordinator', 'anna@boardsummits.example', 'super_admin', null),
-  ('org_team', 'BOARD Operations', 'Operations team', 'operations@boardsummits.example', 'super_admin', null)
+  ('org_team', 'BOARD Operations', 'Operations team', 'operations@boardsummits.example', 'team', '{"partners":true,"forms":true,"tasks":true,"content":false,"products":false,"suppliers":false,"orders":true,"requests":true,"reporting":false,"settings":false}'::jsonb)
 on conflict (id) do nothing;
 
 

@@ -1,5 +1,6 @@
 'use server';
 
+import { actorName, guardPartner } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -23,8 +24,12 @@ export async function attachRequestedFile(
   requestedFileId: Id,
   name: string,
   url: string,
-  by: string,
 ): Promise<Result> {
+  const refused = await guardPartner(partnerId, 'files');
+  if (refused) return refused;
+
+  const by = await actorName('Partner');
+
   // The URL must be one this app serves. Accepting an arbitrary URL
   // would let a partner point an organiser at anything at all.
   if (!storageKeyFrom(url)) {
@@ -64,6 +69,9 @@ export async function clearRequestedFile(
   partnerId: Id,
   requestedFileId: Id,
 ): Promise<Result> {
+  const refused = await guardPartner(partnerId, 'files');
+  if (refused) return refused;
+
   try {
     const db = await getDb();
     const part = db.participations.find((p) => p.partnerId === partnerId);

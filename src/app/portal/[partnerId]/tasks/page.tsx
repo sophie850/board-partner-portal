@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -17,6 +18,7 @@ export default async function PartnerTasks({
   searchParams: Promise<{ filter?: string }>;
 }) {
   const { partnerId } = await params;
+  await requireModule(partnerId, 'tasks');
   const { filter } = await searchParams;
   const db = await getDb();
 

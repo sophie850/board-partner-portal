@@ -1927,7 +1927,23 @@ const organiserUsers: OrganiserUser[] = [
     name: 'BOARD Operations',
     title: 'Operations team',
     email: 'operations@boardsummits.example',
-    role: 'super_admin',
+    // A team member rather than a second super admin, so the
+    // permission model is actually exercised by the seed: this
+    // account runs the operational side and cannot reach Event
+    // settings or Reporting.
+    role: 'team',
+    permissions: {
+      partners: true,
+      forms: true,
+      tasks: true,
+      content: false,
+      products: false,
+      suppliers: false,
+      orders: true,
+      requests: true,
+      reporting: false,
+      settings: false,
+    },
   },
 ];
 

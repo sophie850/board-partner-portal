@@ -16,6 +16,7 @@ import {
 import type { Db, FormDef, FormSubmission, Participation } from '@/lib/types';
 
 import { ReviewPanel } from './ReviewPanel';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,8 @@ export default async function FormResponsesPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireArea('forms', '/organiser/forms/[id]');
+
   const { id } = await params;
   const db = await getDb();
 

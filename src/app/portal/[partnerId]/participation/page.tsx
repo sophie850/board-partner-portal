@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import {
   Building2,
   FileText,
@@ -44,6 +45,7 @@ export default async function ParticipationPage({
   params: Promise<{ partnerId: string }>;
 }) {
   const { partnerId } = await params;
+  await requireModule(partnerId, 'participation');
   const db = await getDb();
 
   const partner = db.partners.find((p) => p.id === partnerId);

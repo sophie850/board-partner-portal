@@ -1,3 +1,4 @@
+import { requireArea } from '@/lib/auth/session';
 import { OrderList, type OrderView } from '@/components/orders/OrderList';
 import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
@@ -13,6 +14,8 @@ import {
 export const dynamic = 'force-dynamic';
 
 export default async function OrganiserOrdersPage() {
+  await requireArea('orders', '/organiser/orders');
+
   const db = await getDb();
 
   const orders: OrderView[] = db.orders

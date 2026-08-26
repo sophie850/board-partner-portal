@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import { notFound } from 'next/navigation';
 
 import { RequestsPanel, type RequestView } from '@/components/requests/RequestsPanel';
@@ -24,13 +25,13 @@ export default async function PartnerRequests({
   params: Promise<{ partnerId: string }>;
 }) {
   const { partnerId } = await params;
+  await requireModule(partnerId, 'requests');
   const db = await getDb();
 
   const part = db.participations.find((p) => p.partnerId === partnerId);
   if (!part) notFound();
 
   const t = terms(db);
-  const lead = db.partnerUsers.find((u) => u.id === part.leadUserId);
 
   const requests: RequestView[] = db.requests
     .filter((r) => r.participationId === part.id)
@@ -84,7 +85,6 @@ export default async function PartnerRequests({
         participationId={part.id}
         requests={requests}
         types={db.requestTypes}
-        submittedBy={lead?.name ?? 'Partner'}
       />
     </Rise>
   );

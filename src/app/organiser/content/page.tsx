@@ -7,10 +7,13 @@ import { fmtDate } from '@/lib/resolvers';
 import type { ContentPage, Db } from '@/lib/types';
 
 import { RowActions } from './RowActions';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ContentPage() {
+  await requireArea('content', '/organiser/content');
+
   const db = await getDb();
 
   const grouped = db.contentCategories

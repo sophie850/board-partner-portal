@@ -54,13 +54,11 @@ export function RequestsPanel({
   participationId,
   requests,
   types,
-  submittedBy,
 }: {
   partnerId: string;
   participationId: string;
   requests: RequestView[];
   types: RequestType[];
-  submittedBy: string;
 }) {
   const [composing, setComposing] = useState(false);
 
@@ -79,7 +77,6 @@ export function RequestsPanel({
           partnerId={partnerId}
           participationId={participationId}
           types={types}
-          submittedBy={submittedBy}
           onDone={() => setComposing(false)}
         />
       )}
@@ -97,12 +94,7 @@ export function RequestsPanel({
       ) : (
         <div className="flex flex-col gap-[10px]">
           {requests.map((request) => (
-            <Thread
-              key={request.id}
-              request={request}
-              author={submittedBy}
-              role="partner"
-            />
+            <Thread key={request.id} request={request} role="partner" />
           ))}
         </div>
       )}
@@ -118,13 +110,11 @@ function NewRequest({
   partnerId,
   participationId,
   types,
-  submittedBy,
   onDone,
 }: {
   partnerId: string;
   participationId: string;
   types: RequestType[];
-  submittedBy: string;
   onDone: () => void;
 }) {
   const [typeId, setTypeId] = useState(types[0]?.id ?? '');
@@ -164,14 +154,7 @@ function NewRequest({
     if (Object.keys(found).length) return;
 
     startTransition(async () => {
-      const result = await submitRequest(
-        partnerId,
-        participationId,
-        typeId,
-        values,
-        [],
-        submittedBy,
-      );
+      const result = await submitRequest(partnerId, participationId, typeId, values, []);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -246,13 +229,12 @@ function NewRequest({
 
 export function Thread({
   request,
-  author,
   role,
   showReply = true,
   children,
 }: {
   request: RequestView;
-  author: string;
+  /** Whose side of the conversation this is being read from. */
   role: 'partner' | 'organiser';
   /**
    * The inbox supplies its own message box as part of recording a
@@ -271,7 +253,7 @@ export function Thread({
   function send() {
     setError(null);
     startTransition(async () => {
-      const result = await addComment(request.id, author, role, reply);
+      const result = await addComment(request.id, reply);
       if (!result.ok) {
         setError(result.error);
         return;

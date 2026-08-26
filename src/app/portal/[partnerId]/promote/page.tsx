@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import { notFound } from 'next/navigation';
 
 import { Promote } from '@/components/promote/Promote';
@@ -14,6 +15,7 @@ export default async function PartnerPromote({
   params: Promise<{ partnerId: string }>;
 }) {
   const { partnerId } = await params;
+  await requireModule(partnerId, 'promote');
   const db = await getDb();
 
   const part = db.participations.find((p) => p.partnerId === partnerId);

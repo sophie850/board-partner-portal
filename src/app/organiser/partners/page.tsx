@@ -1,3 +1,4 @@
+import { requireArea } from '@/lib/auth/session';
 import { Building2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -17,6 +18,8 @@ import {
 export const dynamic = 'force-dynamic';
 
 export default async function PartnersPage() {
+  await requireArea('partners', '/organiser/partners');
+
   const db = await getDb();
   const t = terms(db);
 

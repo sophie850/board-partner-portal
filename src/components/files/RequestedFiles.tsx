@@ -32,30 +32,20 @@ export interface RequestedSlot {
 export function RequestedFiles({
   partnerId,
   slots,
-  uploadedBy,
 }: {
   partnerId: string;
   slots: RequestedSlot[];
-  uploadedBy: string;
 }) {
   return (
     <div className="flex flex-col gap-[10px]">
       {slots.map((slot) => (
-        <Slot key={slot.id} partnerId={partnerId} slot={slot} uploadedBy={uploadedBy} />
+        <Slot key={slot.id} partnerId={partnerId} slot={slot} />
       ))}
     </div>
   );
 }
 
-function Slot({
-  partnerId,
-  slot,
-  uploadedBy,
-}: {
-  partnerId: string;
-  slot: RequestedSlot;
-  uploadedBy: string;
-}) {
+function Slot({ partnerId, slot }: { partnerId: string; slot: RequestedSlot }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [replacing, setReplacing] = useState(false);
@@ -63,7 +53,7 @@ function Slot({
   function attach(name: string, url: string) {
     setError(null);
     startTransition(async () => {
-      const result = await attachRequestedFile(partnerId, slot.id, name, url, uploadedBy);
+      const result = await attachRequestedFile(partnerId, slot.id, name, url);
       if (!result.ok) {
         setError(result.error);
         return;

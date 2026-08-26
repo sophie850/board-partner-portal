@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { isSupabaseConfigured, supabase } from '@/lib/db/client';
+import { emailProvider } from '@/lib/email';
 import { env } from '@/lib/env';
 
 /* ============================================================
@@ -34,10 +35,29 @@ export async function GET() {
     supabaseSecretKey: fingerprint(env('SUPABASE_SECRET_KEY')),
     publicSupabaseUrl: env('NEXT_PUBLIC_SUPABASE_URL') ?? 'not set',
     publishableKey: fingerprint(env('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY')),
-    portalPassphrase: env('PORTAL_PASSPHRASE') ? 'set' : 'not set — site is open',
+    // Sign-in supersedes the passphrase, so say which one is
+    // actually holding the door rather than listing both.
+    accessControl: env('AUTH_SECRET')
+      ? 'sign-in by email link'
+      : env('PORTAL_PASSPHRASE')
+        ? 'shared passphrase — no individual accounts'
+        : 'none — the site is open to anyone with the URL',
+    authSecret: fingerprint(env('AUTH_SECRET')),
+    emailProvider: emailProvider() ?? 'not set — no sign-in links can be delivered',
+    siteUrl: env('SITE_URL') ?? env('URL') ?? 'not set — links use the request host',
     supabaseConfigured: configured,
     dataSource: configured ? 'supabase' : 'bundled fixtures',
   };
+
+  /*
+   * Loud, because this flag turns sign-in off in all but name and is
+   * easy to leave on after getting into a fresh deployment.
+   */
+  if (env('AUTH_DEV_SHOW_LINK') === '1') {
+    checks.WARNING =
+      'AUTH_DEV_SHOW_LINK is on: sign-in links are shown on screen to anyone who ' +
+      'enters a known email address. Unset it before real partners use this.';
+  }
 
   if (!configured) {
     checks.verdict =
@@ -79,6 +99,7 @@ export async function GET() {
     'sent_emails',
     'audit_log',
     'organiser_users',
+    'auth_tokens',
   ];
 
   const client = supabase();
@@ -110,6 +131,13 @@ export async function GET() {
   if (!counts.events) {
     checks.verdict = 'Connected, but no event row. Run supabase/SEED_SUPABASE.sql.';
     return NextResponse.json(checks, { status: 503 });
+  }
+
+  if (env('AUTH_SECRET') && !emailProvider()) {
+    checks.verdict =
+      'Connected and seeded, but sign-in is on with no email provider — links cannot be ' +
+      'delivered. Set RESEND_API_KEY, or read the link from the function log.';
+    return NextResponse.json(checks, { status: 200 });
   }
 
   checks.verdict = 'OK — connected to Supabase and the event is seeded.';

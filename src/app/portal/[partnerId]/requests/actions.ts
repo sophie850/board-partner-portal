@@ -1,5 +1,6 @@
 'use server';
 
+import { actorName, getSession, guardPartner } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -28,8 +29,13 @@ export async function submitRequest(
   typeId: Id,
   values: FormValues,
   files: string[],
-  submittedBy: string,
 ): Promise<Result> {
+  const refused = await guardPartner(partnerId, 'requests');
+  if (refused) return refused;
+
+  // Who raised it comes from the session, never from the browser.
+  const submittedBy = await actorName('Partner');
+
   const db = await getDb();
 
   const part = db.participations.find((p) => p.id === participationId);
@@ -85,15 +91,38 @@ export async function submitRequest(
   }
 }
 
-/** Add to the thread. Used by both sides — the role differs. */
+/**
+ * Add to the thread. Used by both sides.
+ *
+ * Who is speaking, and in what role, is taken from the session — not
+ * from the caller. Accepting those as arguments would let a partner
+ * post a message in their own thread styled as a reply from the
+ * BOARD team, which is a more convincing forgery than it sounds.
+ */
 export async function addComment(
   requestId: Id,
-  author: string,
-  role: 'partner' | 'organiser',
   body: string,
   files: string[] = [],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!body.trim()) return { ok: false, error: 'Write a message first.' };
+
+  const db = await getDb();
+
+  const request = db.requests.find((r) => r.id === requestId);
+  if (!request) return { ok: false, error: 'That request no longer exists.' };
+
+  const part = db.participations.find((p) => p.id === request.participationId);
+  if (!part) return { ok: false, error: 'That request no longer exists.' };
+
+  // Scoped to the partner the request belongs to, so a request id
+  // from another partner is refused rather than answered.
+  const refused = await guardPartner(part.partnerId, 'requests');
+  if (refused) return refused;
+
+  const session = await getSession();
+  const role: 'partner' | 'organiser' =
+    session?.kind === 'partner' ? 'partner' : 'organiser';
+  const author = await actorName(role === 'partner' ? 'Partner' : 'BOARD team');
 
   try {
     const client = requireSupabase();

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { SignOutButton } from '@/components/auth/SignOutButton';
 import { Wordmark } from '@/components/ui/Wordmark';
 
 import { ThemeToggle } from './ThemeToggle';
@@ -44,12 +45,20 @@ function isGroup(e: NavEntry): e is NavGroup {
   return 'children' in e;
 }
 
+export interface ShellUser {
+  name: string;
+  email: string;
+  /** "Partner lead", "BOARD team" — what they are here as. */
+  detail: string;
+}
+
 export function AppShell({
   portalKind,
   eventName,
   eventMeta,
   supportContact,
   nav,
+  user,
   contextSwitcher,
   banner,
   children,
@@ -59,6 +68,8 @@ export function AppShell({
   eventMeta: string;
   supportContact: string;
   nav: NavEntry[];
+  /** Omitted when sign-in is not configured — there is nobody to name. */
+  user?: ShellUser | null;
   contextSwitcher?: React.ReactNode;
   banner?: React.ReactNode;
   children: React.ReactNode;
@@ -126,6 +137,18 @@ export function AppShell({
           <NavList nav={nav} onNavigate={() => setNavOpen(false)} />
 
           <div className="flex-1" />
+
+          {user && (
+            <div className="mx-[6px] mt-[10px] border-t border-line px-2 pt-3">
+              <div className="px-1 pb-2">
+                <div className="truncate text-[12.5px] text-ink">{user.name}</div>
+                <div className="truncate text-[11px] text-ink-4">
+                  {user.email || user.detail}
+                </div>
+              </div>
+              <SignOutButton />
+            </div>
+          )}
 
           <div className="mx-[6px] mt-[10px] border-t border-line px-2 pt-3 pb-1">
             <div className="text-[11px] leading-relaxed text-ink-4">

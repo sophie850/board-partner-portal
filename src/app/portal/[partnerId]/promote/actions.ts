@@ -1,5 +1,6 @@
 'use server';
 
+import { guardPartner } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -34,6 +35,9 @@ export async function saveMarketing(
   partnerId: Id,
   patch: Partial<MarketingSettings>,
 ): Promise<Result> {
+  const refused = await guardPartner(partnerId, 'promote');
+  if (refused) return refused;
+
   try {
     const db = await getDb();
     const part = db.participations.find((p) => p.partnerId === partnerId);
@@ -81,6 +85,9 @@ export async function saveMarketing(
  * thing the partner can also choose.
  */
 export async function useCompanyLogo(partnerId: Id): Promise<Result> {
+  const refused = await guardPartner(partnerId, 'promote');
+  if (refused) return refused;
+
   try {
     const db = await getDb();
     const part = db.participations.find((p) => p.partnerId === partnerId);

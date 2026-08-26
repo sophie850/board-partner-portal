@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -24,6 +25,7 @@ export default async function PartnerFormPage({
   params: Promise<{ partnerId: string; formId: string }>;
 }) {
   const { partnerId, formId } = await params;
+  await requireModule(partnerId, 'forms');
   const db = await getDb();
 
   const part = db.participations.find((p) => p.partnerId === partnerId);
@@ -90,7 +92,6 @@ export default async function PartnerFormPage({
         participation={part}
         form={serverVisible}
         submission={submission}
-        submittedBy={lead?.name ?? 'Partner'}
         entitlementKeys={[...entitlementSet(db, part)]}
       />
     </Rise>

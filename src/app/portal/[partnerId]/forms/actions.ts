@@ -1,5 +1,6 @@
 'use server';
 
+import { actorName, guardPartner } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -44,6 +45,9 @@ export async function saveDraft(
   formId: Id,
   values: FormValues,
 ): Promise<SubmitResult> {
+  const refused = await guardPartner(partnerId, 'forms');
+  if (refused) return refused;
+
   try {
     const { client, formState } = await loadState(participationId);
     const existing = formState[formId] ?? { status: 'not_started' };
@@ -83,8 +87,14 @@ export async function submitForm(
   participationId: Id,
   formId: Id,
   values: FormValues,
-  submittedBy: string,
 ): Promise<SubmitResult> {
+  const refused = await guardPartner(partnerId, 'forms');
+  if (refused) return refused;
+
+  // Who submitted it is taken from the session, so a submission is
+  // always attributable to whoever actually pressed the button.
+  const submittedBy = await actorName('Partner');
+
   const db = await getDb();
   const form = db.forms.find((f) => f.id === formId);
   const part = db.participations.find((p) => p.id === participationId);
@@ -164,6 +174,9 @@ export async function reopenForm(
   participationId: Id,
   formId: Id,
 ): Promise<SubmitResult> {
+  const refused = await guardPartner(partnerId, 'forms');
+  if (refused) return refused;
+
   const db = await getDb();
   const form = db.forms.find((f) => f.id === formId);
 

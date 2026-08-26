@@ -1,5 +1,6 @@
 'use server';
 
+import { guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -69,6 +70,9 @@ function validate(input: FormInput): string | null {
 }
 
 export async function saveForm(input: FormInput): Promise<ActionResult> {
+  const refused = await guardOrganiser('forms');
+  if (refused) return refused;
+
   const problem = validate(input);
   if (problem) return { ok: false, error: problem };
 
@@ -127,6 +131,9 @@ export async function saveForm(input: FormInput): Promise<ActionResult> {
  * a delete cannot destroy what partners have already sent.
  */
 export async function deleteForm(id: Id): Promise<ActionResult> {
+  const refused = await guardOrganiser('forms');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase().from('forms').delete().eq('id', id);
     if (error) return { ok: false, error: error.message };
@@ -157,6 +164,9 @@ export async function reviewSubmission(
   feedback: string,
   reviewer: string,
 ): Promise<ActionResult> {
+  const refused = await guardOrganiser('forms');
+  if (refused) return refused;
+
   if (decision === 'changes_required' && !feedback.trim()) {
     return {
       ok: false,

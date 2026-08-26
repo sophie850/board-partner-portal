@@ -4,6 +4,7 @@ import { ContentEditor } from '@/components/content/ContentEditor';
 import { getDb } from '@/lib/db/store';
 
 import { deleteContentPage, saveContentPage } from '../actions';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,8 @@ export default async function ContentEditorPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireArea('content', '/organiser/content/[id]');
+
   const { id } = await params;
   const db = await getDb();
 

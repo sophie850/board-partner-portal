@@ -1,5 +1,6 @@
 'use server';
 
+import { guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -43,6 +44,9 @@ function revalidateContent(id?: Id) {
 
 /** Create or update a page. */
 export async function saveContentPage(input: ContentPageInput): Promise<ActionResult> {
+  const refused = await guardOrganiser('content');
+  if (refused) return refused;
+
   const title = input.title.trim();
   if (!title) return { ok: false, error: 'Give the page a title before saving.' };
   if (!input.categoryId) return { ok: false, error: 'Choose a category for the page.' };
@@ -81,6 +85,9 @@ export async function saveContentPage(input: ContentPageInput): Promise<ActionRe
 
 /** Publish / unpublish without opening the editor. */
 export async function toggleContentPublished(id: Id, published: boolean): Promise<ActionResult> {
+  const refused = await guardOrganiser('content');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase()
       .from('content_pages')
@@ -98,6 +105,9 @@ export async function toggleContentPublished(id: Id, published: boolean): Promis
 
 /** Destructive: the caller must confirm before reaching this. */
 export async function deleteContentPage(id: Id): Promise<ActionResult> {
+  const refused = await guardOrganiser('content');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase().from('content_pages').delete().eq('id', id);
     if (error) return { ok: false, error: error.message };
@@ -114,6 +124,9 @@ export async function deleteContentPage(id: Id): Promise<ActionResult> {
    --------------------------------------------------------------- */
 
 export async function saveContentCategory(name: string, id?: Id): Promise<ActionResult> {
+  const refused = await guardOrganiser('content');
+  if (refused) return refused;
+
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: 'Give the category a name.' };
 
@@ -139,6 +152,9 @@ export async function saveContentCategory(name: string, id?: Id): Promise<Action
  * cannot take a body of written content with it.
  */
 export async function deleteContentCategory(id: Id): Promise<ActionResult> {
+  const refused = await guardOrganiser('content');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase().from('content_categories').delete().eq('id', id);
     if (error) return { ok: false, error: error.message };

@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import { Receipt } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -14,6 +15,7 @@ export default async function OrdersPage({
   params: Promise<{ partnerId: string }>;
 }) {
   const { partnerId } = await params;
+  await requireModule(partnerId, 'orders');
   const db = await getDb();
 
   const part = db.participations.find((p) => p.partnerId === partnerId);

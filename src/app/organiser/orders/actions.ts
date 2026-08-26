@@ -1,5 +1,6 @@
 'use server';
 
+import { guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -112,6 +113,9 @@ function done(): Result {
    --------------------------------------------------------------- */
 
 export async function approveSupplierOrder(supplierOrderId: Id): Promise<Result> {
+  const refused = await guardOrganiser('orders');
+  if (refused) return refused;
+
   try {
     const loaded = await load(supplierOrderId, 'approve');
     if ('error' in loaded) return { ok: false, error: loaded.error };
@@ -138,6 +142,9 @@ export async function rejectSupplierOrder(
   supplierOrderId: Id,
   reason: string,
 ): Promise<Result> {
+  const refused = await guardOrganiser('orders');
+  if (refused) return refused;
+
   if (!reason.trim()) {
     // A partner sees this outcome, so it cannot be a bare status.
     return { ok: false, error: 'Give a reason — the partner will see this.' };
@@ -169,6 +176,9 @@ export async function recordQuote(
   amount: number,
   note: string,
 ): Promise<Result> {
+  const refused = await guardOrganiser('orders');
+  if (refused) return refused;
+
   if (!Number.isFinite(amount) || amount <= 0) {
     return { ok: false, error: 'Enter the quoted amount, excluding tax.' };
   }
@@ -203,6 +213,9 @@ export async function cancelSupplierOrder(
   supplierOrderId: Id,
   reason: string,
 ): Promise<Result> {
+  const refused = await guardOrganiser('orders');
+  if (refused) return refused;
+
   if (!reason.trim()) {
     return { ok: false, error: 'Give a reason — the partner will see this.' };
   }
@@ -244,6 +257,9 @@ export async function cancelSupplierOrder(
  * order at their end.
  */
 export async function resendWebhook(webhookEventId: Id): Promise<Result> {
+  const refused = await guardOrganiser('orders');
+  if (refused) return refused;
+
   try {
     const result = await deliver(webhookEventId);
     revalidatePath('/organiser/orders');

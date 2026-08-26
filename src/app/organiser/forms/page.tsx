@@ -5,6 +5,7 @@ import { EmptyState, Eyebrow, PageTitle, Rise, StatusPill } from '@/components/u
 import { getDb } from '@/lib/db/store';
 import { fmtDate, formApplies, NO_DATE_LABEL } from '@/lib/resolvers';
 import type { Db, FormDef } from '@/lib/types';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,8 @@ export const dynamic = 'force-dynamic';
  * and makes "how many have replied?" hard to answer.
  */
 export default async function FormsPage() {
+  await requireArea('forms', '/organiser/forms');
+
   const db = await getDb();
   const summaries = db.forms.map((form) => summarise(db, form));
 

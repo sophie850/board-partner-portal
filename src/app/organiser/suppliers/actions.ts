@@ -1,5 +1,6 @@
 'use server';
 
+import { guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -41,6 +42,9 @@ function revalidateSuppliers() {
 }
 
 export async function saveSupplier(input: SupplierInput): Promise<ActionResult> {
+  const refused = await guardOrganiser('suppliers');
+  if (refused) return refused;
+
   if (!input.name.trim()) return { ok: false, error: 'Give the supplier a name.' };
 
   const bad = input.notifEmails.find((e) => e && !e.includes('@'));
@@ -94,6 +98,9 @@ export async function saveSupplier(input: SupplierInput): Promise<ActionResult> 
 export async function rotateWebhookSecret(id: Id): Promise<
   { ok: true; secret: string } | { ok: false; error: string }
 > {
+  const refused = await guardOrganiser('suppliers');
+  if (refused) return refused;
+
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
   const secret =
@@ -122,6 +129,9 @@ export async function rotateWebhookSecret(id: Id): Promise<
  * from the shop while keeping the history intact.
  */
 export async function setSupplierActive(id: Id, active: boolean): Promise<ActionResult> {
+  const refused = await guardOrganiser('suppliers');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase()
       .from('suppliers')

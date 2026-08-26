@@ -1,5 +1,6 @@
 'use server';
 
+import { guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
@@ -51,6 +52,9 @@ function revalidateProducts(id?: Id) {
 }
 
 export async function saveProduct(input: ProductInput): Promise<ActionResult> {
+  const refused = await guardOrganiser('products');
+  if (refused) return refused;
+
   if (!input.name.trim()) return { ok: false, error: 'Give the product a name.' };
   if (!input.supplierId) return { ok: false, error: 'Choose the supplier who fulfils this.' };
 
@@ -123,6 +127,9 @@ export async function saveProduct(input: ProductInput): Promise<ActionResult> {
  * at nothing. Archiving removes it from the shop and keeps history.
  */
 export async function setProductActive(id: Id, active: boolean): Promise<ActionResult> {
+  const refused = await guardOrganiser('products');
+  if (refused) return refused;
+
   try {
     const { error } = await requireSupabase()
       .from('products')
@@ -147,6 +154,9 @@ export async function setPriceOverride(
   productId: Id,
   price: number | null,
 ): Promise<ActionResult> {
+  const refused = await guardOrganiser('products');
+  if (refused) return refused;
+
   try {
     const client = requireSupabase();
 
@@ -180,6 +190,9 @@ export async function setPriceOverride(
    --------------------------------------------------------------- */
 
 export async function saveShopCategory(name: string, id?: Id): Promise<ActionResult> {
+  const refused = await guardOrganiser('products');
+  if (refused) return refused;
+
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: 'Give the category a name.' };
 

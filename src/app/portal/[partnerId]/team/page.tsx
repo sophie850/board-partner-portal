@@ -1,3 +1,4 @@
+import { requireModule } from '@/lib/auth/session';
 import { notFound } from 'next/navigation';
 
 import { Team, type TeamMember } from '@/components/team/Team';
@@ -13,6 +14,7 @@ export default async function PartnerTeam({
   params: Promise<{ partnerId: string }>;
 }) {
   const { partnerId } = await params;
+  await requireModule(partnerId, 'team');
   const db = await getDb();
 
   const part = db.participations.find((p) => p.partnerId === partnerId);

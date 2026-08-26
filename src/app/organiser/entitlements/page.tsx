@@ -7,10 +7,13 @@ import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
 import { entKeys, terms } from '@/lib/resolvers';
 import type { VisibilityRule } from '@/lib/types';
+import { requireArea } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EntitlementsPage() {
+  await requireArea('partners', '/organiser/entitlements');
+
   const db = await getDb();
   const t = terms(db);
 
