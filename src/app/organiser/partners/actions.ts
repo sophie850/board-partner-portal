@@ -1,11 +1,12 @@
 'use server';
 
-import { guardOrganiser } from '@/lib/auth/session';
+import { actorName, guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
 import { inventoryToRow, requestedFileToRow } from '@/lib/db/mappers';
-import { mintId } from '@/lib/db/store';
+import { getDb, mintId } from '@/lib/db/store';
+import { nextReference } from '@/lib/resolvers';
 import type { BillingDetails, Id, InventoryItem, RequestedFile } from '@/lib/types';
 
 /* ============================================================
@@ -298,4 +299,210 @@ export async function saveLead(
 
   revalidatePartner(partnerId);
   return { ok: true };
+}
+
+/* ---------------------------------------------------------------
+   Adding a partner
+   --------------------------------------------------------------- */
+
+export type CreateResult =
+  | { ok: true; partnerId: Id; reference: string }
+  | { ok: false; error: string };
+
+export interface NewPartnerInput {
+  name: string;
+  sector: string;
+  country: string;
+  leadName: string;
+  leadEmail: string;
+}
+
+/**
+ * Add a partner to this event.
+ *
+ * "A partner" is three rows, not one:
+ *
+ *   * the **organisation**, which is event-independent — the same
+ *     company coming back for 2028 should be the same record;
+ *   * a **participation**, which is what puts them in this event and
+ *     carries everything configurable about them;
+ *   * a **Partner Lead**, because a participation with nobody able
+ *     to sign in is one the partner cannot reach.
+ *
+ * Created in that order, since each references the one before.
+ *
+ * supabase-js has no transaction across statements, so a failure
+ * part-way is undone by hand below. Without that, a half-created
+ * partner leaves an organisation row that the Partners list — which
+ * is driven by participations — would never show, and which nothing
+ * in the interface could then reach or remove.
+ */
+export async function createPartner(input: NewPartnerInput): Promise<CreateResult> {
+  const refused = await guardOrganiser('partners');
+  if (refused) return refused;
+
+  const name = input.name.trim();
+  const sector = input.sector.trim();
+  const country = input.country.trim();
+  const leadName = input.leadName.trim();
+  const leadEmail = input.leadEmail.trim().toLowerCase();
+
+  if (!name) return { ok: false, error: 'Enter the organisation’s name.' };
+  if (!leadName) return { ok: false, error: 'Enter the name of their main contact.' };
+  if (!leadEmail || !leadEmail.includes('@')) {
+    return { ok: false, error: 'Enter a valid email address for their main contact.' };
+  }
+
+  /*
+   * Everything below is inside the try. Building the client and
+   * loading the event can both fail — a missing key after a bad
+   * deploy, a database briefly unreachable — and that has to come
+   * back as a message the organiser can read rather than an
+   * unhandled rejection that renders a stack trace.
+   */
+  try {
+    const client = requireSupabase();
+    const db = await getDb();
+
+    /*
+     * Reuse an organisation that already exists rather than creating
+     * a second one with the same name — they may have taken part in
+     * a previous event, and partner_organisations is not scoped to
+     * one. Matching on name is loose, but it is what an organiser
+     * has to hand, and the alternative is silent duplicates.
+     */
+    const existingOrg = db.partners.find(
+      (p) => p.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+
+    if (existingOrg && db.participations.some((p) => p.partnerId === existingOrg.id)) {
+      return {
+        ok: false,
+        error: `${existingOrg.name} is already taking part in this event.`,
+      };
+    }
+
+    // Checked before writing anything, so the common mistake does not
+    // cost a rollback. The unique constraint is still the real guard.
+    if (db.partnerUsers.some((u) => u.email.toLowerCase() === leadEmail)) {
+      return {
+        ok: false,
+        error: 'That email address already belongs to somebody on another partner’s team.',
+      };
+    }
+
+    const partnerId = existingOrg?.id ?? mintId('part');
+    const leadId = mintId('pu');
+    const createdOrg = !existingOrg;
+
+    /* ---- 1. the organisation ---- */
+
+    if (createdOrg) {
+      const { error } = await client.from('partner_organisations').insert({
+        id: partnerId,
+        name,
+        sector,
+        country,
+        billing: {},
+        logo: '',
+      });
+      if (error) return { ok: false, error: error.message };
+    } else {
+      /*
+       * Reusing a record from a previous event. Anything the
+       * organiser typed would otherwise be silently discarded, so
+       * fill in what is blank — without overwriting details somebody
+       * has already curated.
+       */
+      const patch: Record<string, string> = {};
+      if (sector && !existingOrg.sector) patch.sector = sector;
+      if (country && !existingOrg.country) patch.country = country;
+
+      if (Object.keys(patch).length) {
+        await client.from('partner_organisations').update(patch).eq('id', partnerId);
+      }
+    }
+
+    /* ---- 2. the Partner Lead ---- */
+
+    const { error: userError } = await client.from('partner_users').insert({
+      id: leadId,
+      partner_id: partnerId,
+      name: leadName,
+      email: leadEmail,
+      telephone: '',
+      role: 'lead',
+      permissions: 'all',
+      invited_at: new Date().toISOString(),
+      // Not accepted until they actually sign in.
+      accepted_at: null,
+    });
+
+    if (userError) {
+      if (createdOrg) {
+        await client.from('partner_organisations').delete().eq('id', partnerId);
+      }
+      return {
+        ok: false,
+        error: userError.message.includes('duplicate')
+          ? 'That email address is already in use.'
+          : userError.message,
+      };
+    }
+
+    /* ---- 3. the participation ---- */
+
+    const reference = nextReference(db.participations.map((p) => p.reference));
+
+    const { error: partError } = await client.from('event_participations').insert({
+      id: mintId('ep'),
+      event_id: db.event.id,
+      partner_id: partnerId,
+      reference,
+      stand_ref: null,
+      // Everything else is configured next. A partner starts with no
+      // entitlements, which means they see what applies to everybody
+      // and nothing gated — the safe default.
+      added_entitlements: [],
+      removed_entitlements: [],
+      module_overrides: {},
+      form_due_dates: {},
+      task_due_dates: {},
+      task_state: {},
+      form_state: {},
+      partner_notes: '',
+      internal_notes: '',
+      lead_user_id: leadId,
+      pass_allocation: 0,
+      marketing: {},
+      suspended: false,
+    });
+
+    if (partError) {
+      await client.from('partner_users').delete().eq('id', leadId);
+      if (createdOrg) {
+        await client.from('partner_organisations').delete().eq('id', partnerId);
+      }
+      return { ok: false, error: partError.message };
+    }
+
+    await client.from('audit_log').insert({
+      id: mintId('a'),
+      event_id: db.event.id,
+      partner_id: partnerId,
+      actor: await actorName(),
+      body: `${name} added to the event as ${reference}, with ${leadName} as Partner Lead.`,
+      created_at: new Date().toISOString(),
+    });
+
+    revalidatePath('/organiser/partners');
+    revalidatePath('/organiser');
+
+    return { ok: true, partnerId, reference };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Could not add the partner.',
+    };
+  }
 }

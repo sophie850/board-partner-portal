@@ -5,7 +5,7 @@ import { headers } from 'next/headers';
 import { actorName, getSession, mayIssueLinkFor } from '@/lib/auth/session';
 import { HANDED_LINK_MINUTES, issueToken, type Recipient } from '@/lib/auth/tokens';
 import { requireSupabase } from '@/lib/db/client';
-import { getDb, mintId } from '@/lib/db/store';
+import { getDb, getDbOrError, mintId } from '@/lib/db/store';
 import { env } from '@/lib/env';
 import type { Id } from '@/lib/types';
 
@@ -67,7 +67,9 @@ export async function createSignInLink(
     return { ok: false, error: 'Only the BOARD team can do that.' };
   }
 
-  const db = await getDb();
+  const loaded = await getDbOrError();
+  if (!loaded.ok) return loaded;
+  const db = loaded.db;
 
   let recipient: Recipient;
   let context: string;

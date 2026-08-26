@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 
 import { findRecipient, issueToken, LINK_MINUTES, safeNextPath } from '@/lib/auth/tokens';
 import { emailProvider, sendEmail } from '@/lib/email';
-import { getDb } from '@/lib/db/store';
+import { getDbOrError } from '@/lib/db/store';
 import { env } from '@/lib/env';
 
 /* ============================================================
@@ -59,7 +59,19 @@ export async function requestSignInLink(
     return { sent: false, message: 'Enter the email address you were invited on.' };
   }
 
-  const recipient = await findRecipient(address);
+  let recipient;
+  try {
+    recipient = await findRecipient(address);
+  } catch (e) {
+    // The database is unreachable. Say so plainly rather than
+    // crashing the one page somebody needs when nothing works.
+    console.error('[signin] could not look up the address:', e);
+    return {
+      sent: false,
+      message: 'Sign-in is temporarily unavailable. Try again in a moment.',
+    };
+  }
+
   if (!recipient) return sameAnswer;
 
   const head = await headers();
@@ -88,23 +100,31 @@ export async function requestSignInLink(
   const base = await siteUrl();
   const link = `${base}/api/auth/verify?token=${encodeURIComponent(issued.token)}`;
 
-  const db = await getDb();
-  const signature = db.event.sender?.signature ?? '';
+  const loaded = await getDbOrError();
+  const db = loaded.ok ? loaded.db : null;
+  const signature = db?.event.sender?.signature ?? '';
+  const eventName = db?.event.name ?? 'the portal';
 
-  await sendEmail({
-    to: recipient.email,
-    toName: recipient.name,
-    subject: `Sign in to the ${db.event.name} portal`,
-    text: [
-      `Hello ${recipient.name.split(' ')[0] || ''}`.trim(),
-      `Here is your sign-in link for ${db.event.name}. It works once and expires in ${LINK_MINUTES} minutes.`,
-      link,
-      'If you did not ask for this, you can ignore it — nobody can sign in without the link.',
-      signature,
-    ]
-      .filter(Boolean)
-      .join('\n\n'),
-  });
+  // A failed send must not look like a failed sign-in — the link is
+  // already issued, and the console line below says where to find it.
+  try {
+    await sendEmail({
+      to: recipient.email,
+      toName: recipient.name,
+      subject: `Sign in to the ${eventName} portal`,
+      text: [
+        `Hello ${recipient.name.split(' ')[0] || ''}`.trim(),
+        `Here is your sign-in link for ${eventName}. It works once and expires in ${LINK_MINUTES} minutes.`,
+        link,
+        'If you did not ask for this, you can ignore it — nobody can sign in without the link.',
+        signature,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    });
+  } catch (e) {
+    console.error('[signin] the send failed outright:', e);
+  }
 
   /*
    * With no provider configured the send above failed and logged.

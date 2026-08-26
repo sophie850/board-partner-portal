@@ -513,6 +513,31 @@ export function terms(db: Db) {
 }
 
 /* ---------------------------------------------------------------
+   References
+   --------------------------------------------------------------- */
+
+/**
+ * The next free participation reference — BP-004 after BP-003.
+ *
+ * Taken from the highest existing number rather than the row count,
+ * so removing a partner cannot cause the next one to reuse their
+ * reference. Anything not matching the format is ignored, so a
+ * hand-edited or imported reference cannot derail the sequence.
+ *
+ * Two organisers adding at the same instant could still collide; a
+ * reference is a label rather than a key, so the cost is a duplicate
+ * to rename, not a broken record.
+ */
+export function nextReference(existing: string[]): string {
+  const highest = existing.reduce((max, ref) => {
+    const match = /^BP-(\d+)$/.exec(String(ref ?? '').trim());
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0);
+
+  return `BP-${String(highest + 1).padStart(3, '0')}`;
+}
+
+/* ---------------------------------------------------------------
    Derived figures
    --------------------------------------------------------------- */
 

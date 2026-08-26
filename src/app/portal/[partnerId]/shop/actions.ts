@@ -4,7 +4,7 @@ import { guardPartner } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
-import { getDb } from '@/lib/db/store';
+import { getDb, getDbOrError } from '@/lib/db/store';
 import { priceFor, productVisible } from '@/lib/resolvers';
 import { deliverPendingFor } from '@/lib/webhooks';
 import type { ApprovalMode, Id, OrderBilling, SupplierOrderStatus } from '@/lib/types';
@@ -75,7 +75,9 @@ export async function checkout(
     return { ok: false, error: 'Enter an email address for the invoice contact.' };
   }
 
-  const db = await getDb();
+  const loaded = await getDbOrError();
+  if (!loaded.ok) return loaded;
+  const db = loaded.db;
   const part = db.participations.find((p) => p.id === participationId);
   if (!part) return { ok: false, error: 'That participation no longer exists.' };
 

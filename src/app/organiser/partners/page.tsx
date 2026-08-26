@@ -2,6 +2,7 @@ import { requireArea } from '@/lib/auth/session';
 import { Building2 } from 'lucide-react';
 import Link from 'next/link';
 
+import { AddPartner } from '@/components/partners/AddPartner';
 import { EmptyState, Eyebrow, PageTitle, Rise, StatusPill } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
 import {
@@ -68,14 +69,26 @@ export default async function PartnersPage() {
             see it.
           </p>
         </div>
+
       </div>
 
+      {rows.length > 0 && (
+        <div className="mb-6">
+          <AddPartner partnerWord={t.partner} />
+        </div>
+      )}
+
       {rows.length === 0 ? (
-        <EmptyState
-          icon={<Building2 size={22} />}
-          title={`No ${t.lower.partners} yet`}
-          body={`Everything you configure — entitlements, ${t.lower.tasks}, forms, shop, content — becomes the event default that each ${t.lower.partner} inherits. Adding the first one is the next step.`}
-        />
+        <>
+          <EmptyState
+            icon={<Building2 size={22} />}
+            title={`No ${t.lower.partners} yet`}
+            body={`Everything you configure — entitlements, ${t.lower.tasks}, forms, shop, content — becomes the event default that each ${t.lower.partner} inherits. Adding the first one is the next step.`}
+          />
+          <div className="mt-6">
+            <AddPartner partnerWord={t.partner} trigger="inline" />
+          </div>
+        </>
       ) : (
         <div className="flex flex-col gap-[10px]">
           {rows.map((row) => (

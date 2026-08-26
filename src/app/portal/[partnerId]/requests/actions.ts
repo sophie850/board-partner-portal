@@ -4,7 +4,7 @@ import { actorName, getSession, guardPartner } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
-import { getDb, mintId } from '@/lib/db/store';
+import { getDb, getDbOrError, mintId } from '@/lib/db/store';
 import { validateFields } from '@/lib/resolvers';
 import type { FormValues, Id } from '@/lib/types';
 
@@ -36,7 +36,9 @@ export async function submitRequest(
   // Who raised it comes from the session, never from the browser.
   const submittedBy = await actorName('Partner');
 
-  const db = await getDb();
+  const loaded = await getDbOrError();
+  if (!loaded.ok) return loaded;
+  const db = loaded.db;
 
   const part = db.participations.find((p) => p.id === participationId);
   if (!part) return { ok: false, error: 'That participation no longer exists.' };
@@ -106,7 +108,9 @@ export async function addComment(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!body.trim()) return { ok: false, error: 'Write a message first.' };
 
-  const db = await getDb();
+  const loaded = await getDbOrError();
+  if (!loaded.ok) return loaded;
+  const db = loaded.db;
 
   const request = db.requests.find((r) => r.id === requestId);
   if (!request) return { ok: false, error: 'That request no longer exists.' };

@@ -264,6 +264,36 @@ export const getDb = cache(async (): Promise<Db> => {
 });
 
 /* ---------------------------------------------------------------
+   Loading, for callers that must not throw
+   --------------------------------------------------------------- */
+
+/**
+ * The event, or the reason it could not be read.
+ *
+ * `getDb` throws when the database is configured but unreachable, or
+ * returns nothing. In a page that is right — the error boundary
+ * catches it and shows a proper screen. In a **server action** it is
+ * not: the action's contract is to answer with a refusal, and an
+ * uncaught throw there surfaces to the person as a crash instead of
+ * a message, losing whatever they had typed.
+ *
+ * The shape matches the `{ ok: false, error }` every action already
+ * returns, so callers can hand it straight back.
+ */
+export async function getDbOrError(): Promise<
+  { ok: true; db: Db } | { ok: false; error: string }
+> {
+  try {
+    return { ok: true, db: await getDb() };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'The event data could not be read.',
+    };
+  }
+}
+
+/* ---------------------------------------------------------------
    Id minting
    --------------------------------------------------------------- */
 

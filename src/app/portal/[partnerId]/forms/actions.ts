@@ -4,7 +4,7 @@ import { actorName, guardPartner } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
-import { getDb } from '@/lib/db/store';
+import { getDb, getDbOrError } from '@/lib/db/store';
 import { validateForm, visibleFields } from '@/lib/resolvers';
 import type { FormSubmission, FormValues, Id } from '@/lib/types';
 
@@ -95,7 +95,9 @@ export async function submitForm(
   // always attributable to whoever actually pressed the button.
   const submittedBy = await actorName('Partner');
 
-  const db = await getDb();
+  const loaded = await getDbOrError();
+  if (!loaded.ok) return loaded;
+  const db = loaded.db;
   const form = db.forms.find((f) => f.id === formId);
   const part = db.participations.find((p) => p.id === participationId);
 
@@ -177,7 +179,9 @@ export async function reopenForm(
   const refused = await guardPartner(partnerId, 'forms');
   if (refused) return refused;
 
-  const db = await getDb();
+  const loaded = await getDbOrError();
+  if (!loaded.ok) return loaded;
+  const db = loaded.db;
   const form = db.forms.find((f) => f.id === formId);
 
   if (!form?.allowResubmit) {
