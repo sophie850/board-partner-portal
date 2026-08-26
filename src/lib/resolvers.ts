@@ -599,6 +599,42 @@ export function isPresentationField(type: string): boolean {
   return type === 'section_heading' || type === 'guidance';
 }
 
+/**
+ * An answer as a person would read it back.
+ *
+ * Used wherever a submitted answer is displayed rather than edited:
+ * an unticked acknowledgement should read "No", not "false", and a
+ * contact should read as one line rather than three fields.
+ */
+export function answerText(value: FieldValue): string {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
+  if (typeof value === 'object') {
+    const parts = [value.name, value.email, value.phone].filter(Boolean);
+    return parts.length ? parts.join(' · ') : '—';
+  }
+  // Uploads are stored as "Original name.pdf|/api/files/<key>".
+  const upload = uploadAnswer(value);
+  return upload ? upload.name : String(value);
+}
+
+/**
+ * The two halves of an upload answer, or null if it is not one.
+ *
+ * Answers are plain strings, so the shape is what identifies them:
+ * a name, a pipe, and a path served by this app. Anything else a
+ * partner types is left alone.
+ */
+export function uploadAnswer(
+  value: FieldValue,
+): { name: string; url: string } | null {
+  if (typeof value !== 'string') return null;
+  const at = value.indexOf('|/api/files/');
+  if (at <= 0) return null;
+  return { name: value.slice(0, at), url: value.slice(at + 1) };
+}
+
 /** Whether a required field has been answered. */
 export function hasValue(v: FieldValue): boolean {
   if (v === null || v === undefined) return false;
@@ -620,15 +656,33 @@ export function validateForm(
   part: Participation,
   values: FormValues,
 ): Record<string, string> {
+  return validateFields(db, form.fields, part, values);
+}
+
+/**
+ * The same rules against a bare field list.
+ *
+ * Request types carry fields without being forms, so the validation
+ * lives here and `validateForm` delegates to it — one implementation
+ * for both, rather than two that can drift apart.
+ */
+export function validateFields(
+  db: Db,
+  fields: FormField[],
+  part: Participation,
+  values: FormValues,
+): Record<string, string> {
   const errors: Record<string, string> = {};
-  visibleFields(db, form, part, values).forEach((f) => {
-    if (isPresentationField(f.type)) return;
-    if (!f.required) return;
-    if (f.type === 'acknowledgement') {
-      if (values[f.key] !== true) errors[f.key] = 'Please confirm to continue.';
-      return;
-    }
-    if (!hasValue(values[f.key])) errors[f.key] = 'This field is required.';
-  });
+  fields
+    .filter((f) => fieldVisible(db, f, part, values))
+    .forEach((f) => {
+      if (isPresentationField(f.type)) return;
+      if (!f.required) return;
+      if (f.type === 'acknowledgement') {
+        if (values[f.key] !== true) errors[f.key] = 'Please confirm to continue.';
+        return;
+      }
+      if (!hasValue(values[f.key])) errors[f.key] = 'This field is required.';
+    });
   return errors;
 }

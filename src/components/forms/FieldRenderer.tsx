@@ -1,8 +1,9 @@
 'use client';
 
 import { clsx } from 'clsx';
-import { Check, Upload } from 'lucide-react';
+import { Check } from 'lucide-react';
 
+import { FileUpload } from '@/components/ui/FileUpload';
 import { FieldError, Help, Label } from '@/components/ui/primitives';
 import type { ContactValue, FieldValue, FormField } from '@/lib/types';
 
@@ -40,12 +41,15 @@ export function FieldRenderer({
   value,
   error,
   disabled,
+  uploadFolder = 'submissions',
   onChange,
 }: {
   field: FormField;
   value: FieldValue;
   error?: string;
   disabled?: boolean;
+  /** Where uploads from this field are filed in storage. */
+  uploadFolder?: string;
   onChange: (v: FieldValue) => void;
 }) {
   const id = `field-${field.key}`;
@@ -268,35 +272,64 @@ export function FieldRenderer({
     );
   }
 
+  /*
+   * Upload fields store the file, not its name.
+   *
+   * The answer is kept as "Original name.pdf|/api/files/<key>" — the
+   * name so it reads properly wherever an answer is displayed, and
+   * the URL so the file can actually be opened. `answerText` and the
+   * viewer below both understand that pair; anything storing only a
+   * name would leave an organiser looking at a filename with no file
+   * behind it.
+   */
   if (UPLOAD_TYPES.has(field.type)) {
-    const filename = typeof value === 'string' ? value : '';
+    const stored = typeof value === 'string' ? value : '';
+    const [storedName, storedUrl] = stored.split('|');
+
+    if (disabled) {
+      return labelled(
+        stored ? (
+          <a
+            href={storedUrl || '#'}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 text-[13.5px] text-accent"
+          >
+            <Check size={15} /> {storedName}
+          </a>
+        ) : (
+          <span className="text-[13.5px] text-ink-4">No file provided</span>
+        ),
+      );
+    }
 
     return labelled(
       <div>
-        <label
-          className={clsx(
-            'flex w-full cursor-pointer items-center gap-[10px] rounded-md border border-dashed px-[13px] py-[13px] text-[13.5px]',
-            filename ? 'border-accent text-ink' : 'border-line-5 text-ink-3',
-            disabled && 'cursor-not-allowed opacity-50',
-          )}
-        >
-          {filename ? <Check size={16} /> : <Upload size={16} />}
-          <span className="min-w-0 truncate">{filename || 'Choose a file'}</span>
-          <input
-            id={id}
-            type="file"
-            disabled={disabled}
-            accept={
-              field.type === 'image_upload'
-                ? 'image/*'
-                : field.type === 'document_upload'
-                  ? '.pdf,.doc,.docx'
-                  : undefined
-            }
-            onChange={(e) => onChange(e.target.files?.[0]?.name ?? '')}
-            className="hidden"
-          />
-        </label>
+        <FileUpload
+          purpose={field.type === 'image_upload' ? 'image' : 'document'}
+          folder={uploadFolder}
+          label={storedName || undefined}
+          onUploaded={(f) => onChange(`${f.name}|${f.url}`)}
+        />
+        {stored && (
+          <div className="mt-[6px] flex items-center gap-3 text-[12px]">
+            <a
+              href={storedUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent no-underline hover:underline"
+            >
+              View {storedName}
+            </a>
+            <button
+              type="button"
+              onClick={() => onChange('')}
+              className="cursor-pointer border-none bg-transparent p-0 text-ink-4 hover:text-warn"
+            >
+              Remove
+            </button>
+          </div>
+        )}
       </div>,
     );
   }

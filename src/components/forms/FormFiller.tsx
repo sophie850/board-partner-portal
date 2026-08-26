@@ -181,6 +181,7 @@ export function FormFiller({
             value={values[field.key]}
             error={errors[field.key]}
             disabled={locked || pending}
+            uploadFolder="submissions"
             onChange={(v) => setValue(field.key, v)}
           />
         ))}
