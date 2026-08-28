@@ -1,3 +1,6 @@
+import { Settings2 } from 'lucide-react';
+import Link from 'next/link';
+
 import { requireArea } from '@/lib/auth/session';
 import { RequestInbox, type InboxRequest } from '@/components/requests/RequestInbox';
 import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
@@ -83,12 +86,23 @@ export default async function OrganiserRequests() {
   return (
     <Rise>
       <Eyebrow className="mb-2">Organiser</Eyebrow>
-      <PageTitle>Requests</PageTitle>
-      <p className="mt-2 mb-6 max-w-[64ch] text-[13.5px] leading-relaxed text-ink-3">
-        Everything partners have raised, newest and least-looked-at first. Every decision you
-        record is added to the partner&rsquo;s thread, so they see the reason and not only the
-        outcome.
-      </p>
+
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <PageTitle>Requests</PageTitle>
+          <p className="mt-2 max-w-[64ch] text-[13.5px] leading-relaxed text-ink-3">
+            Everything partners have raised, newest and least-looked-at first. Every decision
+            you record is added to the partner&rsquo;s thread, so they see the reason and not
+            only the outcome.
+          </p>
+        </div>
+        <Link
+          href="/organiser/requests/types"
+          className="inline-flex shrink-0 items-center gap-2 rounded-pill border border-line-4 px-[15px] py-[9px] text-[12.5px] text-ink-2 no-underline hover:border-line-5 hover:text-ink"
+        >
+          <Settings2 size={14} /> Request types
+        </Link>
+      </div>
 
       <RequestInbox requests={requests} owners={owners} />
     </Rise>

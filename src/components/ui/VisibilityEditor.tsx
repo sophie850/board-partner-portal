@@ -17,7 +17,9 @@ import type { Entitlement, Partner, VisibilityRule } from '@/lib/types';
    discovered when the wrong partner sees the wrong floor plan.
 
    `noun` is only used in the hints, so a file says "the file" and a
-   page says "the page". It changes nothing about the rule.
+   page says "the page". It changes nothing about the rule. Callers
+   with something more specific to say can override either hint
+   outright — a form is "sent to" partners, not "shown to" them.
    ============================================================ */
 
 export function VisibilityEditor({
@@ -27,6 +29,9 @@ export function VisibilityEditor({
   onChange,
   entitlements,
   partners,
+  compact,
+  emptyHint,
+  anyHint,
 }: {
   /** Ties the control to its <Label htmlFor>. */
   id?: string;
@@ -36,6 +41,12 @@ export function VisibilityEditor({
   onChange: (v: VisibilityRule) => void;
   entitlements: Entitlement[];
   partners: Partner[];
+  /** Tighter, for use inside a row rather than a page. */
+  compact?: boolean;
+  /** Replaces "no entitlements selected…" when the default is wrong. */
+  emptyHint?: string;
+  /** Replaces the ANY-of sentence when the default is wrong. */
+  anyHint?: string;
 }) {
   const type = value.type ?? 'all';
   const keys = Array.isArray(value.keys) ? value.keys : value.key ? [value.key] : [];
@@ -61,14 +72,19 @@ export function VisibilityEditor({
 
   return (
     <>
-      <Select id={id} value={type} onChange={(e) => setType(e.target.value)}>
+      <Select
+        id={id}
+        value={type}
+        onChange={(e) => setType(e.target.value)}
+        className={compact ? 'py-2 text-[13px]' : undefined}
+      >
         <option value="all">All partners</option>
         <option value="entitlement">Partners with an entitlement</option>
         <option value="partner">Specific partners only</option>
       </Select>
 
       {type === 'entitlement' && (
-        <div className="mt-3">
+        <div className={compact ? 'mt-2' : 'mt-3'}>
           <div className="flex flex-wrap gap-2">
             {entitlements.map((e) => {
               const on = keys.includes(e.key);
@@ -91,16 +107,18 @@ export function VisibilityEditor({
           </div>
           <Help>
             {keys.length === 0
-              ? `No entitlements selected — the ${noun} would be visible to everyone. Pick at least one.`
+              ? (emptyHint ??
+                `No entitlements selected — the ${noun} would be visible to everyone. Pick at least one.`)
               : keys.length === 1
-                ? `Shown to partners holding this entitlement.`
-                : 'Shown to partners holding any one of these — they do not need all of them.'}
+                ? 'Shown to partners holding this entitlement.'
+                : (anyHint ??
+                  'Shown to partners holding any one of these — they do not need all of them.')}
           </Help>
         </div>
       )}
 
       {type === 'partner' && (
-        <div className="mt-3">
+        <div className={compact ? 'mt-2' : 'mt-3'}>
           <div className="flex flex-wrap gap-2">
             {partners.map((p) => {
               const on = selectedPartners.includes(p.id);
