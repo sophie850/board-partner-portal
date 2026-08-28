@@ -7,17 +7,16 @@ import { useMemo, useState, useTransition } from 'react';
 
 import { BlockRenderer, blocksToText } from '@/components/content/BlockRenderer';
 import { FileUpload } from '@/components/ui/FileUpload';
+import { VisibilityEditor } from '@/components/ui/VisibilityEditor';
 import {
   Button,
   Callout,
   Eyebrow,
-  FieldError,
   Help,
   Label,
   PageTitle,
   Panel,
   Select,
-  TextArea,
   TextInput,
 } from '@/components/ui/primitives';
 import { gradientFor } from '@/lib/resolvers';
@@ -359,6 +358,8 @@ export function ContentEditor({
           <div className="mt-6">
             <Label htmlFor="page-visibility">Visibility</Label>
             <VisibilityEditor
+              id="page-visibility"
+              noun="page"
               value={visibility}
               onChange={setVisibility}
               entitlements={entitlements}
@@ -767,118 +768,6 @@ function CoverSwatch({
         </span>
       )}
     </button>
-  );
-}
-
-/* ---------------------------------------------------------------
-   Visibility
-
-   The same rule shape used for products, files, tasks and form
-   fields. Entitlement matching is ANY-of, which the hint spells out
-   because it is the part people get wrong.
-   --------------------------------------------------------------- */
-
-function VisibilityEditor({
-  value,
-  onChange,
-  entitlements,
-  partners,
-}: {
-  value: VisibilityRule;
-  onChange: (v: VisibilityRule) => void;
-  entitlements: Entitlement[];
-  partners: Partner[];
-}) {
-  const type = value.type ?? 'all';
-  const keys = Array.isArray(value.keys) ? value.keys : value.key ? [value.key] : [];
-  const selectedPartners = value.partners ?? [];
-
-  function setType(next: string) {
-    if (next === 'all') onChange({ type: 'all' });
-    else if (next === 'entitlement') onChange({ type: 'entitlement', keys: [] });
-    else onChange({ type: 'partner', partners: [] });
-  }
-
-  function toggleKey(key: string) {
-    const next = keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key];
-    onChange({ type: 'entitlement', keys: next });
-  }
-
-  function togglePartner(id: string) {
-    const next = selectedPartners.includes(id)
-      ? selectedPartners.filter((p) => p !== id)
-      : [...selectedPartners, id];
-    onChange({ type: 'partner', partners: next });
-  }
-
-  return (
-    <>
-      <Select id="page-visibility" value={type} onChange={(e) => setType(e.target.value)}>
-        <option value="all">All partners</option>
-        <option value="entitlement">Partners with an entitlement</option>
-        <option value="partner">Specific partners only</option>
-      </Select>
-
-      {type === 'entitlement' && (
-        <div className="mt-3">
-          <div className="flex flex-wrap gap-2">
-            {entitlements.map((e) => {
-              const on = keys.includes(e.key);
-              return (
-                <button
-                  key={e.key}
-                  onClick={() => toggleKey(e.key)}
-                  aria-pressed={on}
-                  className={clsx(
-                    'cursor-pointer rounded-pill border px-[13px] py-[6px] text-[12px] transition-colors',
-                    on
-                      ? 'border-accent-line bg-accent-fill text-accent'
-                      : 'border-line-3 bg-transparent text-ink-3 hover:text-ink',
-                  )}
-                >
-                  {e.label}
-                </button>
-              );
-            })}
-          </div>
-          <Help>
-            {keys.length === 0
-              ? 'No entitlements selected — the page would be visible to everyone. Pick at least one.'
-              : keys.length === 1
-                ? 'Shown to partners holding this entitlement.'
-                : 'Shown to partners holding any one of these — they do not need all of them.'}
-          </Help>
-        </div>
-      )}
-
-      {type === 'partner' && (
-        <div className="mt-3">
-          <div className="flex flex-wrap gap-2">
-            {partners.map((p) => {
-              const on = selectedPartners.includes(p.id);
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => togglePartner(p.id)}
-                  aria-pressed={on}
-                  className={clsx(
-                    'cursor-pointer rounded-pill border px-[13px] py-[6px] text-[12px] transition-colors',
-                    on
-                      ? 'border-accent-line bg-accent-fill text-accent'
-                      : 'border-line-3 bg-transparent text-ink-3 hover:text-ink',
-                  )}
-                >
-                  {p.name}
-                </button>
-              );
-            })}
-          </div>
-          {selectedPartners.length === 0 && (
-            <FieldError>Choose at least one partner, or this page reaches nobody.</FieldError>
-          )}
-        </div>
-      )}
-    </>
   );
 }
 

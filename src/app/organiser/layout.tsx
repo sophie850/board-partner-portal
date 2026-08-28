@@ -4,6 +4,7 @@ import {
   Building2,
   CircleCheck,
   FileText,
+  FolderOpen,
   KeyRound,
   LayoutDashboard,
   MessageSquareWarning,
@@ -33,6 +34,9 @@ const AREA_FOR: Record<string, keyof OrganiserPermissions> = {
   tasks: 'tasks',
   forms: 'forms',
   content: 'content',
+  // The library publishes documents to partners; content publishes
+  // pages to them. Same job, same permission.
+  files: 'content',
   products: 'products',
   suppliers: 'suppliers',
   orders: 'orders',
@@ -99,6 +103,12 @@ export default async function OrganiserLayout({
       label: 'Content',
       href: '/organiser/content',
       icon: <BookOpen size={size} />,
+    },
+    {
+      key: 'files',
+      label: 'File library',
+      href: '/organiser/files',
+      icon: <FolderOpen size={size} />,
     },
     {
       key: 'products',

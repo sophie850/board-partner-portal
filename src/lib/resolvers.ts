@@ -109,6 +109,38 @@ export function ruleMatches(
   return true;
 }
 
+/**
+ * The same rule, in plain English.
+ *
+ * For list rows, where showing the editor would be absurd and
+ * "restricted" tells nobody anything useful. Kept beside
+ * `ruleMatches` so the sentence and the behaviour cannot drift.
+ */
+export function visibilityLabel(db: Db, rule: VisibilityRule | undefined | null): string {
+  if (!rule || rule.type === 'all' || Object.keys(rule).length === 0) return 'All partners';
+
+  const named = (ids: string[]) =>
+    ids.map((id) => db.partners.find((p) => p.id === id)?.name).filter(Boolean) as string[];
+
+  if (rule.type === 'partner') {
+    const names = named(rule.partners ?? []);
+    return names.length ? `Only ${names.join(', ')}` : 'Specific partners';
+  }
+
+  if (rule.type === 'except') {
+    const names = named(rule.partners ?? []);
+    return names.length ? `Everyone except ${names.join(', ')}` : 'All partners';
+  }
+
+  const labels = entKeys(rule).map(
+    (k) => db.entitlements.find((e) => e.key === k)?.label ?? k,
+  );
+
+  if (!labels.length) return 'All partners';
+  // ANY-of semantics: the partner needs at least one of these.
+  return labels.join(' or ');
+}
+
 export function productVisible(db: Db, product: Product, part: Participation): boolean {
   if (!product.active) return false;
   return ruleMatches(db, product.visibility, part);

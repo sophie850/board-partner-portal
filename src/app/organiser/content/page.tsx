@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 import { PageTitle, Eyebrow, EmptyState, Rise, StatusPill } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
-import { fmtDate } from '@/lib/resolvers';
+import { fmtDate, visibilityLabel } from '@/lib/resolvers';
 import type { ContentPage, Db } from '@/lib/types';
 
 import { RowActions } from './RowActions';
@@ -119,7 +119,7 @@ function PageRow({ page, db }: { page: ContentPage; db: Db }) {
           {page.title}
         </Link>
         <div className="mt-[3px] flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-4">
-          <span>{visibilityLabel(page, db)}</span>
+          <span>{visibilityLabel(db, page.visibility)}</span>
           <span aria-hidden>·</span>
           <span>Updated {fmtDate(page.updated)}</span>
           {page.requireAck && (
@@ -145,33 +145,4 @@ function PageRow({ page, db }: { page: ContentPage; db: Db }) {
       <RowActions id={page.id} title={page.title} published={page.published !== false} />
     </div>
   );
-}
-
-/** Plain-English description of who can see a page. */
-function visibilityLabel(page: ContentPage, db: Db): string {
-  const rule = page.visibility;
-  if (!rule || rule.type === 'all' || Object.keys(rule).length === 0) return 'All partners';
-
-  if (rule.type === 'partner') {
-    const names = (rule.partners ?? [])
-      .map((id) => db.partners.find((p) => p.id === id)?.name)
-      .filter(Boolean);
-    return names.length ? `Only ${names.join(', ')}` : 'Specific partners';
-  }
-
-  if (rule.type === 'except') {
-    const names = (rule.partners ?? [])
-      .map((id) => db.partners.find((p) => p.id === id)?.name)
-      .filter(Boolean);
-    return names.length ? `Everyone except ${names.join(', ')}` : 'All partners';
-  }
-
-  const keys = Array.isArray(rule.keys) ? rule.keys : rule.key ? [rule.key] : [];
-  const labels = keys
-    .map((k) => db.entitlements.find((e) => e.key === k)?.label ?? k)
-    .filter(Boolean);
-
-  if (!labels.length) return 'All partners';
-  // ANY-of semantics: the partner needs at least one of these.
-  return labels.length === 1 ? labels[0] : `${labels.join(' or ')}`;
 }
