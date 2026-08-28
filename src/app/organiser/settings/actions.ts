@@ -1,6 +1,6 @@
 'use server';
 
-import { guardOrganiser } from '@/lib/auth/session';
+import { getSession, guardOrganiser } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { CURRENCIES } from '@/data/seed';
@@ -255,5 +255,151 @@ export async function setOrganiserPermission(
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Could not save.' };
+  }
+}
+
+/* ---------------------------------------------------------------
+   Adding somebody to the BOARD team
+   --------------------------------------------------------------- */
+
+/**
+ * Create a BOARD account.
+ *
+ * The role is where the care goes. Anyone who can reach this page
+ * can already grant a team member every permission in the system —
+ * `setOrganiserPermission` above takes any user id — so creating
+ * another *team* account gives away nothing new.
+ *
+ * A **super admin** is different. They reach every area regardless
+ * of permissions, can mint a sign-in link for anybody, and can
+ * create more super admins. So only a super admin may create one.
+ * The same line `mayIssueLinkFor` draws, drawn again here: without
+ * it a team member limited to Settings could make themselves a
+ * super admin at their own address and sign in as it.
+ *
+ * New accounts start with no permissions at all. Granting them is a
+ * separate, deliberate act, and least privilege is the right
+ * default for an account that may have been created in a hurry.
+ */
+export async function createOrganiserUser(input: {
+  name: string;
+  title: string;
+  email: string;
+  role: 'super_admin' | 'team';
+}): Promise<Result> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
+  const name = input.name.trim();
+  const email = input.email.trim().toLowerCase();
+
+  if (!name) return { ok: false, error: 'Give them a name.' };
+  if (!email) return { ok: false, error: 'An email address is how they sign in.' };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { ok: false, error: `“${email}” does not look like an email address.` };
+  }
+
+  try {
+    const db = await getDb();
+
+    if (input.role === 'super_admin') {
+      const session = await getSession();
+      if (session?.kind !== 'organiser' || session.user.role !== 'super_admin') {
+        return {
+          ok: false,
+          error:
+            'Only a super admin can create another super admin. Add them as a team ' +
+            'member and ask a super admin to promote them.',
+        };
+      }
+    }
+
+    /*
+     * The column is unique, so the database would refuse this anyway
+     * — but with a constraint-violation message. Checking first is
+     * what turns that into a sentence worth reading, and it catches
+     * a partner user on the same address too, which the database
+     * has no reason to mind but sign-in very much does:
+     * `findRecipient` resolves organisers first, so the partner
+     * would quietly lose access to their own portal.
+     */
+    if (db.organiserUsers.some((u) => u.email.toLowerCase() === email)) {
+      return { ok: false, error: `${email} is already on the BOARD team.` };
+    }
+    if (db.partnerUsers.some((u) => u.email.toLowerCase() === email)) {
+      return {
+        ok: false,
+        error: `${email} belongs to a partner contact. One address cannot be both.`,
+      };
+    }
+
+    const { error } = await requireSupabase().from('organiser_users').insert({
+      id: mintId('ou'),
+      name,
+      title: input.title.trim(),
+      email,
+      role: input.role,
+      // Least privilege: nothing until somebody ticks it.
+      permissions: input.role === 'super_admin' ? null : {},
+      created_at: new Date().toISOString(),
+    });
+
+    if (error) return { ok: false, error: error.message };
+
+    revalidatePath('/organiser/settings');
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Could not create the account.',
+    };
+  }
+}
+
+/**
+ * Remove a BOARD account.
+ *
+ * Super admins only, and never the last one — an event with nobody
+ * who can reach Event settings is unrecoverable from inside the
+ * app. Removing yourself is allowed but confirmed in the UI, since
+ * there are legitimate reasons to and no way to undo it here.
+ */
+export async function removeOrganiserUser(userId: Id): Promise<Result> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
+  try {
+    const session = await getSession();
+    if (session?.kind !== 'organiser' || session.user.role !== 'super_admin') {
+      return { ok: false, error: 'Only a super admin can remove a BOARD account.' };
+    }
+
+    const db = await getDb();
+    const user = db.organiserUsers.find((u) => u.id === userId);
+    if (!user) return { ok: false, error: 'That account no longer exists.' };
+
+    if (user.role === 'super_admin') {
+      const supers = db.organiserUsers.filter((u) => u.role === 'super_admin').length;
+      if (supers <= 1) {
+        return {
+          ok: false,
+          error:
+            'This is the only super admin. Removing it would leave nobody able to reach ' +
+            'Event settings. Create another one first.',
+        };
+      }
+    }
+
+    const { error } = await requireSupabase()
+      .from('organiser_users')
+      .delete()
+      .eq('id', userId);
+
+    if (error) return { ok: false, error: error.message };
+
+    revalidatePath('/organiser/settings');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Could not remove the account.' };
   }
 }

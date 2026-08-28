@@ -33,6 +33,8 @@ import {
   saveSender,
   saveTerminology,
   setOrganiserPermission,
+  createOrganiserUser,
+  removeOrganiserUser,
 } from '@/app/organiser/settings/actions';
 
 /* ============================================================
@@ -180,7 +182,7 @@ export function EventSettings({
         <TeamSection
           team={data.team}
           run={run}
-          canHandLinks={data.viewerIsSuperAdmin}
+          isSuperAdmin={data.viewerIsSuperAdmin}
         />,
       )}
 
@@ -308,12 +310,15 @@ function Terms({
 function TeamSection({
   team,
   run,
-  canHandLinks,
+  isSuperAdmin,
 }: {
   team: SettingsData['team'];
   run: Runner;
-  canHandLinks: boolean;
+  /** Gates creating a super admin, and removing anybody. */
+  isSuperAdmin: boolean;
 }) {
+  const [adding, setAdding] = useState(false);
+
   return (
     <div className="flex flex-col gap-3">
       {team.map((user) => (
@@ -334,8 +339,25 @@ function TeamSection({
               </div>
             </div>
 
-            {canHandLinks && (
+            {isSuperAdmin && (
               <HandLinkButton kind="organiser" userId={user.id} name={user.name} />
+            )}
+
+            {isSuperAdmin && team.length > 1 && (
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Remove ${user.name}? They lose access immediately, and any sign-in link already sent to them stops working.`,
+                    )
+                  )
+                    run(() => removeOrganiserUser(user.id));
+                }}
+                aria-label={`Remove ${user.name}`}
+                className="shrink-0 cursor-pointer border-none bg-transparent p-[6px] text-ink-4 hover:text-warn"
+              >
+                <Trash2 size={14} />
+              </button>
             )}
           </div>
 
@@ -370,10 +392,125 @@ function TeamSection({
         </div>
       ))}
 
+      {adding ? (
+        <AddTeamMember
+          run={run}
+          isSuperAdmin={isSuperAdmin}
+          onDone={() => setAdding(false)}
+        />
+      ) : (
+        <div>
+          <Button size="sm" variant="ghost" onClick={() => setAdding(true)}>
+            <Plus size={14} /> Add a team member
+          </Button>
+        </div>
+      )}
+
       <Help>
         These permissions are enforced on every screen and every action, not just in the
-        navigation. A BOARD account is still added directly in the database.
+        navigation. A new account starts with none of them — tick what they need. They sign
+        in with the email address here, either by asking for a link themselves or by being
+        handed one.
       </Help>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   Adding somebody
+   --------------------------------------------------------------- */
+
+function AddTeamMember({
+  run,
+  isSuperAdmin,
+  onDone,
+}: {
+  run: Runner;
+  isSuperAdmin: boolean;
+  onDone: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [title, setTitle] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState<'super_admin' | 'team'>('team');
+
+  return (
+    <div className="rounded-lg border border-accent-line bg-accent-fill px-[16px] py-[14px]">
+      <div className="mb-3 text-[13.5px] text-ink">New BOARD account</div>
+
+      <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+        <div>
+          <Label htmlFor="ou-name" required>
+            Name
+          </Label>
+          <TextInput
+            id="ou-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Anna Lewis"
+          />
+        </div>
+        <div>
+          <Label htmlFor="ou-title">Job title</Label>
+          <TextInput
+            id="ou-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Partnerships Manager"
+          />
+        </div>
+        <div>
+          <Label htmlFor="ou-email" required>
+            Email
+          </Label>
+          <TextInput
+            id="ou-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="anna@boardsummits.com"
+            autoComplete="off"
+          />
+          <Help>How they sign in. It cannot also belong to a partner contact.</Help>
+        </div>
+        <div>
+          <Label htmlFor="ou-role">Role</Label>
+          <Select
+            id="ou-role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as 'super_admin' | 'team')}
+            disabled={!isSuperAdmin}
+          >
+            <option value="team">Team member</option>
+            <option value="super_admin">Super admin</option>
+          </Select>
+          <Help>
+            {!isSuperAdmin
+              ? 'Only a super admin can create another super admin.'
+              : role === 'super_admin'
+                ? 'Reaches everything including this page, and can create more super admins.'
+                : 'Reaches nothing until you tick the areas they need.'}
+          </Help>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button
+          size="sm"
+          onClick={() =>
+            run(async () => {
+              const result = await createOrganiserUser({ name, title, email, role });
+              if (result.ok) onDone();
+              return result;
+            })
+          }
+        >
+          Create account
+        </Button>
+        <Button size="sm" variant="quiet" onClick={onDone}>
+          Cancel
+        </Button>
+      </div>
     </div>
   );
 }
