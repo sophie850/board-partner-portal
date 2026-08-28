@@ -83,6 +83,63 @@ export function reminderFor(dueIso: string | null | undefined, now: Date = new D
   return { kind: 'overdue', window: `week_${week}`, days };
 }
 
+/** One item going into a partner's digest. */
+export interface DigestItem {
+  title: string;
+  /** The deadline, as stored. */
+  due: string;
+  reminder: Due;
+}
+
+export interface Digest {
+  /**
+   * The framing for the whole message. Anything overdue makes it an
+   * overdue one: a partner late on one thing and early on another
+   * should hear the more urgent of the two, and it is one email, so
+   * it can only have one.
+   */
+  kind: ReminderKind;
+  /** The most urgent item, which names the subject line. */
+  worst: DigestItem;
+  /** Most urgent first — the order somebody would say them aloud. */
+  ordered: DigestItem[];
+}
+
+/**
+ * Turn everything owed into one message's worth of decisions.
+ *
+ * Pure, because "which template does a mixed batch use" and "which
+ * item names the subject" are exactly the questions that are easy to
+ * get subtly wrong and impossible to notice in a sent email.
+ */
+export function summarise(items: DigestItem[]): Digest | null {
+  if (!items.length) return null;
+
+  const ordered = [...items].sort((a, b) => a.reminder.days - b.reminder.days);
+
+  return {
+    kind: ordered.some((i) => i.reminder.kind === 'overdue') ? 'overdue' : 'deadline',
+    worst: ordered[0],
+    ordered,
+  };
+}
+
+/**
+ * The list a partner reads.
+ *
+ * Each line carries its own date: one message covering six things is
+ * only useful if it says which is which.
+ */
+export function itemLines(ordered: DigestItem[], fmt: (iso: string) => string): string {
+  return ordered
+    .map((i) =>
+      i.reminder.kind === 'overdue'
+        ? `• ${i.title} — was due ${fmt(i.due)}`
+        : `• ${i.title} — due ${fmt(i.due)}`,
+    )
+    .join('\n');
+}
+
 /**
  * The key that makes a reminder happen once.
  *

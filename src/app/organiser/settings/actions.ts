@@ -429,9 +429,11 @@ export async function runRemindersNow(): Promise<ReminderResult> {
 
     const parts = [
       `${run.scanned} ${run.scanned === 1 ? 'deadline' : 'deadlines'} checked`,
-      `${run.sent} sent`,
+      run.emails === 0
+        ? 'nothing to send'
+        : `${run.chased} chased in ${run.emails} ${run.emails === 1 ? 'email' : 'emails'}`,
     ];
-    if (run.duplicate) parts.push(`${run.duplicate} already sent`);
+    if (run.duplicate) parts.push(`${run.duplicate} already chased`);
     if (run.skipped) parts.push(`${run.skipped} skipped`);
     if (run.failed) parts.push(`${run.failed} failed`);
 

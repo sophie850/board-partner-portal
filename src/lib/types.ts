@@ -726,10 +726,7 @@ export interface SentEmail {
   from: string;
   fromName: string;
   at: IsoDateTime;
-  /** 'sending' is a claimed slot whose send never completed. */
-  status: 'sent' | 'failed' | 'sending';
-  /** Set for anything sent on a timer; see Outgoing.dedupeKey. */
-  dedupeKey?: string | null;
+  status: 'sent' | 'failed';
   logo?: string;
 }
 

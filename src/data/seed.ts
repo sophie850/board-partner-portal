@@ -1885,7 +1885,7 @@ const emailTemplates: EmailTemplate[] = [
     category: 'reminder',
     subject: 'Reminder: [task] is due [due]',
     enabled: true,
-    body: 'Hi [first_name],\n\nA quick reminder that “[task]” is due [due] for [partner] at [event].\n\nYou can complete it any time in your Partner Portal: [portal_link]\n\nIf you have any questions, just reply to this email.\n\nThanks,\n[signature]',
+    body: 'Hi [first_name],\n\nA reminder of what is coming up for [partner] at [event]:\n\n[items]\n\nYou can complete any of these in your Partner Portal: [portal_link]\n\nIf you have any questions, just reply to this email.\n\nThanks,\n[signature]',
   },
   {
     id: 'et_overdue',
@@ -1893,7 +1893,7 @@ const emailTemplates: EmailTemplate[] = [
     category: 'reminder',
     subject: 'Overdue: [task] was due [due]',
     enabled: true,
-    body: 'Hi [first_name],\n\nOur records show that “[task]” for [partner] was due [due] and is now overdue. Please complete it as soon as possible so we can keep your participation in [event] on track.\n\nComplete it here: [portal_link]\n\nIf this is already in hand or you need more time, let us know.\n\nThanks,\n[signature]',
+    body: 'Hi [first_name],\n\nOur records show the following is outstanding for [partner], and some of it is now overdue. Please complete it as soon as you can so we can keep your participation in [event] on track.\n\n[items]\n\nComplete any of these here: [portal_link]\n\nIf any of this is already in hand or you need more time, let us know.\n\nThanks,\n[signature]',
   },
 ];
 

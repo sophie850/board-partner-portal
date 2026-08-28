@@ -29,6 +29,7 @@ export const KNOWN = [
   'partner',
   'task',
   'due',
+  'items',
   'event',
   'portal_link',
   'sender',
@@ -88,6 +89,8 @@ export function mergeValuesFor(
     portalLink?: string;
     task?: string;
     due?: string | null;
+    /** A pre-formatted list, for a message covering several things. */
+    items?: string;
   },
 ): MergeValues {
   const sender = db.event.sender ?? { name: '', email: '', signature: '', logo: '' };
@@ -99,6 +102,7 @@ export function mergeValuesFor(
     partner: input.partner?.name ?? '',
     task: input.task ?? '',
     due: input.due ? fmtDate(input.due) : '',
+    items: input.items ?? '',
     event: db.event.name,
     portal_link: input.portalLink ?? '',
     sender: sender.name,

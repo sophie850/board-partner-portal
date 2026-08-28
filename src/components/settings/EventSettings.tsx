@@ -675,18 +675,8 @@ function EmailSection({ data, run }: { data: SettingsData; run: Runner }) {
                 <span className="shrink-0 text-ink-4">{mail.to || 'no address'}</span>
                 {mail.partner && <span className="shrink-0 text-ink-4">{mail.partner}</span>}
                 <span className="shrink-0 text-ink-4">{mail.whenLabel}</span>
-                <StatusPill
-                  tone={
-                    mail.status === 'sent'
-                      ? 'good'
-                      : mail.status === 'sending'
-                        ? 'muted'
-                        : 'warn'
-                  }
-                >
-                  {/* A row stuck on 'sending' is a claim whose send
-                      never completed — worth showing as itself. */}
-                  {mail.status === 'sending' ? 'incomplete' : mail.status}
+                <StatusPill tone={mail.status === 'sent' ? 'good' : 'warn'}>
+                  {mail.status}
                 </StatusPill>
               </div>
             ))}
@@ -714,8 +704,10 @@ function RemindersPanel() {
       <div className="rounded-lg border border-line-2 bg-panel px-[16px] py-[14px]">
         <p className="mb-3 max-w-[62ch] text-[12.5px] leading-relaxed text-ink-3">
           Sent automatically at 08:00 each day: a heads-up about two weeks out, a final call
-          in the last three days, then weekly for a month once something is overdue. They go
-          to each Partner Lead, and only to people who have already been invited.
+          in the last three days, then weekly for a month once something is overdue. Each
+          Partner Lead gets <strong className="font-normal text-ink">one email</strong>{' '}
+          listing everything outstanding, however many things are due — never one per
+          deadline. Only people who have already been invited are chased.
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -839,10 +831,15 @@ function Template({
               onBlur={() => run(() => saveEmailTemplate(template.id, { body: form.body }))}
             />
             <Help>
-              Tokens: [first_name] [contact_name] [partner] [task] [due] [event]
+              Tokens: [first_name] [contact_name] [partner] [task] [due] [items] [event]
               [portal_link] [sender] [sender_email] [signature]. A token with nothing to
               stand for leaves a gap; anything else in brackets is sent exactly as written,
               so a misspelt token shows up rather than vanishing.
+              <br />
+              In a reminder, [items] is the list of everything outstanding and [task] and
+              [due] are the most urgent one — so a subject line written for a single thing
+              still reads correctly. Leave [items] out of the body and the list is added at
+              the end anyway; a reminder that does not say what is outstanding is no use.
             </Help>
           </div>
 

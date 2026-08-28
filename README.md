@@ -54,7 +54,7 @@ Migrations, in order, each verified against PostgreSQL 16:
 | `supabase/migrations/0003_storage.sql` | The `board-assets` bucket (Supabase only — it uses the `storage` schema, so it fails on a plain Postgres) |
 | `supabase/migrations/0004_auth.sql` | `auth_tokens`, for sign-in links |
 | `supabase/migrations/0005_acknowledgements.sql` | `ack_state` on the participation, for content acknowledgements |
-| `supabase/migrations/0006_reminders.sql` | `dedupe_key` on `sent_emails`, so a reminder is sent once |
+| `supabase/migrations/0006_reminders.sql` | `reminder_claims`, so a partner is chased once per deadline |
 | `supabase/APPLY_TO_SUPABASE.sql` | The schema combined, to paste into the SQL editor |
 | `supabase/SEED_SUPABASE.sql` | Seed data — generated, do not hand-edit |
 
@@ -180,6 +180,13 @@ variables**:
 | The last 3 days, and the day itself | Deadline reminder | The Partner Lead |
 | Weekly for four weeks once overdue | Overdue reminder | The Partner Lead |
 
+**A Partner Lead receives one reminder per run, never one per deadline.** Everything owed
+that morning goes into a single message listing each item and its date, most urgent first.
+Anything overdue makes the whole message an overdue one, and the most urgent item names the
+subject line — so a subject written for a single thing still reads correctly when the body
+covers six. Eight separate emails at 08:00 is how somebody learns to filter you, taking the
+reminders that matter with them.
+
 Each template can be switched off in **Event settings → Email**, and off means nothing is
 sent. Nobody is emailed before they have been invited — the first thing a partner contact
 hears from the portal is an invitation explaining what it is, never a chase for a deadline
@@ -189,11 +196,16 @@ in a portal they have not been told about.
 `/api/cron/reminders` with `CRON_SECRET`. That endpoint is deliberately outside the sign-in
 gate — a scheduler holds no cookie — and refuses outright when the secret is unset.
 
-Sending twice is prevented by the database, not by the code being careful. Every scheduled
-message claims `sent_emails.dedupe_key` before it sends, keyed to the partner, the item and
-the deadline; the unique index means a second claim loses. So a retry, an overlapping run,
-or somebody pressing **Run reminders now** mid-cycle sends nothing. Moving a deadline
-changes the key, which is correct — it is a new thing to be chased about.
+Chasing twice is prevented by the database, not by the code being careful. Each *item* claims
+a row in `reminder_claims` — keyed to the partner, the item and the deadline — before anything
+is sent, and the primary key means a second claim loses. So a retry, an overlapping run, or
+somebody pressing **Run reminders now** mid-cycle claims nothing and sends nothing. Moving a
+deadline changes the key, which is correct: it is a new thing to be chased about.
+
+The claim is deliberately a separate row from the email. One message covers many items, so
+the two cannot be the same record — and keeping them apart is also what lets a **failed send
+be retried tomorrow**. If the message does not go out, its claims are released. Otherwise one
+bad afternoon at the mail provider would silently mark a fortnight of deadlines as chased.
 | `AUTH_DEV_SHOW_LINK` | Set to `1` to show sign-in links on screen. **Turns sign-in off in all but name — see below.** |
 
 `/api/health` reports which of these are set and which is holding the door.

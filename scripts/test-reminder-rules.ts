@@ -8,7 +8,14 @@
  *
  * Run: npx tsx scripts/test-reminder-rules.ts
  */
-import { daysUntil, reminderFor, reminderKey } from '../src/lib/reminderRules';
+import {
+  daysUntil,
+  itemLines,
+  reminderFor,
+  reminderKey,
+  summarise,
+  type DigestItem,
+} from '../src/lib/reminderRules';
 
 /** A fixed "today" — midday, to catch any midnight-rounding slip. */
 const NOW = new Date('2027-02-01T12:00:00Z');
@@ -97,6 +104,74 @@ if (
   console.log('  ✗ the same reminder produced two different keys');
 }
 
-const total = cases.length + 3;
+/* ---- one email per partner, not one per deadline ---- */
+
+const item = (title: string, offset: number): DigestItem => ({
+  title,
+  due: inDays(offset),
+  reminder: reminderFor(inDays(offset), NOW)!,
+});
+
+// A partner with four things owed gets ONE message covering four.
+const mixed = [
+  item('Order essential AV', 10),
+  item('Health & safety declaration', -9),
+  item('Company profile', 2),
+  item('Branding artwork', -2),
+];
+
+const digest = summarise(mixed)!;
+
+if (digest.ordered.length !== 4) {
+  fail += 1;
+  console.log(`  ✗ the digest dropped items — 4 owed, ${digest.ordered.length} listed`);
+}
+
+// Anything overdue makes the whole message an overdue one.
+if (digest.kind !== 'overdue') {
+  fail += 1;
+  console.log(`  ✗ a batch containing overdue items was framed as "${digest.kind}"`);
+}
+
+// The most-overdue item names the subject line.
+if (digest.worst.title !== 'Health & safety declaration') {
+  fail += 1;
+  console.log(`  ✗ the subject would name "${digest.worst.title}", not the most urgent item`);
+}
+
+// Most urgent first.
+const order = digest.ordered.map((i) => i.reminder.days);
+if (order.join() !== [...order].sort((a, b) => a - b).join()) {
+  fail += 1;
+  console.log(`  ✗ the list is not most-urgent-first: ${order.join(', ')}`);
+}
+
+// Nothing overdue means the gentler framing.
+const upcoming = summarise([item('Company profile', 2), item('Order essential AV', 10)])!;
+if (upcoming.kind !== 'deadline') {
+  fail += 1;
+  console.log(`  ✗ a batch with nothing overdue was framed as "${upcoming.kind}"`);
+}
+
+// Every item appears in the body, with its own date.
+const lines = itemLines(digest.ordered, (iso) => iso);
+for (const i of mixed) {
+  if (!lines.includes(i.title)) {
+    fail += 1;
+    console.log(`  ✗ "${i.title}" is missing from the list a partner would read`);
+  }
+}
+if (lines.split('\n').length !== 4) {
+  fail += 1;
+  console.log('  ✗ the list does not have one line per item');
+}
+
+// Nothing owed is not an email.
+if (summarise([]) !== null) {
+  fail += 1;
+  console.log('  ✗ an empty batch produced a digest — that would send a blank reminder');
+}
+
+const total = cases.length + 3 + 11;
 console.log(`${total - fail}/${total} passed${fail ? `, ${fail} FAILED` : ''}`);
 process.exit(fail ? 1 : 0);

@@ -28,23 +28,16 @@ export interface Outgoing {
   html?: string;
   templateId?: Id;
   partnerId?: Id | null;
-  /**
-   * Names what this message is about, for anything sent on a timer.
-   *
-   * The slot is claimed in the database before the send, and the
-   * unique index means a second claim loses — so a reminder run that
-   * fires twice, overlaps itself, or is set off by hand mid-cycle
-   * cannot chase the same partner about the same deadline twice.
-   *
-   * Omit it for one-off sends. Two people asking for a sign-in link
-   * a minute apart both want one.
-   */
-  dedupeKey?: string;
 }
 
 export type SendResult =
-  | { ok: true; provider: string }
-  | { ok: false; reason: 'no_provider' | 'failed' | 'duplicate'; error: string };
+  | {
+      ok: true;
+      provider: string;
+      /** The outbox row, when one was written. Absent if logging failed. */
+      sentEmailId?: string;
+    }
+  | { ok: false; reason: 'no_provider' | 'failed'; error: string };
 
 /** Which provider is configured, for diagnostics and the settings screen. */
 export function emailProvider(): string | null {
@@ -57,24 +50,6 @@ export async function sendEmail(message: Outgoing): Promise<SendResult> {
 
   const fromName = sender.name || db.event.name || 'BOARD';
   const fromEmail = sender.email || env('EMAIL_FROM') || '';
-
-  /*
-   * Claim first, send second. The order matters: claiming after a
-   * successful send would leave a window in which two runs both
-   * send and only then discover the clash, which is the exact thing
-   * being prevented.
-   */
-  let claimId: string | null = null;
-  if (message.dedupeKey) {
-    claimId = await claim(message, fromName, fromEmail, db.event.id);
-    if (!claimId) {
-      return {
-        ok: false,
-        reason: 'duplicate',
-        error: `Already sent: ${message.dedupeKey}`,
-      };
-    }
-  }
 
   let result: SendResult;
 
@@ -95,11 +70,8 @@ export async function sendEmail(message: Outgoing): Promise<SendResult> {
     result = await sendViaResend(message, fromName, fromEmail);
   }
 
-  if (claimId) {
-    await settle(claimId, message, result);
-  } else {
-    await record(message, fromName, fromEmail, result);
-  }
+  const sentEmailId = await record(message, fromName, fromEmail, result);
+  if (result.ok && sentEmailId) result.sentEmailId = sentEmailId;
 
   if (!result.ok) {
     // Logged rather than thrown: the caller decides what a failed
@@ -196,85 +168,22 @@ function htmlFromText(text: string): string {
    The log
    --------------------------------------------------------------- */
 
-/**
- * Take the slot, or find it already taken.
- *
- * Returns the new row's id, or null when this message has already
- * been sent. A failure to claim for any *other* reason also returns
- * null — refusing to send is the safe direction when the record of
- * what has been sent cannot be trusted.
- */
-async function claim(
-  message: Outgoing,
-  fromName: string,
-  fromEmail: string,
-  eventId: Id,
-): Promise<string | null> {
-  const id = mintId('sm');
-
-  try {
-    const { error } = await requireSupabase().from('sent_emails').insert({
-      id,
-      event_id: eventId,
-      template_id: message.templateId ?? null,
-      to_email: message.to,
-      to_name: message.toName ?? '',
-      partner_id: message.partnerId ?? null,
-      subject: message.subject,
-      body: '',
-      from_email: fromEmail,
-      from_name: fromName,
-      sent_at: new Date().toISOString(),
-      status: 'sending',
-      dedupe_key: message.dedupeKey,
-    });
-
-    if (error) {
-      // 23505 is the unique violation: somebody got here first, which
-      // is a normal outcome and not worth logging as a fault.
-      if (error.code !== '23505') {
-        console.error(`[email] could not claim "${message.dedupeKey}":`, error.message);
-      }
-      return null;
-    }
-
-    return id;
-  } catch (e) {
-    console.error('[email] could not claim a send:', e);
-    return null;
-  }
-}
-
-/** Close out a claimed row with what actually happened. */
-async function settle(claimId: string, message: Outgoing, result: SendResult) {
-  try {
-    await requireSupabase()
-      .from('sent_emails')
-      .update({
-        status: result.ok ? 'sent' : 'failed',
-        // Same rule as below: only template-driven bodies are kept.
-        body: message.templateId ? message.text : '',
-        sent_at: new Date().toISOString(),
-      })
-      .eq('id', claimId);
-  } catch (e) {
-    console.error('[email] could not close out a send:', e);
-  }
-}
-
+/** Returns the outbox row's id, so a caller can point at it. */
 async function record(
   message: Outgoing,
   fromName: string,
   fromEmail: string,
   result: SendResult,
-) {
+): Promise<string | null> {
+  const id = mintId('sm');
+
   try {
     const db = await getDb();
 
     await requireSupabase()
       .from('sent_emails')
       .insert({
-        id: mintId('sm'),
+        id,
         event_id: db.event.id,
         template_id: message.templateId ?? null,
         to_email: message.to,
@@ -289,8 +198,11 @@ async function record(
         sent_at: new Date().toISOString(),
         status: result.ok ? 'sent' : 'failed',
       });
+
+    return id;
   } catch (e) {
     // Logging a send must never be the reason a send fails.
     console.error('[email] could not record the send:', e);
+    return null;
   }
 }

@@ -62,8 +62,9 @@ async function handle(request: NextRequest) {
   // Logged as well as returned: a scheduled run has nobody watching
   // the response, and the function log is where it will be looked for.
   console.log(
-    `[reminders] scanned ${result.scanned}, sent ${result.sent}, ` +
-      `already sent ${result.duplicate}, skipped ${result.skipped}, failed ${result.failed}`,
+    `[reminders] scanned ${result.scanned}, chased ${result.chased} ` +
+      `in ${result.emails} email(s), already chased ${result.duplicate}, ` +
+      `skipped ${result.skipped}, failed ${result.failed}`,
   );
 
   return NextResponse.json({ ok: true, ...result });

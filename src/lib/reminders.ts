@@ -1,11 +1,18 @@
 import 'server-only';
 
+import { requireSupabase } from '@/lib/db/client';
 import { getDb } from '@/lib/db/store';
 import { sendEmail } from '@/lib/email';
 import { env } from '@/lib/env';
 import { mergeValuesFor, renderTemplate } from '@/lib/mergeFields';
-import { reminderFor, reminderKey, type Due } from '@/lib/reminderRules';
-import { formsNeedingReminder, resolveTasks } from '@/lib/resolvers';
+import {
+  itemLines,
+  reminderFor,
+  reminderKey,
+  summarise,
+  type Due,
+} from '@/lib/reminderRules';
+import { fmtDate, formsNeedingReminder, resolveTasks } from '@/lib/resolvers';
 import type { Db, Participation, PartnerUser } from '@/lib/types';
 
 /* ============================================================
@@ -15,30 +22,42 @@ import type { Db, Participation, PartnerUser } from '@/lib/types';
    nothing sent. This sends them.
 
    It is the first thing in the portal that runs when nobody is
-   looking, which changes what "careful" means. Three properties
+   looking, which changes what "careful" means. Four properties
    matter more than anything else here:
 
-     * **It cannot chase twice.** Every send claims a slot in the
-       database first, keyed to the partner, the item and the
-       deadline. A second run — a retry, an overlap, somebody
-       pressing the button by hand — loses the claim and sends
-       nothing. See sendEmail's dedupeKey.
+     * **One email per partner, per run.** Not one per deadline. A
+       partner with eight things outstanding gets one message
+       listing eight things — because eight separate emails at 08:00
+       is how somebody learns to filter you, taking the reminders
+       that do matter with them.
+
+     * **It cannot chase twice.** Every item claims a row in
+       `reminder_claims` before anything is sent, and the primary key
+       means the second claim loses. A retry, an overlapping run, or
+       somebody pressing the button by hand claims nothing and sends
+       nothing.
+
+       The claim is deliberately not the email row: one message
+       covers many items, so the two cannot be the same record.
+
+     * **A failed send is tried again tomorrow.** If the message does
+       not go out, its claims are released. Otherwise one bad
+       afternoon at the mail provider would mark a fortnight of
+       deadlines as chased and nobody would ever hear about them.
 
      * **It never throws.** One partner with a broken record must not
        stop the other forty being chased, so each is wrapped and
        counted.
-
-     * **It is honest about what it did.** The run returns counts,
-       and every message lands in the outbox where an organiser can
-       see it. A chasing system nobody can audit is one nobody
-       trusts.
    ============================================================ */
 
 export interface ReminderRun {
   /** Deadlines examined. */
   scanned: number;
-  sent: number;
-  /** Already sent — the dedupe claim was lost. Expected, not a fault. */
+  /** Items chased — not messages sent; see `emails`. */
+  chased: number;
+  /** Messages actually sent, one per partner. */
+  emails: number;
+  /** Already chased, so nothing was claimed. Expected, not a fault. */
   duplicate: number;
   failed: number;
   /** Nobody to send to, or the template is switched off. */
@@ -49,7 +68,8 @@ export interface ReminderRun {
 
 const EMPTY: ReminderRun = {
   scanned: 0,
-  sent: 0,
+  chased: 0,
+  emails: 0,
   duplicate: 0,
   failed: 0,
   skipped: 0,
@@ -67,9 +87,11 @@ const FALLBACK = {
     body: [
       'Hi [first_name],',
       '',
-      'A quick reminder that “[task]” is due [due] for [partner] at [event].',
+      'A reminder of what is coming up for [partner] at [event]:',
       '',
-      'You can complete it any time in your Partner Portal: [portal_link]',
+      '[items]',
+      '',
+      'You can complete any of these in your Partner Portal: [portal_link]',
       '',
       'If you have any questions, just reply to this email.',
       '',
@@ -81,11 +103,13 @@ const FALLBACK = {
     body: [
       'Hi [first_name],',
       '',
-      'Our records show that “[task]” for [partner] was due [due] and is now overdue. Please complete it as soon as possible so we can keep your participation in [event] on track.',
+      'Our records show the following is outstanding for [partner], and some of it is now overdue. Please complete it as soon as you can so we can keep your participation in [event] on track.',
       '',
-      'Complete it here: [portal_link]',
+      '[items]',
       '',
-      'If this is already in hand or you need more time, let us know.',
+      'You can complete any of these here: [portal_link]',
+      '',
+      'If any of this is already in hand or you need more time, let us know.',
       '',
       '[signature]',
     ].join('\n'),
@@ -114,8 +138,12 @@ interface Item {
   id: string;
   title: string;
   due: string;
-  /** Where the partner goes to deal with it. */
-  path: string;
+}
+
+/** An item that has been claimed and is going into this run's email. */
+interface Claimed extends Item {
+  due_: Due;
+  key: string;
 }
 
 /**
@@ -129,21 +157,11 @@ interface Item {
 function outstanding(db: Db, part: Participation): Item[] {
   const tasks = resolveTasks(db, part)
     .filter((t) => !t.completed && t.dueDate)
-    .map((t) => ({
-      id: t.id,
-      title: t.title,
-      due: t.dueDate!,
-      path: `/portal/${part.partnerId}/tasks`,
-    }));
+    .map((t) => ({ id: t.id, title: t.title, due: t.dueDate! }));
 
   const forms = formsNeedingReminder(db, part)
     .filter((f) => f.dueDate)
-    .map((f) => ({
-      id: f.id,
-      title: f.title,
-      due: f.dueDate!,
-      path: `/portal/${part.partnerId}/forms/${f.id}`,
-    }));
+    .map((f) => ({ id: f.id, title: f.title, due: f.dueDate! }));
 
   return [...tasks, ...forms];
 }
@@ -172,22 +190,20 @@ export async function runReminders(now: Date = new Date()): Promise<ReminderRun>
     overdue: db.emailTemplates.find((t) => t.id === TEMPLATE_FOR.overdue),
   };
 
-  const off = (['deadline', 'overdue'] as const).filter(
-    (k) => templates[k] && !templates[k]!.enabled,
-  );
-  if (off.length) {
-    run.notes.push(`Switched off in Event settings: ${off.join(', ')}.`);
-  }
+  const enabled = (kind: 'deadline' | 'overdue') =>
+    !templates[kind] || templates[kind]!.enabled;
+
+  const off = (['deadline', 'overdue'] as const).filter((k) => !enabled(k));
+  if (off.length) run.notes.push(`Switched off in Event settings: ${off.join(', ')}.`);
   if (off.length === 2) return run;
 
   for (const part of db.participations) {
     try {
       const lead = db.partnerUsers.find((u) => u.id === part.leadUserId) ?? null;
-      const partner = db.partners.find((p) => p.id === part.partnerId) ?? null;
+      const partnerName = db.partners.find((p) => p.id === part.partnerId)?.name ?? '';
 
       const items = outstanding(db, part);
       run.scanned += items.length;
-
       if (!items.length) continue;
 
       /*
@@ -201,17 +217,37 @@ export async function runReminders(now: Date = new Date()): Promise<ReminderRun>
         continue;
       }
 
+      // Everything owed today, in one list, before anything is sent.
+      const owed: Claimed[] = [];
       for (const item of items) {
         const due = reminderFor(item.due, now);
         if (!due) continue;
 
-        if (templates[due.kind] && !templates[due.kind]!.enabled) {
+        if (!enabled(due.kind)) {
           run.skipped += 1;
           continue;
         }
 
-        const result = await sendOne(db, part, lead, partner?.name ?? '', item, due);
-        run[result] += 1;
+        owed.push({ ...item, due_: due, key: reminderKey(part.id, item.id, item.due, due) });
+      }
+
+      if (!owed.length) continue;
+
+      const claimed = await claimAll(db, part, owed);
+      run.duplicate += owed.length - claimed.length;
+      if (!claimed.length) continue;
+
+      const sent = await sendDigest(db, part, lead, claimed);
+
+      if (sent) {
+        run.chased += claimed.length;
+        run.emails += 1;
+      } else {
+        run.failed += claimed.length;
+        // Released, so tomorrow's run tries again rather than
+        // treating a mail outage as "already chased".
+        await release(claimed);
+        run.notes.push(`${partnerName || part.reference}: the reminder could not be sent.`);
       }
     } catch (e) {
       run.failed += 1;
@@ -224,42 +260,133 @@ export async function runReminders(now: Date = new Date()): Promise<ReminderRun>
   return run;
 }
 
-async function sendOne(
+/* ---------------------------------------------------------------
+   Claims
+   --------------------------------------------------------------- */
+
+/**
+ * Take each item's slot, and report which were actually won.
+ *
+ * Inserted one at a time on purpose. A single multi-row insert fails
+ * as a unit, so one item already chased yesterday would block the
+ * five that have not been — the opposite of what is wanted.
+ */
+async function claimAll(db: Db, part: Participation, owed: Claimed[]): Promise<Claimed[]> {
+  const client = requireSupabase();
+  const won: Claimed[] = [];
+
+  for (const item of owed) {
+    const { error } = await client.from('reminder_claims').insert({
+      id: item.key,
+      event_id: db.event.id,
+      participation_id: part.id,
+      item_id: item.id,
+      due_date: item.due.slice(0, 10),
+      kind: item.due_.kind,
+      window_key: item.due_.window,
+      claimed_at: new Date().toISOString(),
+    });
+
+    if (!error) {
+      won.push(item);
+      continue;
+    }
+
+    // 23505 is the unique violation: somebody got here first, which
+    // is a normal outcome and not worth logging as a fault.
+    if (error.code !== '23505') {
+      console.error(`[reminders] could not claim ${item.key}:`, error.message);
+    }
+  }
+
+  return won;
+}
+
+/** Hand the slots back, so the next run can try again. */
+async function release(claimed: Claimed[]): Promise<void> {
+  try {
+    await requireSupabase()
+      .from('reminder_claims')
+      .delete()
+      .in(
+        'id',
+        claimed.map((c) => c.key),
+      );
+  } catch (e) {
+    console.error('[reminders] could not release claims after a failed send:', e);
+  }
+}
+
+/** Note which message the claims went out in, for the audit trail. */
+async function attach(claimed: Claimed[], sentEmailId: string): Promise<void> {
+  try {
+    await requireSupabase()
+      .from('reminder_claims')
+      .update({ sent_email_id: sentEmailId })
+      .in(
+        'id',
+        claimed.map((c) => c.key),
+      );
+  } catch {
+    // Cosmetic. The claim itself is what stops a second chase.
+  }
+}
+
+/* ---------------------------------------------------------------
+   The message
+   --------------------------------------------------------------- */
+
+async function sendDigest(
   db: Db,
   part: Participation,
   lead: PartnerUser,
-  partnerName: string,
-  item: Item,
-  due: Due,
-): Promise<'sent' | 'duplicate' | 'failed'> {
-  const templateId = TEMPLATE_FOR[due.kind];
+  claimed: Claimed[],
+): Promise<boolean> {
+  const digest = summarise(
+    claimed.map((c) => ({ title: c.title, due: c.due, reminder: c.due_ })),
+  );
+  if (!digest) return true;
+
+  const templateId = TEMPLATE_FOR[digest.kind];
   const template = db.emailTemplates.find((t) => t.id === templateId);
+  const list = itemLines(digest.ordered, fmtDate);
 
   const { subject, text } = renderTemplate(
     template,
     mergeValuesFor(db, {
       partner: db.partners.find((p) => p.id === part.partnerId) ?? null,
       user: lead,
-      task: item.title,
-      due: item.due,
-      portalLink: `${siteUrl()}${item.path}`,
+      // The most urgent item, so a subject line written for one thing
+      // still reads correctly when the body covers six.
+      task: digest.worst.title,
+      due: digest.worst.due,
+      items: list,
+      portalLink: `${siteUrl()}/portal/${part.partnerId}`,
     }),
-    FALLBACK[due.kind],
+    FALLBACK[digest.kind],
   );
+
+  /*
+   * A template written before this existed has no [items] token, and
+   * a reminder that does not say what is outstanding is no use. So
+   * the list is appended when the rendered body does not carry it.
+   */
+  const body = text.includes(list) ? text : `${text}\n\n${list}`;
 
   const result = await sendEmail({
     to: lead.email,
     toName: lead.name,
     subject,
-    text,
+    text: body,
     templateId,
     partnerId: part.partnerId,
-    dedupeKey: reminderKey(part.id, item.id, item.due, due),
   });
 
-  if (result.ok) return 'sent';
-  if (result.reason === 'duplicate') return 'duplicate';
+  if (!result.ok) {
+    console.error(`[reminders] ${lead.email}: ${result.error}`);
+    return false;
+  }
 
-  console.error(`[reminders] ${partnerName} — ${item.title}: ${result.error}`);
-  return 'failed';
+  if (result.sentEmailId) await attach(claimed, result.sentEmailId);
+  return true;
 }
