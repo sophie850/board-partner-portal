@@ -123,7 +123,50 @@ export async function markComplete(
 }
 
 /**
- * Undo a self-reported completion.
+ * Record "not needed".
+ *
+ * `completed` is set alongside `declined` on purpose: a declined task
+ * is resolved, and must drop out of every count, every badge and
+ * every reminder exactly as a finished one does. Everything that
+ * already reads `completed` keeps working untouched, and the flag
+ * beside it is what lets the label — and an organiser — tell the two
+ * apart.
+ */
+export async function markDeclined(
+  participationId: Id,
+  taskId: Id,
+  by: string,
+): Promise<void> {
+  const client = requireSupabase();
+
+  const { data, error } = await client
+    .from('event_participations')
+    .select('task_state')
+    .eq('id', participationId)
+    .single();
+
+  if (error) return;
+
+  const taskState = (data?.task_state ?? {}) as Record<string, Record<string, unknown>>;
+  const now = new Date().toISOString();
+
+  taskState[taskId] = {
+    ...(taskState[taskId] ?? {}),
+    completed: true,
+    completedAt: now,
+    completedBy: by,
+    declined: true,
+    declinedAt: now,
+  };
+
+  await client
+    .from('event_participations')
+    .update({ task_state: taskState })
+    .eq('id', participationId);
+}
+
+/**
+ * Undo a self-reported completion, or a decline.
  *
  * Only reachable for the kinds the partner ticked themselves. A
  * completion the portal observed — a submitted form, an acknowledged
@@ -149,6 +192,8 @@ export async function markNotComplete(participationId: Id, taskId: Id): Promise<
     completed: false,
     completedAt: undefined,
     completedBy: undefined,
+    declined: false,
+    declinedAt: undefined,
   };
 
   await client

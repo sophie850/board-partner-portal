@@ -6,6 +6,7 @@ import type { CsvCell } from '@/lib/csv';
 import {
   fmtDateTime,
   isOverdue,
+  taskOverdue,
   money,
   resolveForms,
   resolveTasks,
@@ -36,7 +37,7 @@ export default async function OrganiserReporting() {
     const done = tasksDone + formsDone;
 
     const overdue =
-      tasks.filter((t) => isOverdue(t.dueDate, t.completed)).length +
+      tasks.filter((t) => taskOverdue(t)).length +
       forms.filter((f) =>
         isOverdue(
           f.dueDate,

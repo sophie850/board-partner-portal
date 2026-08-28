@@ -5,12 +5,12 @@ import { revalidatePath } from 'next/cache';
 import { actorName, guardPartner } from '@/lib/auth/session';
 import { requireSupabase } from '@/lib/db/client';
 import { getDbOrError, mintId } from '@/lib/db/store';
-import { markComplete, markNotComplete } from '@/lib/taskCompletion';
+import { markComplete, markDeclined, markNotComplete } from '@/lib/taskCompletion';
 import { taskApplies } from '@/lib/resolvers';
 import type { Id, TaskLinkType } from '@/lib/types';
 
 /* ============================================================
-   Ticking off a task the portal cannot see
+   Answering a task the portal cannot see
 
    Most tasks finish themselves: submit the form, acknowledge the
    page, place the order. Three kinds cannot, because nothing
@@ -24,6 +24,13 @@ import type { Id, TaskLinkType } from '@/lib/types';
                 is the whole task.
 
    For those the partner says so, and this records it.
+
+   Declining is the other half. Some tasks are an opportunity with a
+   closing date rather than an obligation — "Order essential AV" is
+   only work if you want AV. A partner who does not should be able to
+   say so and stop hearing about it, and that answer belongs on the
+   record: "they said no" and "they never dealt with it" are
+   different things for an organiser to know.
    ============================================================ */
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -47,10 +54,24 @@ const SELF_REPORTED = new Set<TaskLinkType>(['checklist', 'url', 'ack']);
  */
 const REVERSIBLE = new Set<TaskLinkType>(['checklist', 'url']);
 
-export async function setTaskDone(
+/**
+ * Which tasks a partner may decline.
+ *
+ * Anything the organiser marked optional, and anything from the shop
+ * — an opportunity by nature, whether or not an answer is wanted.
+ * Never a required form or a page that has to be read: those are not
+ * offers, and declining is not an answer to them.
+ */
+function mayDecline(task: { required: boolean; link?: { type: TaskLinkType } | null }): boolean {
+  return !task.required || task.link?.type === 'shop';
+}
+
+export type TaskAnswer = 'done' | 'declined' | 'open';
+
+export async function setTaskState(
   partnerId: Id,
   taskId: Id,
-  done: boolean,
+  answer: TaskAnswer,
 ): Promise<Result> {
   const refused = await guardPartner(partnerId, 'tasks');
   if (refused) return refused;
@@ -73,34 +94,54 @@ export async function setTaskDone(
   }
 
   const kind = task.link?.type;
-  if (!kind || !SELF_REPORTED.has(kind)) {
+
+  if (answer === 'declined' && !mayDecline(task)) {
+    return {
+      ok: false,
+      error: 'This one is required. If it does not apply to you, tell your BOARD contact.',
+    };
+  }
+
+  if (answer === 'done' && (!kind || !SELF_REPORTED.has(kind))) {
     return {
       ok: false,
       error: 'This one completes on its own once the work behind it is done.',
     };
   }
 
-  if (!done && !REVERSIBLE.has(kind)) {
-    return { ok: false, error: 'An acknowledgement cannot be withdrawn once given.' };
+  /*
+   * Reopening. A declined task can always be reopened — somebody who
+   * said they did not need AV in January may well want it in March,
+   * and making that hard would only generate an email to Anna. A
+   * ticked one depends on what it was.
+   */
+  if (answer === 'open') {
+    const wasDeclined = Boolean(part.taskState?.[taskId]?.declined);
+    if (!wasDeclined && (!kind || !REVERSIBLE.has(kind))) {
+      return { ok: false, error: 'An acknowledgement cannot be withdrawn once given.' };
+    }
   }
 
   try {
     const by = await actorName('Partner');
 
-    if (done) {
-      await markComplete(part.id, [taskId], by);
-    } else {
-      await markNotComplete(part.id, taskId);
-    }
+    if (answer === 'done') await markComplete(part.id, [taskId], by);
+    else if (answer === 'declined') await markDeclined(part.id, taskId, by);
+    else await markNotComplete(part.id, taskId);
+
+    const said =
+      answer === 'done'
+        ? `Marked “${task.title}” as done.`
+        : answer === 'declined'
+          ? `Answered “not needed” on “${task.title}”.`
+          : `Reopened “${task.title}”.`;
 
     await requireSupabase().from('audit_log').insert({
       id: mintId('a'),
       event_id: db.event.id,
       partner_id: partnerId,
       actor: by,
-      body: done
-        ? `Marked “${task.title}” as done.`
-        : `Reopened “${task.title}”.`,
+      body: said,
       created_at: new Date().toISOString(),
     });
 

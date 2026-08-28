@@ -3,7 +3,14 @@ import Link from 'next/link';
 
 import { EmptyState, Eyebrow, PageTitle, Rise, StatusPill } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
-import { fmtDate, isOverdue, NO_DATE_LABEL, resolveTasks, taskApplies, terms } from '@/lib/resolvers';
+import {
+  fmtDate,
+  NO_DATE_LABEL,
+  resolveTasks,
+  taskApplies,
+  taskOverdue,
+  terms,
+} from '@/lib/resolvers';
 import type { Db, TaskTemplate } from '@/lib/types';
 import { requireArea } from '@/lib/auth/session';
 
@@ -88,6 +95,9 @@ export default async function TasksPage() {
               <div className="shrink-0 text-right">
                 <div className="text-[13px] text-ink-2">
                   {row.done}/{row.applies} complete
+                  {row.declined > 0 && (
+                    <span className="text-ink-4"> · {row.declined} not needed</span>
+                  )}
                 </div>
                 {row.overdue > 0 && (
                   <StatusPill tone="warn" className="mt-[6px]">
@@ -110,25 +120,33 @@ interface Summary {
   overdue: number;
   appliesLabel: string;
   linkLabel: string;
+  /** Partners who answered "not needed". */
+  declined: number;
 }
 
 function summarise(db: Db, task: TaskTemplate): Summary {
   const applicable = db.participations.filter((p) => taskApplies(db, task, p));
 
   let done = 0;
+  let declined = 0;
   let overdue = 0;
 
   applicable.forEach((part) => {
     const resolved = resolveTasks(db, part).find((x) => x.id === task.id);
     if (!resolved) return;
-    if (resolved.completed) done += 1;
-    else if (isOverdue(resolved.dueDate, false)) overdue += 1;
+    // Counted apart from done on purpose. "Six completed it" and
+    // "six said they did not need it" mean very different things
+    // when you are deciding whether to chase anybody.
+    if (resolved.declined) declined += 1;
+    else if (resolved.completed) done += 1;
+    else if (taskOverdue(resolved)) overdue += 1;
   });
 
   return {
     task,
     applies: applicable.length,
     done,
+    declined,
     overdue,
     appliesLabel: appliesLabel(db, task),
     linkLabel: linkLabel(db, task),

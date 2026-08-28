@@ -12,7 +12,7 @@ import {
   summarise,
   type Due,
 } from '@/lib/reminderRules';
-import { fmtDate, formsNeedingReminder, resolveTasks } from '@/lib/resolvers';
+import { fmtDate, formsNeedingReminder, isOverdue, resolveTasks } from '@/lib/resolvers';
 import type { Db, Participation, PartnerUser } from '@/lib/types';
 
 /* ============================================================
@@ -157,6 +157,17 @@ interface Claimed extends Item {
 function outstanding(db: Db, part: Participation): Item[] {
   const tasks = resolveTasks(db, part)
     .filter((t) => !t.completed && t.dueDate)
+    /*
+     * An optional task is an offer with a closing date. Worth a nudge
+     * before the date — "AV books up quickly" is true — but a partner
+     * cannot be late for something they were never obliged to do, so
+     * once the date passes it drops out rather than entering the
+     * weekly overdue chase.
+     *
+     * A partner who answered "not needed" is already complete, and
+     * left with the filter above.
+     */
+    .filter((t) => t.required || !isOverdue(t.dueDate, t.completed))
     .map((t) => ({ id: t.id, title: t.title, due: t.dueDate! }));
 
   const forms = formsNeedingReminder(db, part)

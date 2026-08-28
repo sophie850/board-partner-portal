@@ -10,7 +10,7 @@ import { Eyebrow, PageTitle, Rise, StatusPill } from '@/components/ui/primitives
 import { getDb } from '@/lib/db/store';
 import {
   fmtDate,
-  isOverdue,
+  taskOverdue,
   isUpcoming,
   money,
   resolveForms,
@@ -39,7 +39,7 @@ export default async function OrganiserDashboard() {
     resolveTasks(db, part).forEach((task) => {
       if (task.completed) return;
       tasksOutstanding += 1;
-      if (isOverdue(task.dueDate, task.completed)) tasksOverdue += 1;
+      if (taskOverdue(task)) tasksOverdue += 1;
     });
     resolveForms(db, part).forEach((f) => {
       if (f.state.status === 'submitted' || f.state.status === 'under_review') formsToReview += 1;
@@ -330,14 +330,14 @@ function aggregatedDeadlines(db: Db): DeadlineGroup[] {
 
       if (existing) {
         existing.partners += 1;
-        if (isOverdue(task.dueDate, task.completed)) existing.overdue += 1;
+        if (taskOverdue(task)) existing.overdue += 1;
       } else {
         groups.set(key, {
           key,
           title: task.title,
           date: task.dueDate,
           partners: 1,
-          overdue: isOverdue(task.dueDate, task.completed) ? 1 : 0,
+          overdue: taskOverdue(task) ? 1 : 0,
         });
       }
     });

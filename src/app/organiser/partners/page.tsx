@@ -7,7 +7,7 @@ import { EmptyState, Eyebrow, PageTitle, Rise, StatusPill } from '@/components/u
 import { getDb } from '@/lib/db/store';
 import {
   entitlementSet,
-  isOverdue,
+  taskOverdue,
   money,
   packageValue,
   resolveForms,
@@ -31,7 +31,7 @@ export default async function PartnersPage() {
 
       const tasks = resolveTasks(db, part);
       const progress = taskProgress(db, part);
-      const overdue = tasks.filter((x) => isOverdue(x.dueDate, x.completed)).length;
+      const overdue = tasks.filter((x) => taskOverdue(x)).length;
       const toReview = resolveForms(db, part).filter(
         (f) => f.state.status === 'submitted' || f.state.status === 'under_review',
       ).length;

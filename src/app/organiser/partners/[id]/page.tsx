@@ -13,6 +13,7 @@ import {
   formsCoveredByTasks,
   isFormActionable,
   isOverdue,
+  taskOverdue,
   isUpcoming,
   money,
   orderTotal,
@@ -63,7 +64,7 @@ export default async function PartnerSummary({
       a.id === part.leadUserId ? -1 : b.id === part.leadUserId ? 1 : a.name.localeCompare(b.name),
     );
 
-  const overdue = tasks.filter((x) => isOverdue(x.dueDate, x.completed));
+  const overdue = tasks.filter((x) => taskOverdue(x));
   const covered = formsCoveredByTasks(db, part);
 
   // Same de-duplication as everywhere else: a form represented by an

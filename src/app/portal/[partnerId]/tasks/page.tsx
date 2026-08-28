@@ -3,10 +3,17 @@ import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { MarkDone } from '@/components/tasks/MarkDone';
+import { TaskAnswer } from '@/components/tasks/TaskAnswer';
 import { Eyebrow, PageTitle, Panel, Rise, StatusPill } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
-import { fmtDate, isOverdue, NO_DATE_LABEL, resolveTasks, terms } from '@/lib/resolvers';
+import {
+  fmtDate,
+  isOverdue,
+  NO_DATE_LABEL,
+  resolveTasks,
+  taskOverdue,
+  terms,
+} from '@/lib/resolvers';
 import type { Db, ResolvedTask } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +39,7 @@ export default async function PartnerTasks({
 
   const filtered =
     filter === 'overdue'
-      ? all.filter((x) => isOverdue(x.dueDate, x.completed))
+      ? all.filter((x) => taskOverdue(x))
       : filter === 'completed'
         ? all.filter((x) => x.completed)
         : filter === 'optional'
@@ -43,8 +50,8 @@ export default async function PartnerTasks({
   // a single ordered list rather than separate buckets to scan.
   const ordered = [...filtered].sort((a, b) => {
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
-    const aOver = isOverdue(a.dueDate, a.completed);
-    const bOver = isOverdue(b.dueDate, b.completed);
+    const aOver = taskOverdue(a);
+    const bOver = taskOverdue(b);
     if (aOver !== bOver) return aOver ? -1 : 1;
     if (!a.dueDate) return 1;
     if (!b.dueDate) return -1;
@@ -53,7 +60,7 @@ export default async function PartnerTasks({
 
   const filters = [
     { key: undefined, label: 'All', count: all.length },
-    { key: 'overdue', label: 'Overdue', count: all.filter((x) => isOverdue(x.dueDate, x.completed)).length },
+    { key: 'overdue', label: 'Overdue', count: all.filter((x) => taskOverdue(x)).length },
     { key: 'completed', label: 'Completed', count: all.filter((x) => x.completed).length },
     { key: 'optional', label: 'Optional', count: all.filter((x) => !x.required).length },
   ];
@@ -113,6 +120,15 @@ export default async function PartnerTasks({
  */
 const SELF_REPORTED = new Set(['checklist', 'url', 'ack']);
 
+/**
+ * "Not needed" is a real answer to an offer, not to an obligation.
+ * Anything optional, and anything from the shop — ordering is only
+ * work if you want what is on sale.
+ */
+function mayDecline(task: ResolvedTask): boolean {
+  return !task.completed && (!task.required || task.link?.type === 'shop');
+}
+
 function TaskRow({
   db,
   task,
@@ -124,10 +140,12 @@ function TaskRow({
   base: string;
   partnerId: string;
 }) {
-  const overdue = isOverdue(task.dueDate, task.completed);
+  const overdue = taskOverdue(task);
   const action = actionFor(db, task, base);
   const kind = task.link?.type;
-  const selfReported = Boolean(kind && SELF_REPORTED.has(kind));
+  const tickable = Boolean(kind && SELF_REPORTED.has(kind));
+  const declinable = mayDecline(task);
+  const declined = Boolean(task.declined);
 
   return (
     <div
@@ -153,7 +171,12 @@ function TaskRow({
           )}
 
           <div className="mt-[8px] text-[12px]">
-            {task.completed ? (
+            {task.declined ? (
+              <span className="text-ink-4">
+                Not needed — you told us on{' '}
+                {task.declinedAt ? fmtDate(task.declinedAt) : 'a previous visit'}
+              </span>
+            ) : task.completed ? (
               <span className="text-ink-4">
                 Completed {task.completedAt ? fmtDate(task.completedAt) : ''}
                 {task.completedBy ? ` by ${task.completedBy}` : ''}
@@ -162,6 +185,11 @@ function TaskRow({
               <span className="text-ink-4">{NO_DATE_LABEL}</span>
             ) : overdue ? (
               <span className="text-warn">Overdue — was due {fmtDate(task.dueDate)}</span>
+            ) : isOverdue(task.dueDate, task.completed) ? (
+              // Optional, and past its date. Not late — nobody owed it
+              // — but "Due 18 Aug" about a day gone by reads as a
+              // mistake, so say what actually happened.
+              <span className="text-ink-4">Was due {fmtDate(task.dueDate)}</span>
             ) : (
               <span className="text-ink-3">Due {fmtDate(task.dueDate)}</span>
             )}
@@ -169,7 +197,9 @@ function TaskRow({
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
-          {task.completed ? (
+          {task.declined ? (
+            <StatusPill tone="muted">Not needed</StatusPill>
+          ) : task.completed ? (
             <StatusPill tone="good">Done</StatusPill>
           ) : overdue ? (
             <StatusPill tone="warn">Overdue</StatusPill>
@@ -189,7 +219,7 @@ function TaskRow({
                 // Secondary when a "Mark as done" sits beside it —
                 // two solid buttons on one row compete, and the tick
                 // is the one that finishes the task.
-                selfReported
+                tickable || declinable
                   ? 'inline-flex items-center gap-[6px] rounded-pill border border-accent-line px-[16px] py-[8px] text-[12.5px] text-accent no-underline hover:bg-accent-fill hover:text-accent'
                   : 'inline-flex items-center gap-[6px] rounded-pill bg-brand px-[16px] py-[8px] text-[12.5px] text-on-brand no-underline hover:bg-brand-hover hover:text-on-brand'
               }
@@ -198,13 +228,16 @@ function TaskRow({
             </Link>
           )}
 
-          {selfReported && (
-            <MarkDone
+          {(tickable || declinable || declined) && (
+            <TaskAnswer
               partnerId={partnerId}
               taskId={task.id}
               title={task.title}
-              kind={kind as 'checklist' | 'url' | 'ack'}
+              tickable={tickable}
+              declinable={declinable}
+              permanent={kind === 'ack'}
               done={task.completed}
+              declined={declined}
             />
           )}
         </div>

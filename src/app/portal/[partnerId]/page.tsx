@@ -9,7 +9,7 @@ import {
   fmtDate,
   formsCoveredByTasks,
   isFormActionable,
-  isOverdue,
+  taskOverdue,
   isUpcoming,
   money,
   packageValue,
@@ -213,7 +213,7 @@ export default async function PartnerDashboard({
           <h2 className="mb-3 text-[15px] font-light text-ink">Overdue</h2>
           <div className="flex flex-col gap-[9px]">
             {tasks
-              .filter((x) => isOverdue(x.dueDate, x.completed))
+              .filter((x) => taskOverdue(x))
               .map((x) => (
                 <Link
                   key={x.id}

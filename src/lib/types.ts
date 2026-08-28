@@ -436,6 +436,17 @@ export interface TaskState {
   completed?: boolean;
   completedAt?: IsoDateTime;
   completedBy?: string;
+  /**
+   * Set when the partner answered "not needed" rather than doing it.
+   *
+   * `completed` is set too, deliberately: a declined task is resolved
+   * and must drop out of every count and every reminder exactly as a
+   * finished one does. This flag only changes what it is called and
+   * keeps the answer on the record — "they said no" and "they never
+   * dealt with it" are different things for an organiser to know.
+   */
+  declined?: boolean;
+  declinedAt?: IsoDateTime;
   partnerNotes?: string;
   organiserNotes?: string;
   file?: UploadedFile | null;

@@ -292,7 +292,7 @@ export function actionCounts(
     (r) => r.participationId === part.id && r.status === 'more_info',
   ).length;
 
-  const overdue = tasks.filter((t) => isOverdue(t.dueDate, t.completed)).length;
+  const overdue = tasks.filter((t) => taskOverdue(t)).length;
 
   return {
     tasks: outstanding.length,
@@ -438,6 +438,24 @@ export function isOverdue(
   now: Date = new Date(),
 ): boolean {
   return !done && !!iso && new Date(iso) < now;
+}
+
+/**
+ * Whether a task is genuinely late.
+ *
+ * An optional task is an opportunity with a closing date, not a debt.
+ * "Order essential AV — optional, but AV books up quickly" is worth a
+ * nudge before the date; it is not something a partner can be late
+ * for, and colouring it red and counting it as overdue chases people
+ * about work they were never obliged to do.
+ *
+ * Everything that reports overdue-ness about a task goes through here
+ * rather than calling isOverdue directly, so the rule holds in the
+ * counts, the badges, both portals and the reminder run at once.
+ */
+export function taskOverdue(task: ResolvedTask, now: Date = new Date()): boolean {
+  if (!task.required) return false;
+  return isOverdue(task.dueDate, task.completed, now);
 }
 
 /** Upcoming only — the dashboard deadline list never shows past dates. */

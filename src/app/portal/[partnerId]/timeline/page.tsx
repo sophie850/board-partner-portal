@@ -9,6 +9,7 @@ import {
   fmtDate,
   formsCoveredByTasks,
   isOverdue,
+  taskOverdue,
   productVisible,
   resolveForms,
   resolveTasks,
@@ -70,7 +71,7 @@ export default async function PartnerTimeline({
       href: `${base}/tasks`,
       kind: 'task',
       done: task.completed,
-      overdue: isOverdue(task.dueDate, task.completed),
+      overdue: taskOverdue(task),
     });
   });
 
