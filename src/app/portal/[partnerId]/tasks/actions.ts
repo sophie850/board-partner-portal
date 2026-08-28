@@ -21,7 +21,10 @@ import type { Id, TaskLinkType } from '@/lib/types';
      url        we can see the click, not what happened at the other
                 end of it;
      ack        a confirmation with no page behind it, where the tick
-                is the whole task.
+                is the whole task;
+     shop       partners order in waves, so the first order is not
+                the last one — only they know when they have ordered
+                everything they want.
 
    For those the partner says so, and this records it.
 
@@ -42,17 +45,18 @@ type Result = { ok: true } | { ok: false; error: string };
  * A form task must never be tickable — that would let somebody mark
  * a health and safety declaration done without submitting one.
  */
-const SELF_REPORTED = new Set<TaskLinkType>(['checklist', 'url', 'ack']);
+const SELF_REPORTED = new Set<TaskLinkType>(['checklist', 'url', 'ack', 'shop']);
 
 /**
  * An acknowledgement stands once given.
  *
- * The other two are self-reported progress and correcting a
- * mis-tick should be easy. An acknowledgement is a record of
- * somebody confirming something, which is not a preference — the
- * same rule content pages follow.
+ * The others are self-reported progress and correcting a mis-tick
+ * should be easy — a partner who said they had finished ordering and
+ * then needs one more thing should not have to ring anybody. An
+ * acknowledgement is a record of somebody confirming something,
+ * which is not a preference; the same rule content pages follow.
  */
-const REVERSIBLE = new Set<TaskLinkType>(['checklist', 'url']);
+const REVERSIBLE = new Set<TaskLinkType>(['checklist', 'url', 'shop']);
 
 /**
  * Which tasks a partner may decline.
@@ -102,7 +106,15 @@ export async function setTaskState(
     };
   }
 
-  if (answer === 'done' && (!kind || !SELF_REPORTED.has(kind))) {
+  /*
+   * An upload task finishes when the files arrive. If the organiser
+   * requested none, nothing ever will — so rather than leave the
+   * partner with a task they cannot finish, they may close it.
+   */
+  const nothingToUpload =
+    kind === 'upload' && (part.requestedFiles ?? []).length === 0;
+
+  if (answer === 'done' && !nothingToUpload && (!kind || !SELF_REPORTED.has(kind))) {
     return {
       ok: false,
       error: 'This one completes on its own once the work behind it is done.',
@@ -117,7 +129,7 @@ export async function setTaskState(
    */
   if (answer === 'open') {
     const wasDeclined = Boolean(part.taskState?.[taskId]?.declined);
-    if (!wasDeclined && (!kind || !REVERSIBLE.has(kind))) {
+    if (!wasDeclined && !nothingToUpload && (!kind || !REVERSIBLE.has(kind))) {
       return { ok: false, error: 'An acknowledgement cannot be withdrawn once given.' };
     }
   }

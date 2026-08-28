@@ -6,7 +6,11 @@ import { revalidatePath } from 'next/cache';
 import { requireSupabase } from '@/lib/db/client';
 import { getDb } from '@/lib/db/store';
 import { storageKeyFrom } from '@/lib/storage';
-import { completeLinkedTasks } from '@/lib/taskCompletion';
+import {
+  allRequestedFilesIn,
+  completeLinkedTasks,
+  reopenLinkedTasks,
+} from '@/lib/taskCompletion';
 import type { Id } from '@/lib/types';
 
 /* ============================================================
@@ -51,13 +55,18 @@ export async function attachRequestedFile(
     if (error) return { ok: false, error: error.message };
 
     /*
-     * An upload task has no particular slot behind it — the editor
-     * offers no target for one — so providing any requested file
-     * satisfies it.
+     * Only once everything asked for has arrived. Completing on the
+     * first file would clear the task while two more are outstanding
+     * — and stop them being chased.
+     *
+     * Re-read rather than trusting the copy loaded before the write,
+     * or the file just attached would not be counted.
      */
     const db = await getDb();
     const part = db.participations.find((p) => p.partnerId === partnerId);
-    if (part) await completeLinkedTasks(part.id, 'upload', by);
+    if (part && (await allRequestedFilesIn(part.id))) {
+      await completeLinkedTasks(part.id, 'upload', by);
+    }
 
     revalidatePath(`/portal/${partnerId}`, 'layout');
     revalidatePath('/organiser/partners');
@@ -95,6 +104,16 @@ export async function clearRequestedFile(
       .eq('id', requestedFileId);
 
     if (error) return { ok: false, error: error.message };
+
+    /*
+     * Withdrawing a required file leaves the set incomplete again, so
+     * the task goes back to outstanding. Otherwise a partner could
+     * clear their insurance certificate and the portal would go on
+     * saying they had provided everything.
+     */
+    if (part && slot.required && !(await allRequestedFilesIn(part.id))) {
+      await reopenLinkedTasks(part.id, 'upload');
+    }
 
     revalidatePath(`/portal/${partnerId}`, 'layout');
     revalidatePath('/organiser/partners');

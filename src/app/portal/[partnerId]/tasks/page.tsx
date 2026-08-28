@@ -14,7 +14,7 @@ import {
   taskOverdue,
   terms,
 } from '@/lib/resolvers';
-import type { Db, ResolvedTask } from '@/lib/types';
+import type { Db, Participation, ResolvedTask } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,6 +103,7 @@ export default async function PartnerTasks({
             <TaskRow
               key={task.id}
               db={db}
+              part={part}
               task={task}
               base={base}
               partnerId={partnerId}
@@ -118,24 +119,49 @@ export default async function PartnerTasks({
  * The kinds the portal cannot watch finish, so the partner says so.
  * Everything else completes as a consequence of the work itself.
  */
-const SELF_REPORTED = new Set(['checklist', 'url', 'ack']);
+const SELF_REPORTED = new Set(['checklist', 'url', 'ack', 'shop']);
+
+/**
+ * Whether this partner has already ordered against a shop task.
+ *
+ * It decides which answer to offer. Before they have ordered
+ * anything, "not needed" is the sensible one and "finished ordering"
+ * is nonsense; afterwards it is the other way round. A task pointing
+ * at no particular category takes any order at all.
+ */
+function hasOrdered(db: Db, part: Participation, categoryId: string | null): boolean {
+  const productsInScope = new Set(
+    db.products.filter((p) => !categoryId || p.categoryId === categoryId).map((p) => p.id),
+  );
+
+  return db.orders.some(
+    (o) =>
+      o.participationId === part.id &&
+      o.items.some((i) => productsInScope.has(i.productId)),
+  );
+}
 
 /**
  * "Not needed" is a real answer to an offer, not to an obligation.
  * Anything optional, and anything from the shop — ordering is only
  * work if you want what is on sale.
  */
-function mayDecline(task: ResolvedTask): boolean {
-  return !task.completed && (!task.required || task.link?.type === 'shop');
+function mayDecline(task: ResolvedTask, ordered: boolean): boolean {
+  if (task.completed) return false;
+  // Having ordered, "I don't need anything" is no longer true.
+  if (task.link?.type === 'shop') return !ordered;
+  return !task.required;
 }
 
 function TaskRow({
   db,
+  part,
   task,
   base,
   partnerId,
 }: {
   db: Db;
+  part: Participation;
   task: ResolvedTask;
   base: string;
   partnerId: string;
@@ -143,8 +169,22 @@ function TaskRow({
   const overdue = taskOverdue(task);
   const action = actionFor(db, task, base);
   const kind = task.link?.type;
-  const tickable = Boolean(kind && SELF_REPORTED.has(kind));
-  const declinable = mayDecline(task);
+  const ordered = kind === 'shop' ? hasOrdered(db, part, task.link?.target ?? null) : false;
+
+  // A shop task can only be closed as "finished" once there is
+  // something to have finished.
+  /*
+   * An upload task completes when the requested files arrive — but if
+   * the organiser asked for none, nothing will ever arrive and the
+   * task would be unfinishable. Rare, and a misconfiguration, but the
+   * partner should not be the one stuck with it.
+   */
+  const nothingToUpload = kind === 'upload' && (part.requestedFiles ?? []).length === 0;
+
+  const tickable =
+    (Boolean(kind && SELF_REPORTED.has(kind)) && (kind !== 'shop' || ordered)) ||
+    nothingToUpload;
+  const declinable = mayDecline(task, ordered);
   const declined = Boolean(task.declined);
 
   return (
@@ -236,6 +276,7 @@ function TaskRow({
               tickable={tickable}
               declinable={declinable}
               permanent={kind === 'ack'}
+              doneLabel={kind === 'shop' ? 'Finished ordering' : 'Mark as done'}
               done={task.completed}
               declined={declined}
             />

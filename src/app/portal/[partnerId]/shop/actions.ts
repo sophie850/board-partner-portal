@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache';
 import { requireSupabase } from '@/lib/db/client';
 import { getDbOrError } from '@/lib/db/store';
 import { notifyOrderSubmitted } from '@/lib/notify';
-import { completeLinkedTasks } from '@/lib/taskCompletion';
 import { priceFor, productVisible } from '@/lib/resolvers';
 import { deliverPendingFor } from '@/lib/webhooks';
 import type { ApprovalMode, Id, OrderBilling, SupplierOrderStatus } from '@/lib/types';
@@ -249,16 +248,14 @@ export async function checkout(
     });
 
     /*
-     * A task that asked the partner to order something is finished by
-     * their having ordered it. Narrowed by category, so "Order
-     * essential AV" is not ticked off by an order of furniture.
+     * A shop task is deliberately NOT completed here. Partners order
+     * in waves — AV now, furniture once the stand design settles,
+     * more AV when it changes again — so treating the first order as
+     * "done" clears the task while there is still ordering to do,
+     * and quietly stops the deadline reminders for a category they
+     * have not finished with. Only the partner knows when they are
+     * finished, so only the partner closes it. See setTaskState.
      */
-    await completeLinkedTasks(
-      part.id,
-      'shop',
-      actor,
-      resolved.map((r) => r.product.categoryId),
-    );
 
     // Last, and unable to fail the order: the order is placed and the
     // suppliers already told, whatever email does next.

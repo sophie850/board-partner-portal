@@ -15,6 +15,9 @@ import { setTaskState } from '@/app/portal/[partnerId]/tasks/actions';
    side by side and reading them as one control is the point:
 
      "Mark as done"  — for the kinds the portal cannot watch finish.
+                       On a shop task it reads "Finished ordering",
+                       because partners order in waves and only they
+                       know which order was the last one.
      "Not needed"    — for the ones that are an offer, not a duty.
 
    A partner who does not want AV should be able to say so in one
@@ -33,6 +36,8 @@ export function TaskAnswer({
   declinable,
   /** Two-step, and no undo. Acknowledgements only. */
   permanent,
+  /** "Finished ordering" reads better than "Mark as done" on a shop task. */
+  doneLabel = 'Mark as done',
   done,
   declined,
 }: {
@@ -42,6 +47,7 @@ export function TaskAnswer({
   tickable: boolean;
   declinable: boolean;
   permanent: boolean;
+  doneLabel?: string;
   done: boolean;
   declined: boolean;
 }) {
@@ -133,7 +139,7 @@ export function TaskAnswer({
           disabled={pending}
         >
           <Check size={13} />
-          {pending ? 'Saving…' : permanent ? 'Confirm' : 'Mark as done'}
+          {pending ? 'Saving…' : permanent ? 'Confirm' : doneLabel}
         </Button>
       )}
 

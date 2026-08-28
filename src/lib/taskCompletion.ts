@@ -73,6 +73,42 @@ export async function completeLinkedTasks(
 }
 
 /**
+ * Whether every file the organiser asked for has arrived.
+ *
+ * An upload task points at no particular slot — the editor offers no
+ * target for one — so "provided a file" is not the same as "done".
+ * A partner owing an insurance certificate, a method statement and a
+ * logo has not finished by sending the logo, and completing on the
+ * first arrival would drop the other two out of every reminder.
+ *
+ * Optional slots are ignored: they are the same kind of offer an
+ * optional task is.
+ *
+ * Read straight from the database rather than through `getDb`, which
+ * is cached for the length of a request — the guard at the top of
+ * the action has already populated that cache, so the file just
+ * written would not be counted and the task would complete one
+ * upload late, every time.
+ */
+export async function allRequestedFilesIn(participationId: Id): Promise<boolean> {
+  const { data, error } = await requireSupabase()
+    .from('partner_requested_files')
+    .select('required, file_name')
+    .eq('participation_id', participationId);
+
+  if (error || !data) return false;
+
+  const needed = data.filter((row) => row.required);
+  // Nothing required means nothing to wait for. This is reached only
+  // after a file has been attached, so an optional-only set completes
+  // on the first one — which is the right reading of "provide these
+  // if you have them".
+  if (!needed.length) return true;
+
+  return needed.every((row) => Boolean(row.file_name));
+}
+
+/**
  * Write the completions.
  *
  * Read-modify-write on the JSONB, matching how form and
@@ -120,6 +156,59 @@ export async function markComplete(
     .from('event_participations')
     .update({ task_state: taskState })
     .eq('id', participationId);
+}
+
+/**
+ * Put tasks of a kind back to outstanding.
+ *
+ * The mirror of `completeLinkedTasks`, for when the thing that
+ * satisfied them stops being true — a required file withdrawn, so
+ * the set is no longer complete. Only touches tasks the portal
+ * completed itself; a decline is the partner's answer and is theirs
+ * to take back.
+ */
+export async function reopenLinkedTasks(
+  participationId: Id,
+  type: TaskLinkType,
+): Promise<void> {
+  try {
+    const db = await getDb();
+    const linked = db.taskTemplates.filter((t) => t.link?.type === type);
+    if (!linked.length) return;
+
+    const client = requireSupabase();
+    const { data, error } = await client
+      .from('event_participations')
+      .select('task_state')
+      .eq('id', participationId)
+      .single();
+
+    if (error) return;
+
+    const taskState = (data?.task_state ?? {}) as Record<string, Record<string, unknown>>;
+
+    let changed = false;
+    for (const t of linked) {
+      const state = taskState[t.id];
+      if (!state?.completed || state.declined) continue;
+      taskState[t.id] = {
+        ...state,
+        completed: false,
+        completedAt: undefined,
+        completedBy: undefined,
+      };
+      changed = true;
+    }
+
+    if (!changed) return;
+
+    await client
+      .from('event_participations')
+      .update({ task_state: taskState })
+      .eq('id', participationId);
+  } catch (e) {
+    console.error(`[tasks] could not reopen tasks linked to ${type}:`, e);
+  }
 }
 
 /**
