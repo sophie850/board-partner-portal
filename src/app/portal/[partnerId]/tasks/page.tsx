@@ -119,38 +119,16 @@ export default async function PartnerTasks({
  * The kinds the portal cannot watch finish, so the partner says so.
  * Everything else completes as a consequence of the work itself.
  */
-const SELF_REPORTED = new Set(['checklist', 'url', 'ack', 'shop']);
-
-/**
- * Whether this partner has already ordered against a shop task.
- *
- * It decides which answer to offer. Before they have ordered
- * anything, "not needed" is the sensible one and "finished ordering"
- * is nonsense; afterwards it is the other way round. A task pointing
- * at no particular category takes any order at all.
- */
-function hasOrdered(db: Db, part: Participation, categoryId: string | null): boolean {
-  const productsInScope = new Set(
-    db.products.filter((p) => !categoryId || p.categoryId === categoryId).map((p) => p.id),
-  );
-
-  return db.orders.some(
-    (o) =>
-      o.participationId === part.id &&
-      o.items.some((i) => productsInScope.has(i.productId)),
-  );
-}
+const SELF_REPORTED = new Set(['checklist', 'url', 'ack']);
 
 /**
  * "Not needed" is a real answer to an offer, not to an obligation.
  * Anything optional, and anything from the shop — ordering is only
  * work if you want what is on sale.
  */
-function mayDecline(task: ResolvedTask, ordered: boolean): boolean {
+function mayDecline(task: ResolvedTask): boolean {
   if (task.completed) return false;
-  // Having ordered, "I don't need anything" is no longer true.
-  if (task.link?.type === 'shop') return !ordered;
-  return !task.required;
+  return !task.required || task.link?.type === 'shop';
 }
 
 function TaskRow({
@@ -169,10 +147,6 @@ function TaskRow({
   const overdue = taskOverdue(task);
   const action = actionFor(db, task, base);
   const kind = task.link?.type;
-  const ordered = kind === 'shop' ? hasOrdered(db, part, task.link?.target ?? null) : false;
-
-  // A shop task can only be closed as "finished" once there is
-  // something to have finished.
   /*
    * An upload task completes when the requested files arrive — but if
    * the organiser asked for none, nothing will ever arrive and the
@@ -181,10 +155,8 @@ function TaskRow({
    */
   const nothingToUpload = kind === 'upload' && (part.requestedFiles ?? []).length === 0;
 
-  const tickable =
-    (Boolean(kind && SELF_REPORTED.has(kind)) && (kind !== 'shop' || ordered)) ||
-    nothingToUpload;
-  const declinable = mayDecline(task, ordered);
+  const tickable = Boolean(kind && SELF_REPORTED.has(kind)) || nothingToUpload;
+  const declinable = mayDecline(task);
   const declined = Boolean(task.declined);
 
   return (
@@ -248,11 +220,14 @@ function TaskRow({
           )}
 
           {/*
-            * A link to go and do the thing, where there is somewhere
-            * to go — and, for the kinds nothing in the portal can
-            * watch finish, a way to say it is done.
+            * The way in stays for a declined task. Declining answers
+            * the chaser, not the thing behind it — a partner who said
+            * they needed no AV in January and changes their mind in
+            * March must find the shop exactly where they left it, and
+            * taking the link away is how a portal implies it closed
+            * something it has not closed.
             */}
-          {!task.completed && action && (
+          {(!task.completed || task.declined) && action && (
             <Link
               href={action.href}
               className={
@@ -276,7 +251,6 @@ function TaskRow({
               tickable={tickable}
               declinable={declinable}
               permanent={kind === 'ack'}
-              doneLabel={kind === 'shop' ? 'Finished ordering' : 'Mark as done'}
               done={task.completed}
               declined={declined}
             />

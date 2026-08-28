@@ -15,15 +15,17 @@ import { setTaskState } from '@/app/portal/[partnerId]/tasks/actions';
    side by side and reading them as one control is the point:
 
      "Mark as done"  — for the kinds the portal cannot watch finish.
-                       On a shop task it reads "Finished ordering",
-                       because partners order in waves and only they
-                       know which order was the last one.
      "Not needed"    — for the ones that are an offer, not a duty.
 
    A partner who does not want AV should be able to say so in one
    click and stop hearing about it. Saying so is an answer, not a
    dismissal: it is recorded, an organiser can see it, and it can be
    taken back the moment they change their mind.
+
+   It answers the chaser and nothing else. The shop is not closed by
+   it — that is for the order deadlines to decide — and the row keeps
+   its link, so somebody who changes their mind is one click away
+   rather than one phone call.
    ============================================================ */
 
 export function TaskAnswer({
@@ -36,8 +38,6 @@ export function TaskAnswer({
   declinable,
   /** Two-step, and no undo. Acknowledgements only. */
   permanent,
-  /** "Finished ordering" reads better than "Mark as done" on a shop task. */
-  doneLabel = 'Mark as done',
   done,
   declined,
 }: {
@@ -47,7 +47,6 @@ export function TaskAnswer({
   tickable: boolean;
   declinable: boolean;
   permanent: boolean;
-  doneLabel?: string;
   done: boolean;
   declined: boolean;
 }) {
@@ -139,7 +138,7 @@ export function TaskAnswer({
           disabled={pending}
         >
           <Check size={13} />
-          {pending ? 'Saving…' : permanent ? 'Confirm' : doneLabel}
+          {pending ? 'Saving…' : permanent ? 'Confirm' : 'Mark as done'}
         </Button>
       )}
 

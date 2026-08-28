@@ -21,19 +21,24 @@ import type { Id, TaskLinkType } from '@/lib/types';
      url        we can see the click, not what happened at the other
                 end of it;
      ack        a confirmation with no page behind it, where the tick
-                is the whole task;
-     shop       partners order in waves, so the first order is not
-                the last one — only they know when they have ordered
-                everything they want.
+                is the whole task.
 
    For those the partner says so, and this records it.
 
-   Declining is the other half. Some tasks are an opportunity with a
-   closing date rather than an obligation — "Order essential AV" is
-   only work if you want AV. A partner who does not should be able to
-   say so and stop hearing about it, and that answer belongs on the
-   record: "they said no" and "they never dealt with it" are
-   different things for an organiser to know.
+   Declining is the other half, and it is narrower than it looks.
+   Some tasks are an opportunity with a closing date rather than an
+   obligation — "Order essential AV" is only work if you want AV. A
+   partner who does not should be able to stop hearing about it.
+
+   Declining answers the *chaser*, and nothing else. It does not
+   close the shop: the shop is open until its own order deadlines
+   say otherwise, and a partner who says "not needed" in January and
+   orders in March must find it exactly where they left it. Nothing
+   in the shop reads task state, and the way in stays on the row.
+
+   The answer is kept rather than swallowed, because "they said no"
+   and "they never dealt with it" are different things for an
+   organiser to know.
    ============================================================ */
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -45,18 +50,17 @@ type Result = { ok: true } | { ok: false; error: string };
  * A form task must never be tickable — that would let somebody mark
  * a health and safety declaration done without submitting one.
  */
-const SELF_REPORTED = new Set<TaskLinkType>(['checklist', 'url', 'ack', 'shop']);
+const SELF_REPORTED = new Set<TaskLinkType>(['checklist', 'url', 'ack']);
 
 /**
  * An acknowledgement stands once given.
  *
- * The others are self-reported progress and correcting a mis-tick
- * should be easy — a partner who said they had finished ordering and
- * then needs one more thing should not have to ring anybody. An
- * acknowledgement is a record of somebody confirming something,
- * which is not a preference; the same rule content pages follow.
+ * The other two are self-reported progress and correcting a
+ * mis-tick should be easy. An acknowledgement is a record of
+ * somebody confirming something, which is not a preference — the
+ * same rule content pages follow.
  */
-const REVERSIBLE = new Set<TaskLinkType>(['checklist', 'url', 'shop']);
+const REVERSIBLE = new Set<TaskLinkType>(['checklist', 'url']);
 
 /**
  * Which tasks a partner may decline.
