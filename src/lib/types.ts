@@ -529,6 +529,12 @@ export interface MarketingSettings {
   [key: string]: unknown;
 }
 
+/** Somebody confirming they have read a page that required it. */
+export interface Acknowledgement {
+  at: IsoDateTime;
+  by: string;
+}
+
 /**
  * The central join — and the personalisation record. Every
  * per-partner override lives here.
@@ -551,6 +557,11 @@ export interface Participation {
   taskDueDates?: Record<Id, IsoDate>;
   taskState: Record<Id, TaskState>;
   formState: Record<Id, FormSubmission>;
+  /**
+   * Content pages this partner has acknowledged, keyed by page id.
+   * A page marked `requireAck` is not done until it appears here.
+   */
+  ackState: Record<Id, Acknowledgement>;
   inventory: InventoryItem[];
   requestedFiles: RequestedFile[];
   contract?: { name: string; dataUrl: string } | null;

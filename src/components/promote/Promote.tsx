@@ -24,7 +24,7 @@ import {
   type PromoteCopy,
 } from '@/lib/promote';
 
-import { saveMarketing, useCompanyLogo } from '@/app/portal/[partnerId]/promote/actions';
+import { saveMarketing, revertToCompanyLogo } from '@/app/portal/[partnerId]/promote/actions';
 import { downloadGraphic, drawGraphic, type GraphicConfig } from './renderGraphic';
 
 /* ============================================================
@@ -212,7 +212,7 @@ export function Promote({
               <button
                 onClick={() =>
                   startTransition(async () => {
-                    await useCompanyLogo(partnerId);
+                    await revertToCompanyLogo(partnerId);
                     window.location.reload();
                   })
                 }

@@ -1487,6 +1487,7 @@ const participations: Participation[] = [
         values: { uses_contractor: true, contractor_name: 'AlpEvents GmbH' },
       },
     },
+    ackState: {},
     passAllocation: 4,
   },
   {
@@ -1550,6 +1551,7 @@ const participations: Participation[] = [
         values: { headshot: 'priya-shah-headshot.jpg' },
       },
     },
+    ackState: {},
     requestedFiles: [
       {
         id: 'rf_b1',
@@ -1629,6 +1631,7 @@ const participations: Participation[] = [
     ],
     taskState: {},
     formState: {},
+    ackState: {},
     formDueDates: { f_speaker: '2027-02-06' },
     passAllocation: 8,
   },

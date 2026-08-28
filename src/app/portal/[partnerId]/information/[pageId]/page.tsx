@@ -3,10 +3,11 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { Acknowledge } from '@/components/content/Acknowledge';
 import { BlockRenderer } from '@/components/content/BlockRenderer';
-import { Callout, Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
+import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
-import { contentVisible, fmtDate, gradientFor } from '@/lib/resolvers';
+import { contentVisible, fmtDate, fmtDateTime, gradientFor } from '@/lib/resolvers';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ export default async function InformationPage({
   if (!part) notFound();
 
   const page = db.contentPages.find((p) => p.id === pageId);
+  const ack = part.ackState?.[pageId] ?? null;
 
   // A page this partner is not entitled to see must 404 exactly like
   // one that does not exist — otherwise the difference between the
@@ -64,10 +66,14 @@ export default async function InformationPage({
       )}
 
       {page.requireAck && (
-        <Callout tone="warn" className="mt-8">
-          You need to confirm you have read this page. Acknowledgement is not wired up yet —
-          it will appear here as a checkbox and Save.
-        </Callout>
+        <Acknowledge
+          partnerId={partnerId}
+          pageId={page.id}
+          title={page.title}
+          acknowledged={
+            ack ? { by: ack.by, atLabel: fmtDateTime(ack.at) } : null
+          }
+        />
       )}
     </Rise>
   );

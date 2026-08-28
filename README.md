@@ -45,17 +45,21 @@ npm run dev
 
 ## Database
 
-Two migrations, both verified against PostgreSQL 16:
+Migrations, in order, each verified against PostgreSQL 16:
 
 | File | What it does |
 |---|---|
 | `supabase/migrations/0001_init.sql` | 31 tables |
 | `supabase/migrations/0002_rls.sql` | Revokes browser-role privileges, enables RLS |
-| `supabase/APPLY_TO_SUPABASE.sql` | The two combined, to paste into the SQL editor |
+| `supabase/migrations/0003_storage.sql` | The `board-assets` bucket (Supabase only — it uses the `storage` schema, so it fails on a plain Postgres) |
+| `supabase/migrations/0004_auth.sql` | `auth_tokens`, for sign-in links |
+| `supabase/migrations/0005_acknowledgements.sql` | `ack_state` on the participation, for content acknowledgements |
+| `supabase/APPLY_TO_SUPABASE.sql` | The schema combined, to paste into the SQL editor |
 | `supabase/SEED_SUPABASE.sql` | Seed data — generated, do not hand-edit |
 
-Run the schema, then the seed. Both are safe to re-run: the seed is `on conflict do nothing`,
-so it never overwrites work done in the portal.
+Run the schema, then the seed. Both are safe to re-run: every migration is written to be
+idempotent, and the seed is `on conflict do nothing`, so neither overwrites work done in
+the portal.
 
 ### Access control
 

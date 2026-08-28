@@ -84,7 +84,7 @@ export async function saveMarketing(
  * setting it to empty would mean "no logo", which is a different
  * thing the partner can also choose.
  */
-export async function useCompanyLogo(partnerId: Id): Promise<Result> {
+export async function revertToCompanyLogo(partnerId: Id): Promise<Result> {
   const refused = await guardPartner(partnerId, 'promote');
   if (refused) return refused;
 
