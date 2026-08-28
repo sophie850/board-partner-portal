@@ -9,7 +9,13 @@
  * Run: npx tsx scripts/test-order-deadlines.ts
  */
 import { seed } from '../src/data/seed';
-import { orderingClosed, productOrderable, shopOpen } from '../src/lib/resolvers';
+import {
+  orderingClosed,
+  productOrderable,
+  shopOpen,
+  supplierClosesOn,
+  supplierOpen,
+} from '../src/lib/resolvers';
 
 const db = seed();
 const p = { ...db.products[0], orderDeadline: '2027-02-28' };
@@ -49,6 +55,47 @@ const dayOfLatest = new Date(latest);
 if (!shopOpen(db, part, dayOfLatest)) { fail++; console.log(`  ✗ shop closed on ${latest}, its last open day`); }
 if (shopOpen(db, part, dayAfterLatest)) { fail++; console.log('  ✗ shop still open after every deadline passed'); }
 
+/* ---- a supplier closes when its whole range has ---- */
+
+const supplierIds = [...new Set(db.products.map((p) => p.supplierId))];
+
+for (const id of supplierIds) {
+  const closes = supplierClosesOn(db, id, part);
+  if (!closes) continue;
+
+  const dayOf = new Date(closes);
+  const dayAfter = new Date(closes);
+  dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
+
+  const name = db.suppliers.find((x) => x.id === id)?.name ?? id;
+  if (!supplierOpen(db, id, part, dayOf)) {
+    fail++; console.log(`  ✗ ${name} closed on ${closes}, its last open day`);
+  }
+  if (supplierOpen(db, id, part, dayAfter)) {
+    fail++; console.log(`  ✗ ${name} still open after its last deadline`);
+  }
+}
+
+// A supplier with anything open-ended never closes.
+const openEnded = db.products.find((p) => p.orderDeadline);
+if (openEnded) {
+  const patched = {
+    ...db,
+    products: db.products.map((p) =>
+      p.supplierId === openEnded.supplierId ? { ...p, orderDeadline: null } : p,
+    ),
+  };
+  if (supplierClosesOn(patched, openEnded.supplierId, part) !== null) {
+    fail++; console.log('  ✗ a supplier with an open-ended product was given a closing date');
+  }
+  if (!supplierOpen(patched, openEnded.supplierId, part, new Date('2099-01-01'))) {
+    fail++; console.log('  ✗ a supplier with an open-ended product closed anyway');
+  }
+}
+
+const supplierChecks = supplierIds.filter((id) => supplierClosesOn(db, id, part)).length * 2 + 2;
+const total = 6 + 2 + supplierChecks;
+
 console.log(`last deadline this partner can reach: ${latest}`);
-console.log(`${6 + 2 - fail}/8 passed${fail ? `, ${fail} FAILED` : ''}`);
+console.log(`${total - fail}/${total} passed${fail ? `, ${fail} FAILED` : ''}`);
 process.exit(fail ? 1 : 0);

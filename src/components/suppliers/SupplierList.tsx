@@ -16,6 +16,7 @@ import {
   TextArea,
   TextInput,
 } from '@/components/ui/primitives';
+import { fmtDate } from '@/lib/resolvers';
 import type { ApprovalMode } from '@/lib/types';
 
 import {
@@ -48,6 +49,8 @@ export interface SupplierView {
   hasSecret: boolean;
   productCount: number;
   openOrders: number;
+  /** The last day they take an order, or null if they never close. */
+  closesOn: string | null;
 }
 
 const APPROVAL_NOTE: Record<ApprovalMode, string> = {
@@ -180,6 +183,9 @@ function SupplierCard({
             <div className="flex flex-wrap items-center gap-[10px]">
               <span className="text-[14.5px] text-ink">{supplier.name}</span>
               {!supplier.active && <StatusPill tone="muted">Inactive</StatusPill>}
+              {supplier.closesOn && new Date(supplier.closesOn) < new Date() && (
+                <StatusPill tone="muted">Closed to orders</StatusPill>
+              )}
               {!supplier.hasSecret && supplier.webhookUrl && (
                 <StatusPill tone="warn">No signing secret</StatusPill>
               )}
@@ -190,6 +196,15 @@ function SupplierCard({
               <span>
                 {supplier.productCount} {supplier.productCount === 1 ? 'product' : 'products'}
               </span>
+              {supplier.closesOn && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>
+                    {new Date(supplier.closesOn) < new Date() ? 'Closed' : 'Closes'}{' '}
+                    {fmtDate(supplier.closesOn)}
+                  </span>
+                </>
+              )}
               {supplier.openOrders > 0 && (
                 <>
                   <span aria-hidden>·</span>

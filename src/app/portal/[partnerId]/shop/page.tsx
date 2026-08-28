@@ -8,13 +8,15 @@ import { Shop, type ShopProduct } from '@/components/shop/Shop';
 import { Eyebrow, PageTitle, Panel, Rise } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
 import {
+  daysUntil,
   fmtDate,
   gradientFor,
   money,
   orderingClosed,
   priceFor,
-  shopOpen,
   productVisible,
+  shopOpen,
+  supplierOpen,
   terms,
 } from '@/lib/resolvers';
 
@@ -41,10 +43,14 @@ export default async function ShopPage({
    */
   const visible = db.products.filter((p) => productVisible(db, p, part));
 
+  /** Inside this, the date is worth shouting about. */
+  const SOON_DAYS = 14;
+
   const products: ShopProduct[] = visible.map((p) => {
     const price = priceFor(part, p);
     const quote = price === null;
     const closed = orderingClosed(p);
+    const days = p.orderDeadline ? daysUntil(p.orderDeadline) : null;
 
     return {
       id: p.id,
@@ -61,10 +67,18 @@ export default async function ShopPage({
       maxQty: p.maxQty,
       deadlineLabel: p.orderDeadline
         ? closed
-          ? `Ordering closed on ${fmtDate(p.orderDeadline)}`
+          ? `Closed ${fmtDate(p.orderDeadline)}`
           : `Order by ${fmtDate(p.orderDeadline)}`
         : null,
+      deadlineTone: !p.orderDeadline
+        ? ('none' as const)
+        : closed
+          ? ('closed' as const)
+          : days !== null && days <= SOON_DAYS
+            ? ('soon' as const)
+            : ('quiet' as const),
       closed,
+      supplierClosed: !supplierOpen(db, p.supplierId, part),
       approvalMode: p.approvalMode,
       options: p.options,
       questions: p.questions,

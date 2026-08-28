@@ -43,8 +43,16 @@ export interface ShopProduct {
   minQty: number;
   maxQty: number;
   deadlineLabel: string | null;
+  /**
+   * How loudly to say the date. Scannable in a grid is the point —
+   * "closing in nine days" is the difference between ordering and
+   * meaning to.
+   */
+  deadlineTone: 'none' | 'quiet' | 'soon' | 'closed';
   /** Past its order deadline. Still listed, but nothing can be added. */
   closed: boolean;
+  /** Every product from this supplier has closed, not just this one. */
+  supplierClosed: boolean;
   approvalMode: 'auto' | 'manual' | 'quote';
   options: Array<{ name: string; values: string[] }>;
   questions: Array<{ key: string; label: string; type: string; required: boolean }>;
@@ -97,9 +105,24 @@ export function Shop({
                   className="cursor-pointer overflow-hidden rounded-xl border border-line-2 bg-panel p-0 text-left transition-colors hover:border-line-4"
                 >
                   <div
-                    className="h-[96px] bg-cover bg-center"
+                    className="relative h-[96px] bg-cover bg-center"
                     style={{ backgroundImage: `url('${p.image}')` }}
-                  />
+                  >
+                    {p.deadlineLabel && p.deadlineTone !== 'none' && (
+                      <span
+                        className={clsx(
+                          'absolute top-[8px] right-[8px] rounded-pill px-[9px] py-[3px] text-[10.5px] tracking-[0.02em] backdrop-blur-sm',
+                          p.deadlineTone === 'closed'
+                            ? 'bg-black/70 text-board-off-white'
+                            : p.deadlineTone === 'soon'
+                              ? 'bg-warn text-black'
+                              : 'bg-black/55 text-board-off-white',
+                        )}
+                      >
+                        {p.deadlineLabel}
+                      </span>
+                    )}
+                  </div>
                   <div className="px-[16px] py-[14px]">
                     <div className="flex items-start justify-between gap-3">
                       <span className="text-[14px] text-ink">{p.name}</span>
@@ -117,16 +140,9 @@ export function Shop({
                         <StatusPill tone="neutral">Approval</StatusPill>
                       )}
                     </div>
-                    {p.deadlineLabel && (
-                      <div
-                        className={clsx(
-                          'mt-[8px] text-[11.5px]',
-                          p.closed ? 'text-warn' : 'text-ink-4',
-                        )}
-                      >
-                        {p.deadlineLabel}
-                      </div>
-                    )}
+                    <div className="mt-[8px] text-[11.5px] text-ink-4">
+                      {p.supplierName}
+                    </div>
                   </div>
                 </button>
               ))}
@@ -313,8 +329,11 @@ function ProductDialog({
 
           {product.closed ? (
             <Callout tone="warn" className="mb-5">
-              {product.deadlineLabel}. Your BOARD contact may still be able to arrange it —
-              ask them rather than ordering here.
+              {product.supplierClosed
+                ? `${product.supplierName} is no longer taking orders for this event.`
+                : `${product.deadlineLabel}.`}{' '}
+              Your BOARD contact may still be able to arrange it — ask them rather than
+              ordering here.
             </Callout>
           ) : (
             product.deadlineLabel && (

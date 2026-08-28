@@ -193,6 +193,46 @@ export function shopOpen(db: Db, part: Participation, now: Date = new Date()): b
   return db.products.some((p) => productOrderable(db, p, part, now));
 }
 
+/**
+ * Whether a supplier is still taking orders from this partner.
+ *
+ * The same rule one level up. A supplier whose whole range has
+ * closed is worth saying once — "Aztec is no longer taking orders"
+ * tells a partner not to bother asking about any of it, where six
+ * separate closed products only tell them about six products.
+ */
+export function supplierOpen(
+  db: Db,
+  supplierId: Id,
+  part: Participation,
+  now: Date = new Date(),
+): boolean {
+  return db.products.some(
+    (p) => p.supplierId === supplierId && productOrderable(db, p, part, now),
+  );
+}
+
+/**
+ * The last day this supplier takes an order.
+ *
+ * Null when they have something open-ended, because then they never
+ * close. Scoped to what the partner can see: two partners can have
+ * different last days with the same supplier.
+ */
+export function supplierClosesOn(
+  db: Db,
+  supplierId: Id,
+  part: Participation,
+): IsoDate | null {
+  const theirs = db.products.filter(
+    (p) => p.supplierId === supplierId && productVisible(db, p, part),
+  );
+  if (!theirs.length) return null;
+  if (theirs.some((p) => !p.orderDeadline)) return null;
+
+  return theirs.map((p) => p.orderDeadline!).sort().at(-1) ?? null;
+}
+
 /** Partner-specific price beats the catalogue price. */
 export function priceFor(part: Participation, product: Product): number | null {
   const o = (part.priceOverrides || []).find((p) => p.productId === product.id);

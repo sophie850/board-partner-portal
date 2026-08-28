@@ -34,6 +34,16 @@ export default async function SuppliersPage() {
     notes: s.notes,
     hasSecret: Boolean(s.webhookSecret),
     productCount: db.products.filter((p) => p.supplierId === s.id).length,
+    /*
+     * Event-wide rather than per partner: this screen is about the
+     * supplier, not about anybody's catalogue. Null means they have
+     * something open-ended and never close.
+     */
+    closesOn: (() => {
+      const theirs = db.products.filter((p) => p.supplierId === s.id);
+      if (!theirs.length || theirs.some((p) => !p.orderDeadline)) return null;
+      return theirs.map((p) => p.orderDeadline!).sort().at(-1) ?? null;
+    })(),
     openOrders: db.supplierOrders.filter(
       (so) => so.supplierId === s.id && OPEN_STATES.has(so.status),
     ).length,
