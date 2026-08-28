@@ -24,6 +24,18 @@ export const LINK_MINUTES = 20;
  */
 export const HANDED_LINK_MINUTES = 120;
 
+/**
+ * An invitation, emailed to somebody who has never signed in.
+ *
+ * A week, because an invitation is not a response to anything — it
+ * arrives unannounced, possibly on a Friday, and the person opens it
+ * when they get to it. Expiring overnight would mean every partner's
+ * first experience of the portal is a link that no longer works.
+ *
+ * Still single-use, and it grants no more than any other link.
+ */
+export const INVITE_MINUTES = 7 * 24 * 60;
+
 /** Live links one address may hold at once, before we stop issuing more. */
 const MAX_LIVE_PER_EMAIL = 5;
 
@@ -220,6 +232,29 @@ async function claim(token: string): Promise<ConsumeResult> {
     email: data.email,
     nextPath: safeNextPath(data.next_path),
   };
+}
+
+/**
+ * Record that a partner user has signed in for the first time.
+ *
+ * `accepted_at` is what tells an organiser their invitation landed —
+ * without it the only honest answer to "did they get it?" is "we
+ * sent one". Only the first sign-in stamps it, so the column keeps
+ * meaning "accepted" rather than "last seen", and a failure here
+ * never blocks the sign-in it is describing.
+ */
+export async function markAccepted(kind: 'organiser' | 'partner', userId: Id): Promise<void> {
+  if (kind !== 'partner') return;
+
+  try {
+    await requireSupabase()
+      .from('partner_users')
+      .update({ accepted_at: new Date().toISOString() })
+      .eq('id', userId)
+      .is('accepted_at', null);
+  } catch (e) {
+    console.error('[auth] could not record a first sign-in:', e);
+  }
 }
 
 /**

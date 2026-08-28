@@ -1857,8 +1857,19 @@ const emailTemplates: EmailTemplate[] = [
   {
     id: 'et_invite',
     name: 'Partner invitation',
-    subject: 'You’re invited to the BOARD Monaco 2027 Partner Portal',
+    subject: 'You’re invited to the [event] Partner Portal',
     enabled: true,
+    body:
+      'Hi [first_name],\n\n' +
+      'You have been given access to the Partner Portal for [event], on behalf of [partner].\n\n' +
+      'Everything we need from you lives there — your tasks and their deadlines, the forms to ' +
+      'complete, the files to send us, and everything we have made available for you to download.\n\n' +
+      'Use this link to set up your access: [portal_link]\n\n' +
+      'The link works once and is just for you, so please do not forward it. If it has expired by ' +
+      'the time you get to it, you can ask for a new one from the sign-in page using this email ' +
+      'address.\n\n' +
+      'If you have any questions, reply to this email and it will reach us.\n\n' +
+      '[signature]',
   },
   { id: 'et_submit', name: 'Submission confirmation', subject: 'We’ve received your submission', enabled: true },
   {

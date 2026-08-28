@@ -623,7 +623,9 @@ function Template({
             />
             <Help>
               Tokens: [first_name] [contact_name] [partner] [task] [due] [event]
-              [portal_link] [sender] [sender_email] [signature]
+              [portal_link] [sender] [sender_email] [signature]. A token with nothing to
+              stand for leaves a gap; anything else in brackets is sent exactly as written,
+              so a misspelt token shows up rather than vanishing.
             </Help>
           </div>
 

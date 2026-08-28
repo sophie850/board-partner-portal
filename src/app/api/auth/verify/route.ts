@@ -6,7 +6,7 @@ import {
   sessionCookieOptions,
   signSession,
 } from '@/lib/auth/cookie';
-import { consumeToken } from '@/lib/auth/tokens';
+import { consumeToken, markAccepted } from '@/lib/auth/tokens';
 import { getDb } from '@/lib/db/store';
 import { env } from '@/lib/env';
 
@@ -43,6 +43,8 @@ export async function GET(request: NextRequest) {
     // realise you already used this one.
     return NextResponse.redirect(new URL(`/signin?error=${result.reason}`, request.url));
   }
+
+  await markAccepted(result.kind, result.userId);
 
   const now = Math.floor(Date.now() / 1000);
 

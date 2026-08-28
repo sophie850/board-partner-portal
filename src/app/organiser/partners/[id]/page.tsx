@@ -3,6 +3,8 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { HandLinkButton } from '@/components/auth/HandLinkButton';
+import { InviteButton } from '@/components/auth/InviteButton';
 import { Eyebrow, PageTitle, Panel, Rise, StatusPill } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
 import {
@@ -40,6 +42,7 @@ export default async function PartnerSummary({
   await requireArea('partners', '/organiser/partners/[id]');
 
   const { id } = await params;
+
   const db = await getDb();
 
   const partner = db.partners.find((p) => p.id === id);
@@ -51,6 +54,14 @@ export default async function PartnerSummary({
   const forms = resolveForms(db, part);
   const progress = taskProgress(db, part);
   const lead = db.partnerUsers.find((u) => u.id === part.leadUserId);
+
+  // The lead first, then everybody else by name — the order you read
+  // them out in when somebody asks who has access.
+  const team = db.partnerUsers
+    .filter((u) => u.partnerId === partner.id)
+    .sort((a, b) =>
+      a.id === part.leadUserId ? -1 : b.id === part.leadUserId ? 1 : a.name.localeCompare(b.name),
+    );
 
   const overdue = tasks.filter((x) => isOverdue(x.dueDate, x.completed));
   const covered = formsCoveredByTasks(db, part);
@@ -269,6 +280,45 @@ export default async function PartnerSummary({
             <StatusPill tone={f.due && isOverdue(f.due) ? 'warn' : 'muted'}>
               Outstanding
             </StatusPill>
+          </div>
+        ))}
+      </Section>
+
+      {/* ---- portal access ---- */}
+      <Section
+        title="Portal access"
+        className="mt-4"
+        empty={team.length === 0}
+        emptyText="Nobody from this organisation has an account yet."
+      >
+        {team.map((u) => (
+          <div
+            key={u.id}
+            className="flex flex-wrap items-center gap-3 rounded-md border border-line-2 bg-inset px-[14px] py-[11px]"
+          >
+            <div className="min-w-[180px] flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[13px] text-ink">{u.name}</span>
+                {u.id === part.leadUserId && <StatusPill tone="neutral">Lead</StatusPill>}
+              </div>
+              <div className="mt-[2px] text-[11.5px] text-ink-4">
+                {u.email || 'No email address'}
+                {u.acceptedAt
+                  ? ` · signed in ${fmtDate(u.acceptedAt)}`
+                  : u.invitedAt
+                    ? ` · invited ${fmtDate(u.invitedAt)}, not yet signed in`
+                    : ' · never invited'}
+              </div>
+            </div>
+
+            <StatusPill tone={u.acceptedAt ? 'good' : u.invitedAt ? 'info' : 'muted'}>
+              {u.acceptedAt ? 'Active' : u.invitedAt ? 'Invited' : 'Not invited'}
+            </StatusPill>
+
+            {u.email && (
+              <InviteButton userId={u.id} name={u.name} invited={Boolean(u.invitedAt)} />
+            )}
+            <HandLinkButton kind="partner" userId={u.id} name={u.name} />
           </div>
         ))}
       </Section>

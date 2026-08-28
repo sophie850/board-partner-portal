@@ -1,12 +1,20 @@
 'use server';
 
 import { headers } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 
 import { actorName, getSession, mayIssueLinkFor } from '@/lib/auth/session';
-import { HANDED_LINK_MINUTES, issueToken, type Recipient } from '@/lib/auth/tokens';
+import {
+  HANDED_LINK_MINUTES,
+  INVITE_MINUTES,
+  issueToken,
+  type Recipient,
+} from '@/lib/auth/tokens';
 import { requireSupabase } from '@/lib/db/client';
 import { getDb, getDbOrError, mintId } from '@/lib/db/store';
+import { sendEmail } from '@/lib/email';
 import { env } from '@/lib/env';
+import { INVITATION_FALLBACK, mergeValuesFor, renderTemplate } from '@/lib/mergeFields';
 import type { Id } from '@/lib/types';
 
 /* ============================================================
@@ -151,6 +159,143 @@ export async function createSignInLink(
     url: `${base}/api/auth/verify?token=${encodeURIComponent(issued.token)}`,
     expiresInMinutes: HANDED_LINK_MINUTES,
     name: recipient.name,
+  };
+}
+
+/* ============================================================
+   Inviting somebody in
+
+   The other half of the same idea. A sign-in link handed over is for
+   when email has failed; an invitation is the ordinary way somebody
+   first hears the portal exists.
+
+   The wording comes from the Partner invitation template in Event
+   settings, with its tokens filled in — which is what makes that
+   template worth having rather than decoration.
+   ============================================================ */
+
+export type InviteResult =
+  | { ok: true; name: string; email: string; days: number }
+  | { ok: false; error: string };
+
+/**
+ * Email one partner user an invitation carrying a sign-in link.
+ *
+ * Permitted on the same terms as handing a link over: any organiser
+ * who can reach Partners. It grants nothing they could not already
+ * do — they can open that partner's portal themselves.
+ */
+export async function sendInvitation(userId: Id): Promise<InviteResult> {
+  const session = await getSession();
+
+  if (!session) return { ok: false, error: 'Your session has expired. Sign in again.' };
+  if (!mayIssueLinkFor(session, 'partner')) {
+    return { ok: false, error: 'You do not have access to partner accounts.' };
+  }
+
+  const loaded = await getDbOrError();
+  if (!loaded.ok) return loaded;
+  const db = loaded.db;
+
+  const user = db.partnerUsers.find((u) => u.id === userId);
+  if (!user) return { ok: false, error: 'That person is no longer on the team.' };
+  if (!user.email) {
+    return { ok: false, error: `${user.name} has no email address. Add one first.` };
+  }
+
+  const partner = db.partners.find((p) => p.id === user.partnerId) ?? null;
+
+  const template = db.emailTemplates.find((t) => t.id === 'et_invite');
+  if (template && !template.enabled) {
+    return {
+      ok: false,
+      error:
+        'The Partner invitation template is switched off. Turn it on under ' +
+        'Event settings → Email before sending invitations.',
+    };
+  }
+
+  let issued;
+  try {
+    issued = await issueToken(
+      { kind: 'partner', userId: user.id, email: user.email, name: user.name },
+      partner ? `/portal/${partner.id}` : '',
+      `invited by ${session.user.name}`,
+      INVITE_MINUTES,
+    );
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Could not create a link.' };
+  }
+
+  if (!issued.ok) {
+    if (issued.reason === 'rate_limited') {
+      return {
+        ok: false,
+        error:
+          `${user.name} already has several unused links. They should use one of ` +
+          'those, or wait for them to expire.',
+      };
+    }
+    return { ok: false, error: issued.error ?? 'Could not create a link.' };
+  }
+
+  const base = await siteUrl();
+  const link = `${base}/api/auth/verify?token=${encodeURIComponent(issued.token)}`;
+
+  const { subject, text } = renderTemplate(
+    template,
+    mergeValuesFor(db, { partner, user, portalLink: link }),
+    INVITATION_FALLBACK,
+  );
+
+  const sent = await sendEmail({
+    to: user.email,
+    toName: user.name,
+    subject,
+    text,
+    // Deliberately not passing templateId: the outbox stores the body
+    // of anything sent from a template, and this body contains a
+    // working sign-in link. The subject and recipient are recorded,
+    // which is what the outbox is for.
+    partnerId: partner?.id ?? null,
+  });
+
+  if (!sent.ok) {
+    return {
+      ok: false,
+      error:
+        sent.reason === 'no_provider'
+          ? 'No email provider is configured, so nothing can be sent yet. You can hand them a sign-in link instead.'
+          : `The invitation could not be sent. ${sent.error}`,
+    };
+  }
+
+  try {
+    await requireSupabase()
+      .from('partner_users')
+      .update({ invited_at: new Date().toISOString() })
+      .eq('id', user.id);
+  } catch (e) {
+    // The email has gone. Losing the stamp is a reporting problem,
+    // not a reason to tell somebody the invitation failed.
+    console.error('[auth] could not record an invitation:', e);
+  }
+
+  await audit(
+    db.event.id,
+    user.id,
+    await actorName(),
+    `Invited ${user.name} (${user.email}) to the portal.`,
+  );
+
+  revalidatePath(`/organiser/partners/${user.partnerId}`);
+  revalidatePath('/organiser/settings');
+
+  return {
+    ok: true,
+    name: user.name,
+    email: user.email,
+    days: Math.round(INVITE_MINUTES / (24 * 60)),
   };
 }
 
