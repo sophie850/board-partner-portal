@@ -3,6 +3,7 @@ import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { MarkDone } from '@/components/tasks/MarkDone';
 import { Eyebrow, PageTitle, Panel, Rise, StatusPill } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
 import { fmtDate, isOverdue, NO_DATE_LABEL, resolveTasks, terms } from '@/lib/resolvers';
@@ -92,7 +93,13 @@ export default async function PartnerTasks({
       ) : (
         <div className="flex flex-col gap-[10px]">
           {ordered.map((task) => (
-            <TaskRow key={task.id} db={db} task={task} base={base} />
+            <TaskRow
+              key={task.id}
+              db={db}
+              task={task}
+              base={base}
+              partnerId={partnerId}
+            />
           ))}
         </div>
       )}
@@ -100,9 +107,27 @@ export default async function PartnerTasks({
   );
 }
 
-function TaskRow({ db, task, base }: { db: Db; task: ResolvedTask; base: string }) {
+/**
+ * The kinds the portal cannot watch finish, so the partner says so.
+ * Everything else completes as a consequence of the work itself.
+ */
+const SELF_REPORTED = new Set(['checklist', 'url', 'ack']);
+
+function TaskRow({
+  db,
+  task,
+  base,
+  partnerId,
+}: {
+  db: Db;
+  task: ResolvedTask;
+  base: string;
+  partnerId: string;
+}) {
   const overdue = isOverdue(task.dueDate, task.completed);
   const action = actionFor(db, task, base);
+  const kind = task.link?.type;
+  const selfReported = Boolean(kind && SELF_REPORTED.has(kind));
 
   return (
     <div
@@ -152,13 +177,35 @@ function TaskRow({ db, task, base }: { db: Db; task: ResolvedTask; base: string 
             <StatusPill tone="neutral">To do</StatusPill>
           )}
 
+          {/*
+            * A link to go and do the thing, where there is somewhere
+            * to go — and, for the kinds nothing in the portal can
+            * watch finish, a way to say it is done.
+            */}
           {!task.completed && action && (
             <Link
               href={action.href}
-              className="inline-flex items-center gap-[6px] rounded-pill bg-brand px-[16px] py-[8px] text-[12.5px] text-on-brand no-underline hover:bg-brand-hover hover:text-on-brand"
+              className={
+                // Secondary when a "Mark as done" sits beside it —
+                // two solid buttons on one row compete, and the tick
+                // is the one that finishes the task.
+                selfReported
+                  ? 'inline-flex items-center gap-[6px] rounded-pill border border-accent-line px-[16px] py-[8px] text-[12.5px] text-accent no-underline hover:bg-accent-fill hover:text-accent'
+                  : 'inline-flex items-center gap-[6px] rounded-pill bg-brand px-[16px] py-[8px] text-[12.5px] text-on-brand no-underline hover:bg-brand-hover hover:text-on-brand'
+              }
             >
               {action.label} <ArrowUpRight size={13} />
             </Link>
+          )}
+
+          {selfReported && (
+            <MarkDone
+              partnerId={partnerId}
+              taskId={task.id}
+              title={task.title}
+              kind={kind as 'checklist' | 'url' | 'ack'}
+              done={task.completed}
+            />
           )}
         </div>
       </div>

@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { requireSupabase } from '@/lib/db/client';
 import { getDb, getDbOrError } from '@/lib/db/store';
 import { notifyFormSubmitted } from '@/lib/notify';
+import { completeLinkedTasks } from '@/lib/taskCompletion';
 import { validateForm, visibleFields } from '@/lib/resolvers';
 import type { FormSubmission, FormValues, Id } from '@/lib/types';
 
@@ -161,7 +162,7 @@ export async function submitForm(
 
     // A form with a linked task completes that task automatically,
     // so the partner never has to tick something off twice.
-    await completeLinkedTask(participationId, formId, submittedBy);
+    await completeLinkedTasks(participationId, 'form', submittedBy, [formId]);
 
     // After the write, and unable to fail it: the form is submitted
     // whether or not the confirmation reaches them.
@@ -215,40 +216,4 @@ export async function reopenForm(
 
   revalidatePartner(partnerId);
   return { ok: true };
-}
-
-/* ---------------------------------------------------------------
-   Task auto-completion
-   --------------------------------------------------------------- */
-
-async function completeLinkedTask(participationId: Id, formId: Id, by: string) {
-  const db = await getDb();
-  const linked = db.taskTemplates.find(
-    (t) => t.link?.type === 'form' && t.link.target === formId,
-  );
-  if (!linked) return;
-
-  const client = requireSupabase();
-  const { data, error } = await client
-    .from('event_participations')
-    .select('task_state')
-    .eq('id', participationId)
-    .single();
-
-  if (error) return;
-
-  const taskState = (data?.task_state ?? {}) as Record<string, Record<string, unknown>>;
-  if (taskState[linked.id]?.completed) return;
-
-  taskState[linked.id] = {
-    ...(taskState[linked.id] ?? {}),
-    completed: true,
-    completedAt: new Date().toISOString(),
-    completedBy: by,
-  };
-
-  await client
-    .from('event_participations')
-    .update({ task_state: taskState })
-    .eq('id', participationId);
 }

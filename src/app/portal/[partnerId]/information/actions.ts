@@ -6,6 +6,7 @@ import { actorName, guardPartner } from '@/lib/auth/session';
 import { requireSupabase } from '@/lib/db/client';
 import { getDbOrError } from '@/lib/db/store';
 import { contentVisible } from '@/lib/resolvers';
+import { completeLinkedTasks } from '@/lib/taskCompletion';
 import type { Id } from '@/lib/types';
 
 /* ============================================================
@@ -79,7 +80,14 @@ export async function acknowledgePage(partnerId: Id, pageId: Id): Promise<Result
 
     if (writeError) return { ok: false, error: writeError.message };
 
-    await completeLinkedTask(part.id, pageId, by);
+    /*
+     * Both kinds of task can point at a page: 'content' ("Read a
+     * page") and 'ack' ("Acknowledge"). Acknowledging finishes
+     * either. Matching only one of them is why the seeded stand
+     * rules task stayed outstanding after the partner had read it.
+     */
+    await completeLinkedTasks(part.id, 'content', by, [pageId]);
+    await completeLinkedTasks(part.id, 'ack', by, [pageId]);
 
     await client.from('audit_log').insert({
       id: `a_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
@@ -100,47 +108,4 @@ export async function acknowledgePage(partnerId: Id, pageId: Id): Promise<Result
       error: e instanceof Error ? e.message : 'Could not record your acknowledgement.',
     };
   }
-}
-
-/**
- * Complete the task that pointed at this page, if there is one.
- *
- * The same arrangement forms have: a task can link to a page with
- * `{ type: 'ack', target: pageId }`, and reading it is what the task
- * asked for. Leaving the task outstanding after the partner has done
- * the thing is the sort of detail that makes a portal feel broken.
- */
-async function completeLinkedTask(participationId: Id, pageId: Id, by: string) {
-  const loaded = await getDbOrError();
-  if (!loaded.ok) return;
-
-  const linked = loaded.db.taskTemplates.find(
-    (t) => t.link?.type === 'ack' && t.link.target === pageId,
-  );
-  if (!linked) return;
-
-  const client = requireSupabase();
-
-  const { data, error } = await client
-    .from('event_participations')
-    .select('task_state')
-    .eq('id', participationId)
-    .single();
-
-  if (error) return;
-
-  const taskState = (data?.task_state ?? {}) as Record<string, Record<string, unknown>>;
-  if (taskState[linked.id]?.completed) return;
-
-  taskState[linked.id] = {
-    ...(taskState[linked.id] ?? {}),
-    completed: true,
-    completedAt: new Date().toISOString(),
-    completedBy: by,
-  };
-
-  await client
-    .from('event_participations')
-    .update({ task_state: taskState })
-    .eq('id', participationId);
 }

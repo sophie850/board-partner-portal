@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { requireSupabase } from '@/lib/db/client';
 import { getDb } from '@/lib/db/store';
 import { storageKeyFrom } from '@/lib/storage';
+import { completeLinkedTasks } from '@/lib/taskCompletion';
 import type { Id } from '@/lib/types';
 
 /* ============================================================
@@ -48,6 +49,15 @@ export async function attachRequestedFile(
       .eq('id', requestedFileId);
 
     if (error) return { ok: false, error: error.message };
+
+    /*
+     * An upload task has no particular slot behind it — the editor
+     * offers no target for one — so providing any requested file
+     * satisfies it.
+     */
+    const db = await getDb();
+    const part = db.participations.find((p) => p.partnerId === partnerId);
+    if (part) await completeLinkedTasks(part.id, 'upload', by);
 
     revalidatePath(`/portal/${partnerId}`, 'layout');
     revalidatePath('/organiser/partners');

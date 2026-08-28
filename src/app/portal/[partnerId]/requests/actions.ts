@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { requireSupabase } from '@/lib/db/client';
 import { getDb, getDbOrError, mintId } from '@/lib/db/store';
 import { validateFields } from '@/lib/resolvers';
+import { completeLinkedTasks } from '@/lib/taskCompletion';
 import type { FormValues, Id } from '@/lib/types';
 
 /* ============================================================
@@ -82,6 +83,10 @@ export async function submitRequest(
     });
 
     if (error) return { ok: false, error: error.message };
+
+    // A task that asked them to raise this is finished by their
+    // having raised it, narrowed to the type it asked for.
+    await completeLinkedTasks(part.id, 'request', submittedBy, [typeId]);
 
     revalidatePath(`/portal/${partnerId}`, 'layout');
     revalidatePath('/organiser/requests');
