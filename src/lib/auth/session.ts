@@ -251,3 +251,16 @@ export async function actorName(fallback = 'BOARD team'): Promise<string> {
   const session = await getSession();
   return session?.user.name || fallback;
 }
+
+/**
+ * The acting partner user's id, or undefined.
+ *
+ * Undefined for an organiser working on a partner's behalf, and on a
+ * deployment with no sign-in configured — both cases where there is
+ * no partner contact to attribute the act to, and guessing one would
+ * be worse than leaving it blank.
+ */
+export async function actorUserId(): Promise<Id | undefined> {
+  const session = await getSession();
+  return session?.kind === 'partner' ? session.user.id : undefined;
+}

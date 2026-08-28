@@ -255,6 +255,12 @@ export interface FormSubmission {
   values?: FormValues;
   submittedAt?: IsoDateTime;
   submittedBy?: string;
+  /**
+   * Who submitted it, by id rather than name — so sending a form
+   * back reaches the person who filled it in, and keeps reaching
+   * them if they are renamed.
+   */
+  submittedByUserId?: Id;
   reviewedAt?: IsoDateTime;
   reviewedBy?: string;
   feedback?: string;

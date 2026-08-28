@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { requireSupabase } from '@/lib/db/client';
 import { formFieldToRow, formToRow } from '@/lib/db/mappers';
 import { mintId } from '@/lib/db/store';
+import { notifyChangesRequired } from '@/lib/notify';
 import type { FormDef, FormField, Id, VisibilityRule } from '@/lib/types';
 
 /* ============================================================
@@ -202,6 +203,16 @@ export async function reviewSubmission(
       .eq('id', participationId);
 
     if (writeError) return { ok: false, error: writeError.message };
+
+    /*
+     * Only this decision sends. An approval needs no email — the
+     * partner sees it in the portal and there is nothing for them to
+     * do — whereas changes required is a request for work, and a
+     * request nobody is told about is not a request.
+     */
+    if (decision === 'changes_required') {
+      await notifyChangesRequired(participationId, formId, feedback);
+    }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Could not record the review.' };
   }

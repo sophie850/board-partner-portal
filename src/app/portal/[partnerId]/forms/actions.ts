@@ -1,10 +1,11 @@
 'use server';
 
-import { actorName, guardPartner } from '@/lib/auth/session';
+import { actorName, actorUserId, guardPartner } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
 import { getDb, getDbOrError } from '@/lib/db/store';
+import { notifyFormSubmitted } from '@/lib/notify';
 import { validateForm, visibleFields } from '@/lib/resolvers';
 import type { FormSubmission, FormValues, Id } from '@/lib/types';
 
@@ -143,6 +144,9 @@ export async function submitForm(
       values: cleaned,
       submittedAt: new Date().toISOString(),
       submittedBy,
+      // By id as well as name, so sending the form back later
+      // reaches the person who filled it in rather than the Lead.
+      submittedByUserId: await actorUserId(),
       history,
       // The previous round's feedback no longer applies.
       feedback: undefined,
@@ -158,6 +162,10 @@ export async function submitForm(
     // A form with a linked task completes that task automatically,
     // so the partner never has to tick something off twice.
     await completeLinkedTask(participationId, formId, submittedBy);
+
+    // After the write, and unable to fail it: the form is submitted
+    // whether or not the confirmation reaches them.
+    await notifyFormSubmitted(participationId, formId);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Could not submit the form.' };
   }

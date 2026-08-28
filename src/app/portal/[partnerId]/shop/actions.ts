@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
 import { getDb, getDbOrError } from '@/lib/db/store';
+import { notifyOrderSubmitted } from '@/lib/notify';
 import { priceFor, productVisible } from '@/lib/resolvers';
 import { deliverPendingFor } from '@/lib/webhooks';
 import type { ApprovalMode, Id, OrderBilling, SupplierOrderStatus } from '@/lib/types';
@@ -243,6 +244,10 @@ export async function checkout(
       body: `Order ${orderRef} submitted — ${bySupplier.size} supplier order(s).`,
       created_at: now,
     });
+
+    // Last, and unable to fail the order: the order is placed and the
+    // suppliers already told, whatever email does next.
+    await notifyOrderSubmitted(part.id, orderId, orderRef);
 
     revalidatePath(`/portal/${partnerId}`, 'layout');
     revalidatePath('/organiser/orders');
