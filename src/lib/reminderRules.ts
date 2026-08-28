@@ -30,6 +30,11 @@ const FINAL_DAYS = 3;
 /** Weekly chases after a deadline passes, counting the first. */
 const OVERDUE_CHASES = 4;
 
+import { daysUntil } from '@/lib/resolvers';
+
+// Re-exported so callers that think in reminders need one import.
+export { daysUntil };
+
 export type ReminderKind = 'deadline' | 'overdue';
 
 export interface Due {
@@ -42,22 +47,6 @@ export interface Due {
   window: string;
   /** Whole days until the deadline; negative once it has passed. */
   days: number;
-}
-
-/**
- * Whole days from now until a date, by the calendar.
- *
- * Both sides are flattened to UTC midnight, so the answer does not
- * depend on what time of day the job happened to run — otherwise a
- * run at 23:00 and one at 01:00 could disagree about whether
- * something is due tomorrow.
- */
-export function daysUntil(dueIso: string, now: Date = new Date()): number {
-  const due = Date.parse(`${dueIso.slice(0, 10)}T00:00:00Z`);
-  if (Number.isNaN(due)) return NaN;
-
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  return Math.round((due - today) / 86_400_000);
 }
 
 /**

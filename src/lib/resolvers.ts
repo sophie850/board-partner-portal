@@ -146,6 +146,53 @@ export function productVisible(db: Db, product: Product, part: Participation): b
   return ruleMatches(db, product.visibility, part);
 }
 
+/**
+ * Whether ordering has closed on a product.
+ *
+ * Inclusive of the day named: "Order by 28 February" means orders
+ * are taken through the 28th and stop at the end of it. Comparing
+ * against the current instant would close it at midnight on the
+ * morning of the deadline — a day early, on the busiest day.
+ *
+ * A product with no deadline never closes.
+ */
+export function orderingClosed(product: Product, now: Date = new Date()): boolean {
+  if (!product.orderDeadline) return false;
+  return daysUntil(product.orderDeadline, now) < 0;
+}
+
+/**
+ * Whether this partner can actually put it in a basket.
+ *
+ * Kept apart from `productVisible` on purpose: a closed product is
+ * still listed, marked as closed. Removing it would leave a partner
+ * who remembers seeing it wondering whether they imagined it, and
+ * "ordering closed on 28 February" answers the question the empty
+ * space would raise.
+ */
+export function productOrderable(
+  db: Db,
+  product: Product,
+  part: Participation,
+  now: Date = new Date(),
+): boolean {
+  return productVisible(db, product, part) && !orderingClosed(product, now);
+}
+
+/**
+ * Whether the shop is still open to this partner.
+ *
+ * Closed once every product they can see has passed its deadline —
+ * a shop with nothing orderable in it is a room with nothing in it,
+ * and leaving it in the nav invites somebody to go and look.
+ *
+ * Per partner, because two partners see different catalogues: an
+ * exhibitor's shop can close a fortnight after a sponsor's.
+ */
+export function shopOpen(db: Db, part: Participation, now: Date = new Date()): boolean {
+  return db.products.some((p) => productOrderable(db, p, part, now));
+}
+
 /** Partner-specific price beats the catalogue price. */
 export function priceFor(part: Participation, product: Product): number | null {
   const o = (part.priceOverrides || []).find((p) => p.productId === product.id);
@@ -368,10 +415,20 @@ const PERMISSION_KEY: Record<string, keyof import('./types').PartnerPermissions>
  * Gating here is presentation. The same checks must be enforced
  * server-side: hiding a nav item is not access control.
  */
+/**
+ * The modules to show this partner.
+ *
+ * `now` decides whether time-based closures apply. Passing null asks
+ * "may they reach it at all", which is what an access check wants:
+ * the shop drops out of the nav when ordering closes, but the URL
+ * still has to load so the screen can say ordering has closed —
+ * rather than bouncing somebody to a page about BOARD permissions.
+ */
 export function visibleModules(
   db: Db,
   part: Participation,
   user?: PartnerUser | null,
+  now: Date | null = new Date(),
 ): ModuleDef[] {
   const canShop = SHOP_KEYS.some((k) => hasEnt(db, part, k));
   const perm = user && user.permissions !== 'all' ? user.permissions : null;
@@ -379,6 +436,12 @@ export function visibleModules(
   return BASE_MODULES.filter((m) => {
     if (part.moduleOverrides && part.moduleOverrides[m.key] === false) return false;
     if ((m.key === 'shop' || m.key === 'orders') && !canShop) return false;
+    /*
+     * Deliberately only the shop. Orders stays: what a partner has
+     * already bought does not stop mattering when ordering closes —
+     * that is exactly when they start checking on it.
+     */
+    if (m.key === 'shop' && now && !shopOpen(db, part, now)) return false;
     if (perm && !ALWAYS_ON.has(m.key)) {
       const k = PERMISSION_KEY[m.key];
       if (k && !perm[k]) return false;
@@ -403,6 +466,22 @@ export function money(db: Db, n: number | null | undefined): string {
 /* ---------------------------------------------------------------
    Dates
    --------------------------------------------------------------- */
+
+/**
+ * Whole days from now until a date, by the calendar.
+ *
+ * Both sides are flattened to UTC midnight, so the answer does not
+ * depend on what time of day the job happened to run — otherwise a
+ * run at 23:00 and one at 01:00 could disagree about whether
+ * something is due tomorrow.
+ */
+export function daysUntil(dueIso: string, now: Date = new Date()): number {
+  const due = Date.parse(`${dueIso.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(due)) return NaN;
+
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Math.round((due - today) / 86_400_000);
+}
 
 /** "Date to be confirmed" — used wherever no deadline resolves. */
 export const NO_DATE_LABEL = 'Date to be confirmed';

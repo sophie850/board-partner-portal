@@ -5,7 +5,7 @@ import { CartProvider } from '@/components/shop/CartProvider';
 import { Checkout, type CartProductInfo } from '@/components/shop/Checkout';
 import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
-import { priceFor, productVisible, terms } from '@/lib/resolvers';
+import { fmtDate, orderingClosed, priceFor, productVisible, terms } from '@/lib/resolvers';
 import type { OrderBilling } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -25,8 +25,13 @@ export default async function CartPage({
 
   const t = terms(db);
 
-  // Only orderable products are sent, so a cart holding something
-  // since withdrawn simply cannot be checked out.
+  /*
+   * Everything visible is sent, including anything whose ordering has
+   * closed. Filtering those out would make the line disappear from
+   * the basket with no explanation while the server still refused the
+   * order because of it — so they are sent, marked, and the partner
+   * is asked to remove them.
+   */
   const products: CartProductInfo[] = db.products
     .filter((p) => productVisible(db, p, part))
     .map((p) => ({
@@ -40,6 +45,8 @@ export default async function CartPage({
       taxRate: p.taxRate,
       minQty: p.minQty,
       maxQty: p.maxQty,
+      closed: orderingClosed(p),
+      closedLabel: p.orderDeadline ? `Ordering closed on ${fmtDate(p.orderDeadline)}` : null,
     }));
 
   // Prefilled from what the organiser already holds, so the common

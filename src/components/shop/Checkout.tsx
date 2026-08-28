@@ -44,6 +44,9 @@ export interface CartProductInfo {
   taxRate: number;
   minQty: number;
   maxQty: number;
+  /** Past its order deadline — still shown, but blocks submission. */
+  closed: boolean;
+  closedLabel: string | null;
 }
 
 const APPROVAL_NOTE: Record<string, string> = {
@@ -112,6 +115,10 @@ export function Checkout({
   }, 0);
 
   const anyQuote = cart.lines.some((l) => byId.get(l.productId)?.price === null);
+
+  // Lines whose ordering window has shut. The order cannot go while
+  // any remain, so they are named rather than silently dropped.
+  const closedLines = cart.lines.filter((l) => byId.get(l.productId)?.closed);
 
   function submit() {
     setError(null);
@@ -214,6 +221,11 @@ export function Checkout({
                     >
                       <div className="min-w-0 flex-1">
                         <div className="text-[13.5px] text-ink">{product.name}</div>
+                        {product.closed && (
+                          <div className="mt-[2px] text-[11.5px] text-warn">
+                            {product.closedLabel} — remove it to place the rest of your order.
+                          </div>
+                        )}
                         <div className="mt-[2px] text-[11.5px] text-ink-4">
                           {quote ? 'Quoted per order' : `${money(product.price!)} / ${product.unit}`}
                           {Object.entries(line.options).length > 0 &&
@@ -380,8 +392,18 @@ export function Checkout({
           </span>
         </label>
 
+        {closedLines.length > 0 && (
+          <Callout tone="warn" className="mb-5">
+            {closedLines.length === 1
+              ? 'One item in your basket has passed its order deadline. '
+              : `${closedLines.length} items in your basket have passed their order deadlines. `}
+            Remove {closedLines.length === 1 ? 'it' : 'them'} above to submit the rest — your
+            BOARD contact can tell you whether they can still be arranged.
+          </Callout>
+        )}
+
         <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={submit} disabled={pending || !terms}>
+          <Button onClick={submit} disabled={pending || !terms || closedLines.length > 0}>
             {pending ? 'Submitting…' : 'Submit order'}
           </Button>
           <Link

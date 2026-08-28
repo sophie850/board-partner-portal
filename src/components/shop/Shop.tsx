@@ -43,6 +43,8 @@ export interface ShopProduct {
   minQty: number;
   maxQty: number;
   deadlineLabel: string | null;
+  /** Past its order deadline. Still listed, but nothing can be added. */
+  closed: boolean;
   approvalMode: 'auto' | 'manual' | 'quote';
   options: Array<{ name: string; values: string[] }>;
   questions: Array<{ key: string; label: string; type: string; required: boolean }>;
@@ -116,7 +118,14 @@ export function Shop({
                       )}
                     </div>
                     {p.deadlineLabel && (
-                      <div className="mt-[8px] text-[11.5px] text-ink-4">{p.deadlineLabel}</div>
+                      <div
+                        className={clsx(
+                          'mt-[8px] text-[11.5px]',
+                          p.closed ? 'text-warn' : 'text-ink-4',
+                        )}
+                      >
+                        {p.deadlineLabel}
+                      </div>
                     )}
                   </div>
                 </button>
@@ -302,13 +311,22 @@ function ProductDialog({
             )}
           </div>
 
-          {product.deadlineLabel && (
-            <div className="mb-5 text-[12px] text-ink-4">{product.deadlineLabel}</div>
+          {product.closed ? (
+            <Callout tone="warn" className="mb-5">
+              {product.deadlineLabel}. Your BOARD contact may still be able to arrange it —
+              ask them rather than ordering here.
+            </Callout>
+          ) : (
+            product.deadlineLabel && (
+              <div className="mb-5 text-[12px] text-ink-4">{product.deadlineLabel}</div>
+            )
           )}
 
           <div className="flex flex-wrap gap-3 border-t border-line pt-5">
-            <Button onClick={addToCart} disabled={added}>
-              {added ? (
+            <Button onClick={addToCart} disabled={added || product.closed}>
+              {product.closed ? (
+                'Ordering closed'
+              ) : added ? (
                 <>
                   <Check size={14} /> Added
                 </>

@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { requireSupabase } from '@/lib/db/client';
 import { getDbOrError } from '@/lib/db/store';
 import { notifyOrderSubmitted } from '@/lib/notify';
-import { priceFor, productVisible } from '@/lib/resolvers';
+import { fmtDate, orderingClosed, priceFor, productVisible } from '@/lib/resolvers';
 import { deliverPendingFor } from '@/lib/webhooks';
 import type { ApprovalMode, Id, OrderBilling, SupplierOrderStatus } from '@/lib/types';
 
@@ -95,6 +95,23 @@ export async function checkout(
 
     if (!productVisible(db, product, part)) {
       return { ok: false, error: `"${product.name}" is not available to you.` };
+    }
+
+    /*
+     * The deadline is enforced here or nowhere. A cart is client-side
+     * state that can sit in an open tab for a fortnight, so a tile
+     * that was orderable when the page loaded proves nothing about
+     * now — and the whole point of an order deadline is that the
+     * supplier cannot fulfil past it.
+     */
+    if (orderingClosed(product)) {
+      return {
+        ok: false,
+        error:
+          `Ordering for "${product.name}" closed on ` +
+          `${fmtDate(product.orderDeadline)}. Remove it from your basket, or ask your ` +
+          'BOARD contact whether it can still be arranged.',
+      };
     }
 
     const qty = Math.max(product.minQty, Math.min(product.maxQty, Math.round(line.qty)));

@@ -178,7 +178,14 @@ export async function canUseModule(partnerId: Id, moduleKey: string): Promise<bo
   const part = db.participations.find((p) => p.partnerId === partnerId);
   if (!part) return false;
 
-  return visibleModules(db, part, partnerUserOf(session)).some((m) => m.key === moduleKey);
+  /*
+   * `null` so a time-based closure does not become a permission
+   * error. The shop leaves the nav when ordering closes; reaching
+   * the URL should show a screen that says so.
+   */
+  return visibleModules(db, part, partnerUserOf(session), null).some(
+    (m) => m.key === moduleKey,
+  );
 }
 
 export async function requireModule(partnerId: Id, moduleKey: string): Promise<Session> {
