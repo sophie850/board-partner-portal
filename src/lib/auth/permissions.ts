@@ -20,10 +20,27 @@ export function partnerUserOf(session: Session): PartnerUser | null {
 }
 
 /**
+ * Areas no tickbox can grant.
+ *
+ * Event settings is the one. It holds the permissions grid itself,
+ * so anybody who reaches it can edit their own row — a team member
+ * with Settings ticked could grant themselves every other area in
+ * three clicks, which makes the other nine tickboxes decorative for
+ * that person. It also creates and removes BOARD accounts.
+ *
+ * Rather than police self-editing inside the page, the area simply
+ * belongs to super admins. One rule, enforced in one place, and the
+ * grid goes back to meaning what it says.
+ */
+const SUPER_ADMIN_ONLY = new Set<keyof OrganiserPermissions>(['settings']);
+
+/**
  * Whether a session may reach one area of the organiser portal.
  *
- * A super admin may reach everything, including Event settings. A
- * team member is limited to the areas ticked against them.
+ * A super admin may reach everything. A team member is limited to
+ * the areas ticked against them, and can never reach the areas above
+ * however their row is ticked — a stale `settings: true` left on an
+ * old record grants nothing.
  */
 export function canReachArea(
   session: Session,
@@ -31,6 +48,7 @@ export function canReachArea(
 ): boolean {
   if (session.kind !== 'organiser') return false;
   if (session.user.role === 'super_admin') return true;
+  if (SUPER_ADMIN_ONLY.has(area)) return false;
   return Boolean(session.user.permissions?.[area]);
 }
 

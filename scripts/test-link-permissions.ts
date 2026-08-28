@@ -1,13 +1,17 @@
 /*
- * The escalation rule, on its own.
+ * The two escalation rules, on their own.
  *
  * A limited team member being able to mint a sign-in link for a
- * super admin would hand them every permission in the system. This
- * asserts it cannot happen, and that the legitimate cases still work.
+ * super admin would hand them every permission in the system. Nor
+ * may one reach Event settings, which holds the permissions grid —
+ * ticking your own boxes is the same escalation by a slower route.
+ *
+ * This asserts neither can happen, and that the legitimate cases
+ * still work.
  *
  * Run: npx tsx scripts/test-link-permissions.ts
  */
-import { mayIssueLinkFor, type Session } from '../src/lib/auth/permissions';
+import { canReachArea, mayIssueLinkFor, type Session } from '../src/lib/auth/permissions';
 import type { OrganiserPermissions } from '../src/lib/types';
 
 const NONE: OrganiserPermissions = {
@@ -30,6 +34,16 @@ const teamWithoutPartners: Session = {
   kind: 'organiser',
   user: { id: 'c', name: 'Reviewer', title: '', email: 'r@b.c', role: 'team',
           permissions: { ...NONE, requests: true } },
+};
+
+/*
+ * The row that used to be enough. Left ticked deliberately: a stale
+ * `settings: true` on an old record must grant nothing.
+ */
+const teamWithSettings: Session = {
+  kind: 'organiser',
+  user: { id: 'd', name: 'Coordinator', title: '', email: 's@b.c', role: 'team',
+          permissions: { ...NONE, settings: true, forms: true } },
 };
 
 const partnerLead: Session = {
@@ -55,6 +69,20 @@ const cases: Array<[string, Session, 'organiser' | 'partner', boolean]> = [
   ['partner lead → partner user',  partnerLead, 'partner',   false],
 ];
 
+const areaCases: Array<[string, Session, 'settings' | 'forms' | 'partners', boolean]> = [
+  ['super admin → settings', superAdmin, 'settings', true],
+
+  // The rule: no tickbox grants Event settings.
+  ['team WITH settings ticked → settings', teamWithSettings, 'settings', false],
+  ['team WITH settings ticked → forms',    teamWithSettings, 'forms',    true],
+  ['team without it → settings',           teamWithPartners, 'settings', false],
+  ['team without it → partners',           teamWithPartners, 'partners', true],
+  ['team without it → forms',              teamWithPartners, 'forms',    false],
+
+  ['partner lead → settings', partnerLead, 'settings', false],
+  ['partner lead → forms',    partnerLead, 'forms',    false],
+];
+
 let pass = 0;
 let fail = 0;
 
@@ -68,5 +96,16 @@ for (const [label, session, kind, want] of cases) {
   }
 }
 
-console.log(`${pass}/${cases.length} passed${fail ? `, ${fail} FAILED` : ''}`);
+for (const [label, session, area, want] of areaCases) {
+  const got = canReachArea(session, area);
+  if (got === want) {
+    pass++;
+  } else {
+    fail++;
+    console.log(`  ✗ ${label.padEnd(38)} want ${want}, got ${got}`);
+  }
+}
+
+const total = cases.length + areaCases.length;
+console.log(`${pass}/${total} passed${fail ? `, ${fail} FAILED` : ''}`);
 process.exit(fail ? 1 : 0);

@@ -265,17 +265,16 @@ export async function setOrganiserPermission(
 /**
  * Create a BOARD account.
  *
- * The role is where the care goes. Anyone who can reach this page
- * can already grant a team member every permission in the system —
- * `setOrganiserPermission` above takes any user id — so creating
- * another *team* account gives away nothing new.
+ * Reaching Event settings at all now means being a super admin —
+ * see SUPER_ADMIN_ONLY in permissions.ts — so the guard below is
+ * the real control, and a team member cannot get this far.
  *
- * A **super admin** is different. They reach every area regardless
- * of permissions, can mint a sign-in link for anybody, and can
- * create more super admins. So only a super admin may create one.
- * The same line `mayIssueLinkFor` draws, drawn again here: without
- * it a team member limited to Settings could make themselves a
- * super admin at their own address and sign in as it.
+ * The role check that follows is therefore redundant today, and
+ * kept deliberately. The two rules are independent: this one says
+ * who may mint a super admin, and it must go on holding if the area
+ * rule is ever relaxed. Without it, whoever could reach this page
+ * could make themselves a super admin at their own address and sign
+ * in as it.
  *
  * New accounts start with no permissions at all. Granting them is a
  * separate, deliberate act, and least privilege is the right
@@ -305,12 +304,7 @@ export async function createOrganiserUser(input: {
     if (input.role === 'super_admin') {
       const session = await getSession();
       if (session?.kind !== 'organiser' || session.user.role !== 'super_admin') {
-        return {
-          ok: false,
-          error:
-            'Only a super admin can create another super admin. Add them as a team ' +
-            'member and ask a super admin to promote them.',
-        };
+        return { ok: false, error: 'Only a super admin can create another super admin.' };
       }
     }
 

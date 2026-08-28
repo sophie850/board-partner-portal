@@ -104,7 +104,9 @@ const AREAS: Array<{ key: keyof OrganiserPermissions; label: string }> = [
   { key: 'orders', label: 'Orders' },
   { key: 'requests', label: 'Requests' },
   { key: 'reporting', label: 'Reporting' },
-  { key: 'settings', label: 'Event settings' },
+  // Event settings is absent on purpose. It is super-admin-only —
+  // see SUPER_ADMIN_ONLY in permissions.ts — so a tickbox for it
+  // would grant nothing and only mislead whoever ticked it.
 ];
 
 /** Only singulars are edited; the plurals are inferred in `terms()`. */
@@ -314,7 +316,12 @@ function TeamSection({
 }: {
   team: SettingsData['team'];
   run: Runner;
-  /** Gates creating a super admin, and removing anybody. */
+  /**
+   * Always true today — only a super admin can reach this page at
+   * all. Kept because the server rules it mirrors are independent
+   * of the area rule, and a UI that offers what the server will
+   * refuse is worse than one that does not offer it.
+   */
   isSuperAdmin: boolean;
 }) {
   const [adding, setAdding] = useState(false);
@@ -410,7 +417,8 @@ function TeamSection({
         These permissions are enforced on every screen and every action, not just in the
         navigation. A new account starts with none of them — tick what they need. They sign
         in with the email address here, either by asking for a link themselves or by being
-        handed one.
+        handed one. This page is not on the list: only a super admin can reach Event
+        settings, because whoever can reach it can edit these very ticks.
       </Help>
     </div>
   );
@@ -485,11 +493,9 @@ function AddTeamMember({
             <option value="super_admin">Super admin</option>
           </Select>
           <Help>
-            {!isSuperAdmin
-              ? 'Only a super admin can create another super admin.'
-              : role === 'super_admin'
-                ? 'Reaches everything including this page, and can create more super admins.'
-                : 'Reaches nothing until you tick the areas they need.'}
+            {role === 'super_admin'
+              ? 'Reaches everything including this page, and can create more super admins.'
+              : 'Reaches nothing until you tick the areas they need, and never this page.'}
           </Help>
         </div>
       </div>

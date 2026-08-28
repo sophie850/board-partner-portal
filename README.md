@@ -209,6 +209,12 @@ set in front of real data.
   them — the shell says plainly that is what is happening.
 * A **team member** is limited to the areas ticked against them under **Event settings → The
   BOARD team**. A **super admin** reaches everything.
+* **Event settings itself is super-admin-only, and no tickbox grants it.** It holds the
+  permissions grid, so anybody who reaches it can edit their own row — a team member with it
+  would have every other area three clicks away, which would make the other nine tickboxes
+  decorative. It also creates and removes BOARD accounts. The rule lives in one place,
+  `SUPER_ADMIN_ONLY` in `src/lib/auth/permissions.ts`, so a stale `settings: true` left on an
+  old record grants nothing.
 
 Nav items are hidden for what you cannot reach, but hiding is presentation. The checks that
 decide live in `src/lib/auth/session.ts` and run on every route *and* in every server action —
