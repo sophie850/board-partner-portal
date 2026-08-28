@@ -54,6 +54,7 @@ Migrations, in order, each verified against PostgreSQL 16:
 | `supabase/migrations/0003_storage.sql` | The `board-assets` bucket (Supabase only — it uses the `storage` schema, so it fails on a plain Postgres) |
 | `supabase/migrations/0004_auth.sql` | `auth_tokens`, for sign-in links |
 | `supabase/migrations/0005_acknowledgements.sql` | `ack_state` on the participation, for content acknowledgements |
+| `supabase/migrations/0006_reminders.sql` | `dedupe_key` on `sent_emails`, so a reminder is sent once |
 | `supabase/APPLY_TO_SUPABASE.sql` | The schema combined, to paste into the SQL editor |
 | `supabase/SEED_SUPABASE.sql` | Seed data — generated, do not hand-edit |
 
@@ -165,6 +166,34 @@ variables**:
 | `RESEND_API_KEY` | Delivers sign-in links. Without it nothing is emailed. |
 | `SITE_URL` | Where sign-in links point. Netlify usually sets `URL` for you; set this if links come out wrong. |
 | `PORTAL_PASSPHRASE` | The shared passphrase, used only when `AUTH_SECRET` is unset. |
+| `CRON_SECRET` | Authorises the daily reminder run. Any long random string. Without it, reminders do not send. |
+
+### What the portal emails, and when
+
+| Trigger | Template | Goes to |
+|---|---|---|
+| An organiser invites a partner contact | Partner invitation | That contact |
+| A partner submits a form | Submission confirmation | Whoever submitted it |
+| An organiser asks for changes | Changes required | Whoever submitted it, else the Lead |
+| A partner places an order | Order confirmation | Whoever ordered |
+| 4–14 days before a deadline | Deadline reminder | The Partner Lead |
+| The last 3 days, and the day itself | Deadline reminder | The Partner Lead |
+| Weekly for four weeks once overdue | Overdue reminder | The Partner Lead |
+
+Each template can be switched off in **Event settings → Email**, and off means nothing is
+sent. Nobody is emailed before they have been invited — the first thing a partner contact
+hears from the portal is an invitation explaining what it is, never a chase for a deadline
+in a portal they have not been told about.
+
+**Reminders run at 08:00 UTC** via `netlify/functions/reminders.mts`, which calls
+`/api/cron/reminders` with `CRON_SECRET`. That endpoint is deliberately outside the sign-in
+gate — a scheduler holds no cookie — and refuses outright when the secret is unset.
+
+Sending twice is prevented by the database, not by the code being careful. Every scheduled
+message claims `sent_emails.dedupe_key` before it sends, keyed to the partner, the item and
+the deadline; the unique index means a second claim loses. So a retry, an overlapping run,
+or somebody pressing **Run reminders now** mid-cycle sends nothing. Moving a deadline
+changes the key, which is correct — it is a new thing to be chased about.
 | `AUTH_DEV_SHOW_LINK` | Set to `1` to show sign-in links on screen. **Turns sign-in off in all but name — see below.** |
 
 `/api/health` reports which of these are set and which is holding the door.
@@ -229,10 +258,13 @@ Screens that exist but are placeholders, in rough priority order:
 
 Every screen in both portals is now built. What remains is infrastructure:
 
+* **In-app notifications** — the table is read on every request and nothing renders it.
+* **Search** — `SearchButton` exists in the app shell and is wired to nothing.
 * **Event duplication** — cloning a configured event for the following year.
 * **Webhook retries** — deliveries are sent and logged, and can be resent by hand, but there
   is no automatic backoff for a supplier who is briefly down.
 * **Per-user RLS policies** — see *Why there are no per-user RLS policies* above. Not an
   oversight; it needs a browser-side Supabase client to be worth anything.
-* **Organiser invitations** — organiser accounts are added directly in the database. Partner
-  colleagues can be invited from the portal, though no invitation email is sent yet.
+* **BOARD account invitations** — a BOARD account is created in Event settings, but there is
+  no invitation email for one. They sign in by asking for a link, or are handed one. The
+  partner invitation template is worded for partners and would read oddly to a colleague.

@@ -45,6 +45,9 @@ export async function GET() {
     authSecret: fingerprint(env('AUTH_SECRET')),
     emailProvider: emailProvider() ?? 'not set — no sign-in links can be delivered',
     siteUrl: env('SITE_URL') ?? env('URL') ?? 'not set — links use the request host',
+    cronSecret: env('CRON_SECRET')
+      ? fingerprint(env('CRON_SECRET'))
+      : 'not set — scheduled reminders will not run',
     supabaseConfigured: configured,
     dataSource: configured ? 'supabase' : 'bundled fixtures',
   };

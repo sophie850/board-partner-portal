@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { CURRENCIES } from '@/data/seed';
 import { requireSupabase } from '@/lib/db/client';
 import { getDb, mintId } from '@/lib/db/store';
+import { runReminders } from '@/lib/reminders';
 import { storageKeyFrom } from '@/lib/storage';
 import type { EventSender, Id, OrganiserPermissions, Terminology } from '@/lib/types';
 
@@ -395,5 +396,50 @@ export async function removeOrganiserUser(userId: Id): Promise<Result> {
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Could not remove the account.' };
+  }
+}
+
+/* ---------------------------------------------------------------
+   Running the reminders by hand
+   --------------------------------------------------------------- */
+
+export type ReminderResult =
+  | { ok: true; summary: string; notes: string[] }
+  | { ok: false; error: string };
+
+/**
+ * Do now what the schedule does at 08:00.
+ *
+ * Not a test mode — it is the same code, sending the same real
+ * email. It is safe to press because of the dedupe claim: anything
+ * already sent is already claimed, so a curious second press sends
+ * nothing and says so.
+ *
+ * Calls the runner directly rather than the cron route. The route
+ * exists because a scheduler holds no cookie; an organiser already
+ * signed in and past the Settings guard does not need to prove
+ * themselves twice with a shared secret.
+ */
+export async function runRemindersNow(): Promise<ReminderResult> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
+  try {
+    const run = await runReminders();
+
+    const parts = [
+      `${run.scanned} ${run.scanned === 1 ? 'deadline' : 'deadlines'} checked`,
+      `${run.sent} sent`,
+    ];
+    if (run.duplicate) parts.push(`${run.duplicate} already sent`);
+    if (run.skipped) parts.push(`${run.skipped} skipped`);
+    if (run.failed) parts.push(`${run.failed} failed`);
+
+    return { ok: true, summary: `${parts.join(', ')}.`, notes: run.notes };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'The reminder run could not be completed.',
+    };
   }
 }

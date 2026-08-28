@@ -929,6 +929,7 @@ export function rowToSentEmail(r: Row): SentEmail {
     fromName: str(r.from_name),
     at: r.sent_at,
     status: r.status,
+    dedupeKey: r.dedupe_key ?? null,
   };
 }
 

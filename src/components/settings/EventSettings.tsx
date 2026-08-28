@@ -35,6 +35,8 @@ import {
   setOrganiserPermission,
   createOrganiserUser,
   removeOrganiserUser,
+  runRemindersNow,
+  type ReminderResult,
 } from '@/app/organiser/settings/actions';
 
 /* ============================================================
@@ -652,6 +654,9 @@ function EmailSection({ data, run }: { data: SettingsData; run: Runner }) {
         </div>
       </section>
 
+      {/* ---- reminders ---- */}
+      <RemindersPanel />
+
       {/* ---- outbox ---- */}
       <section>
         <div className="mb-3 text-[12px] tracking-[0.12em] text-ink-4 uppercase">
@@ -670,8 +675,18 @@ function EmailSection({ data, run }: { data: SettingsData; run: Runner }) {
                 <span className="shrink-0 text-ink-4">{mail.to || 'no address'}</span>
                 {mail.partner && <span className="shrink-0 text-ink-4">{mail.partner}</span>}
                 <span className="shrink-0 text-ink-4">{mail.whenLabel}</span>
-                <StatusPill tone={mail.status === 'sent' ? 'good' : 'warn'}>
-                  {mail.status}
+                <StatusPill
+                  tone={
+                    mail.status === 'sent'
+                      ? 'good'
+                      : mail.status === 'sending'
+                        ? 'muted'
+                        : 'warn'
+                  }
+                >
+                  {/* A row stuck on 'sending' is a claim whose send
+                      never completed — worth showing as itself. */}
+                  {mail.status === 'sending' ? 'incomplete' : mail.status}
                 </StatusPill>
               </div>
             ))}
@@ -679,6 +694,65 @@ function EmailSection({ data, run }: { data: SettingsData; run: Runner }) {
         )}
       </section>
     </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   Reminders
+   --------------------------------------------------------------- */
+
+function RemindersPanel() {
+  const [pending, startTransition] = useTransition();
+  const [result, setResult] = useState<ReminderResult | null>(null);
+
+  return (
+    <section>
+      <div className="mb-3 text-[12px] tracking-[0.12em] text-ink-4 uppercase">
+        Deadline reminders
+      </div>
+
+      <div className="rounded-lg border border-line-2 bg-panel px-[16px] py-[14px]">
+        <p className="mb-3 max-w-[62ch] text-[12.5px] leading-relaxed text-ink-3">
+          Sent automatically at 08:00 each day: a heads-up about two weeks out, a final call
+          in the last three days, then weekly for a month once something is overdue. They go
+          to each Partner Lead, and only to people who have already been invited.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                setResult(null);
+                setResult(await runRemindersNow());
+              })
+            }
+          >
+            {pending ? 'Running…' : 'Run reminders now'}
+          </Button>
+
+          {result?.ok && <span className="text-[12px] text-accent">{result.summary}</span>}
+          {result && !result.ok && (
+            <span className="text-[12px] text-warn">{result.error}</span>
+          )}
+        </div>
+
+        {result?.ok && result.notes.length > 0 && (
+          <ul className="mt-3 flex list-none flex-col gap-1 p-0 text-[11.5px] text-ink-4">
+            {result.notes.map((note, i) => (
+              <li key={i}>{note}</li>
+            ))}
+          </ul>
+        )}
+
+        <Help>
+          Pressing this is safe. Anything already sent has been claimed in the log and will
+          not go out twice — it is the same run the schedule performs, not a test mode.
+        </Help>
+      </div>
+    </section>
   );
 }
 

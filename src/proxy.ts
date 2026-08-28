@@ -39,7 +39,12 @@ function isOpenPath(pathname: string): boolean {
     // Deliberately open: it returns configuration shape and row
     // counts only — never data — and its whole purpose is diagnosing
     // a site you cannot get into.
-    pathname === '/api/health'
+    pathname === '/api/health' ||
+    // A scheduler holds no cookie. This is not unprotected — it
+    // carries CRON_SECRET and refuses without it — but the check
+    // belongs in the route, which can answer 401, rather than here,
+    // which would bounce a machine to a sign-in page.
+    pathname.startsWith('/api/cron/')
   );
 }
 
