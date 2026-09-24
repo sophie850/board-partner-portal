@@ -88,6 +88,16 @@ const event: BoardEvent = {
 const entitlements: Entitlement[] = [
   { key: 'has_exhibition_space', label: 'Exhibition space' },
   { key: 'has_turnkey_stand', label: 'Turnkey stand package' },
+  /*
+   * Raw space — the exhibitor builds their own stand rather than
+   * taking the shell scheme. It is the answer to the stand-build
+   * question on Form 6.1, and it is what brings the venue's Security
+   * Information (6.6) and Safety Questionnaire (6.8) with it. Held as
+   * an entitlement rather than read off the form answer so an
+   * organiser can set it the moment they know, without waiting for
+   * the exhibitor to fill anything in.
+   */
+  { key: 'has_raw_space', label: 'Raw space (builds their own stand)' },
   { key: 'has_meetings_package', label: 'Meetings package' },
   { key: 'has_content_session', label: 'Content session' },
   { key: 'has_hospitality_activation', label: 'Hospitality activation' },
@@ -535,6 +545,152 @@ const products: Product[] = [
       },
     ],
   },
+  /* -------------------------------------------------------------
+     Grimaldi Forum order form (Form 6.2)
+
+     Anna's Order Form is a catalogue with a quantity box against each
+     line, which is a shop rather than a form. Built as products so it
+     gets the cart, the order deadlines, the supplier webhook and the
+     quote flow, none of which a form would have.
+
+     Every line is quote-required, because the form says so: "Rates
+     are set by Grimaldi Forum's current catalogue; a priced
+     confirmation follows." So no price is shown, the partner accepts
+     or declines the quote, and nothing is confirmed until they do.
+
+     The deadline matches the one the venue's own power and wired
+     internet already carry, rather than being invented here. Leaving
+     these open-ended would have been worse than a wrong guess: a
+     single dateless product keeps the whole shop open forever, which
+     the order-deadline tests caught.
+     ------------------------------------------------------------- */
+  {
+    id: 'prod_gf_carpet',
+    eventId: EVENT_ID,
+    name: 'Short-pile carpet, basic colours',
+    supplierId: 'sup_grimaldi',
+    categoryId: 'cat_furniture',
+    description: 'Laid to the stand footprint. Colour is chosen on Form 6.4.',
+    unit: 'per m²',
+    basePrice: null,
+    taxRate: 0.2,
+    approvalMode: 'quote',
+    minQty: 1,
+    maxQty: 400,
+    orderDeadline: '2027-02-20',
+    leadTimeDays: 14,
+    active: true,
+    visibility: { requires: 'has_exhibition_space' },
+    options: [],
+    questions: [],
+  },
+  {
+    id: 'prod_gf_flag',
+    eventId: EVENT_ID,
+    name: 'Double-sided flag sign (60 × 20 cm)',
+    supplierId: 'sup_grimaldi',
+    categoryId: 'cat_signage',
+    description: 'Hanging stand identifier. Wording is given on Form 6.4.',
+    unit: 'unit',
+    basePrice: null,
+    taxRate: 0.2,
+    approvalMode: 'quote',
+    minQty: 1,
+    maxQty: 10,
+    orderDeadline: '2027-02-20',
+    leadTimeDays: 14,
+    active: true,
+    visibility: { requires: 'has_exhibition_space' },
+    options: [],
+    questions: [],
+  },
+  {
+    id: 'prod_gf_storage',
+    eventId: EVENT_ID,
+    name: 'Storage 1 m² (panel + lockable door)',
+    supplierId: 'sup_grimaldi',
+    categoryId: 'cat_furniture',
+    description: 'Lockable store built into the stand footprint.',
+    unit: 'unit',
+    basePrice: null,
+    taxRate: 0.2,
+    approvalMode: 'quote',
+    minQty: 1,
+    maxQty: 6,
+    orderDeadline: '2027-02-20',
+    leadTimeDays: 14,
+    active: true,
+    visibility: { requires: 'has_exhibition_space' },
+    options: [],
+    questions: [
+      {
+        key: 'storage_position',
+        label: 'Where on the stand should it go?',
+        type: 'short_text',
+        required: true,
+      },
+    ],
+  },
+  {
+    id: 'prod_gf_internet',
+    eventId: EVENT_ID,
+    name: 'Pro internet, 5 MB',
+    supplierId: 'sup_grimaldi',
+    categoryId: 'cat_internet',
+    description: 'Wired connection for the run of the event. The venue is the sole provider.',
+    unit: 'event package',
+    basePrice: null,
+    taxRate: 0.2,
+    approvalMode: 'quote',
+    minQty: 1,
+    maxQty: 4,
+    orderDeadline: '2027-02-20',
+    leadTimeDays: 14,
+    active: true,
+    visibility: { requires: 'has_exhibition_space' },
+    options: [],
+    questions: [],
+  },
+  {
+    id: 'prod_gf_power',
+    eventId: EVENT_ID,
+    name: 'Monophase 220V, 1–2 KW box',
+    supplierId: 'sup_grimaldi',
+    categoryId: 'cat_electrical',
+    description: 'Mains connection. Mark its position on your stand diagram (Form 6.5).',
+    unit: 'unit',
+    basePrice: null,
+    taxRate: 0.2,
+    approvalMode: 'quote',
+    minQty: 1,
+    maxQty: 8,
+    orderDeadline: '2027-02-20',
+    leadTimeDays: 14,
+    active: true,
+    visibility: { requires: 'has_exhibition_space' },
+    options: [],
+    questions: [],
+  },
+  {
+    id: 'prod_gf_hostess',
+    eventId: EVENT_ID,
+    name: 'Bilingual hostess, 8-hour day',
+    supplierId: 'sup_grimaldi',
+    categoryId: 'cat_logistics',
+    description: 'Languages and uniform are set out on Form 6.4.',
+    unit: 'per day',
+    basePrice: null,
+    taxRate: 0.2,
+    approvalMode: 'quote',
+    minQty: 1,
+    maxQty: 12,
+    orderDeadline: '2027-02-20',
+    leadTimeDays: 14,
+    active: true,
+    visibility: { requires: 'has_exhibition_space' },
+    options: [],
+    questions: [],
+  },
 ];
 
 /* ---------------------------------------------------------------
@@ -586,55 +742,6 @@ const forms: FormDef[] = [
         required: true,
         visibility: { type: 'partner', partners: ['part_c'] },
         help: 'Only shown to bespoke partners.',
-      },
-    ],
-  },
-  {
-    id: 'f_hs',
-    eventId: EVENT_ID,
-    title: 'Health & safety declaration',
-    category: 'Exhibition',
-    description: 'Required for all partners with a physical stand presence.',
-    dueDate: '2027-02-14',
-    assign: { type: 'entitlement', key: 'has_exhibition_space' },
-    fields: [
-      { key: 'sec_docs', label: 'Documentation', type: 'section_heading' },
-      { key: 'method_statement', label: 'Method statement', type: 'document_upload', required: true },
-      { key: 'risk_assessment', label: 'Risk assessment', type: 'document_upload', required: true },
-      { key: 'sec_contractor', label: 'Contractor', type: 'section_heading' },
-      {
-        key: 'uses_contractor',
-        label: 'Are you appointing an external stand contractor?',
-        type: 'yes_no',
-        required: true,
-      },
-      // Conditional: only when uses_contractor === true
-      {
-        key: 'contractor_name',
-        label: 'Contractor name',
-        type: 'short_text',
-        required: true,
-        condition: { field: 'uses_contractor', equals: true },
-      },
-      {
-        key: 'contractor_contact',
-        label: 'Contractor contact',
-        type: 'contact',
-        required: true,
-        condition: { field: 'uses_contractor', equals: true },
-      },
-      {
-        key: 'contractor_insurance',
-        label: 'Contractor insurance certificate',
-        type: 'document_upload',
-        required: true,
-        condition: { field: 'uses_contractor', equals: true },
-      },
-      {
-        key: 'elec_ack',
-        label: 'I confirm all electrical work will be certified to venue standard.',
-        type: 'acknowledgement',
-        required: true,
       },
     ],
   },
@@ -696,6 +803,353 @@ const forms: FormDef[] = [
       { key: 'delegate_1', label: 'Delegate 1', type: 'contact', required: true },
       { key: 'delegate_2', label: 'Delegate 2', type: 'contact', required: false },
       { key: 'dietary', label: 'Dietary requirements', type: 'long_text', required: false },
+    ],
+  },
+  /* -------------------------------------------------------------
+     The Grimaldi Forum exhibitor manual
+
+     Forms 6.1–6.8 and 2.3, as the venue actually asks them. The
+     numbering is theirs and is kept: an exhibitor cross-checking
+     against the manual, or a contractor being told to "send us 6.6",
+     needs the same reference the venue uses.
+
+     Deadlines are deliberately left unset. The venue's own return
+     dates are not in the pack, and a date invented here would start
+     chasing partners against a day nobody agreed — a form with no
+     resolved date reads "Date to be confirmed" and is never flagged
+     overdue, which is the honest state until Anna fills them in.
+     ------------------------------------------------------------- */
+  {
+    id: 'gf_exhibitor',
+    eventId: EVENT_ID,
+    title: 'Exhibitor information (Form 6.1)',
+    category: 'Venue forms',
+    description:
+      'Compulsory for every exhibitor. Returned alongside the Security Form and Stand Diagram.',
+    dueDate: null,
+    assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    allowResubmit: true,
+    fields: [
+      { key: 'company_heading', label: 'Exhibiting company', type: 'section_heading' },
+      { key: 'company_name', label: 'Company name', type: 'short_text', required: true, help: 'Legal entity name.' },
+      { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true, help: 'e.g. B14' },
+
+      { key: 'contacts_heading', label: 'Contacts', type: 'section_heading' },
+      {
+        key: 'contacts_note',
+        label:
+          'Three contacts are required: the person preparing and supervising the stand, the person present on site, and the stand contractor.',
+        type: 'guidance',
+      },
+      { key: 'contact_preparing', label: 'Preparing and supervising the stand', type: 'contact', required: true },
+      { key: 'contact_preparing_company', label: 'Their company', type: 'short_text', required: false },
+      { key: 'contact_onsite', label: 'Present on site', type: 'contact', required: true },
+      { key: 'contact_onsite_company', label: 'Their company', type: 'short_text', required: false },
+      { key: 'contact_contractor', label: 'Stand contractor', type: 'contact', required: false },
+      { key: 'contact_contractor_company', label: 'Their company', type: 'short_text', required: false },
+
+      { key: 'billing_heading', label: 'Billing', type: 'section_heading' },
+      { key: 'billing_company', label: 'Billing company name', type: 'short_text', required: true },
+      { key: 'vat_number', label: 'VAT number', type: 'short_text', required: false },
+      { key: 'billing_address', label: 'Billing address', type: 'short_text', required: true },
+      { key: 'billing_locality', label: 'Postcode / City / Country', type: 'short_text', required: true },
+
+      { key: 'build_heading', label: 'Stand build', type: 'section_heading' },
+      {
+        key: 'stand_build',
+        label: 'How will your stand be built?',
+        type: 'single_select',
+        required: true,
+        options: [
+          'We have our own booth and will do the set-up',
+          'We will use the shell-scheme booth provided by the organisation',
+          'We want to contact Grimaldi Forum for a custom-made stand',
+        ],
+        help: 'Building your own stand is what the venue calls raw space, and it brings Forms 6.6 and 6.8 with it.',
+      },
+    ],
+  },
+  {
+    id: 'gf_diagram',
+    eventId: EVENT_ID,
+    title: 'Stand diagram (Form 6.5)',
+    category: 'Venue forms',
+    description: 'Submit with your orders. One grid square equals one metre.',
+    dueDate: null,
+    assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    allowResubmit: true,
+    fields: [
+      { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
+      { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true, help: 'e.g. B14' },
+      {
+        key: 'diagram_note',
+        label:
+          'Mark the position of every ordered connection and fixture on the grid. One grid square equals one metre. Label the neighbouring stand or aisle on all sides.',
+        type: 'guidance',
+      },
+      { key: 'diagram', label: 'Your stand diagram', type: 'document_upload', required: true },
+      {
+        key: 'technical_notes',
+        label: 'Notes for the Grimaldi Forum technical team',
+        type: 'long_text',
+        required: false,
+        help: 'Anything the diagram cannot show.',
+      },
+    ],
+  },
+  {
+    id: 'gf_additional',
+    eventId: EVENT_ID,
+    title: 'Additional information (Form 6.4)',
+    category: 'Venue forms',
+    description: 'On-site staffing schedules, booth setup and technical connectivity.',
+    dueDate: null,
+    assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    allowResubmit: true,
+    fields: [
+      { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
+      { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true },
+
+      { key: 'staffing_heading', label: 'Staffing schedules', type: 'section_heading' },
+      { key: 'staffing_note', label: 'One row per service. Give the dates, hours and anything the service needs to know.', type: 'guidance' },
+      { key: 'hostess', label: 'Hostess — dates, hours, language and uniform', type: 'long_text', required: false },
+      { key: 'warehouseman', label: 'Warehouseman — dates and hours', type: 'long_text', required: false },
+      { key: 'security_staff', label: 'Security — dates and hours', type: 'long_text', required: false },
+
+      { key: 'setup_heading', label: 'Booth setup', type: 'section_heading' },
+      {
+        key: 'carpet',
+        label: 'Carpet colour',
+        type: 'single_select',
+        required: false,
+        options: [
+          'Black (ref 270)',
+          'Grey (ref 262)',
+          'Red (ref 271)',
+          'Navy blue (ref 227)',
+          'Blue (ref 265)',
+          'Other — see below',
+        ],
+      },
+      { key: 'carpet_other', label: 'Other (custom colour, over 25 m²)', type: 'short_text', required: false, condition: { field: 'carpet', equals: 'Other — see below' } },
+      { key: 'signage_text', label: 'Signage text', type: 'short_text', required: false, help: 'Exactly as it should be produced.' },
+
+      { key: 'connectivity_heading', label: 'Technical connectivity', type: 'section_heading' },
+      { key: 'av', label: 'AV connection', type: 'single_select', required: false, options: ['PC DVI', 'HDMI'] },
+      { key: 'wifi_ssid', label: 'WiFi SSID', type: 'short_text', required: false },
+      { key: 'wifi_password', label: 'WiFi password', type: 'short_text', required: false },
+
+      { key: 'signature', label: 'Authorised signature', type: 'short_text', required: true },
+      { key: 'signed_date', label: 'Date', type: 'date', required: true },
+    ],
+  },
+  {
+    id: 'gf_security',
+    eventId: EVENT_ID,
+    title: 'Security information (Form 6.6)',
+    category: 'Venue forms',
+    description:
+      'Raw-space stands only. Confirms the safety declarations required for booths not fitted by Grimaldi Forum.',
+    dueDate: null,
+    assign: { type: 'entitlement', keys: ['has_raw_space'] },
+    allowResubmit: true,
+    fields: [
+      { key: 'contractor_heading', label: 'Stand & contractor', type: 'section_heading' },
+      { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
+      { key: 'booth_number', label: 'Booth number', type: 'short_text', required: true },
+      { key: 'contractor', label: 'Stand-decoration contractor', type: 'short_text', required: true },
+      { key: 'contractor_contact', label: 'Contractor contact', type: 'short_text', required: true },
+
+      { key: 'declarations_heading', label: 'Declarations', type: 'section_heading' },
+      { key: 'declarations_note', label: 'Select one option per declaration.', type: 'guidance' },
+      {
+        key: 'devices',
+        label: 'Declaration of devices in operation',
+        type: 'single_select',
+        required: true,
+        options: [
+          'I declare not to bring or use any device requiring this document.',
+          'Enclosed document (see Form 6.7).',
+        ],
+      },
+      {
+        key: 'questionnaire',
+        label: 'Safety questionnaire',
+        type: 'single_select',
+        required: true,
+        options: [
+          'I declare not to bring my own construction materials.',
+          'Enclosed document, with certificates for each material.',
+        ],
+      },
+      {
+        key: 'electrical',
+        label: 'Certificate of electrical compliance',
+        type: 'single_select',
+        required: true,
+        options: [
+          'I declare not to install any electrical fitting.',
+          'Fittings installed by competent staff, to code.',
+        ],
+      },
+      { key: 'supporting_documents', label: 'Attach supporting documents', type: 'document_upload', required: false },
+      { key: 'signature', label: 'Authorised signature', type: 'short_text', required: true },
+      { key: 'signed_date', label: 'Date', type: 'date', required: true },
+    ],
+  },
+  {
+    id: 'gf_equipment',
+    eventId: EVENT_ID,
+    title: 'Equipment & machinery in operation (Form 6.7)',
+    category: 'Venue forms',
+    description:
+      'Only if applicable. Required for heat or combustion engines, smoke generators, gas, lasers or any machinery in operation.',
+    dueDate: null,
+    assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    allowResubmit: true,
+    fields: [
+      { key: 'company_heading', label: 'Company', type: 'section_heading' },
+      { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
+      { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true },
+
+      { key: 'equipment_heading', label: 'Equipment declared', type: 'section_heading' },
+      { key: 'equipment_note', label: 'Describe each item. Add every one you intend to operate on the stand.', type: 'guidance' },
+      { key: 'item_name', label: 'Item / equipment name', type: 'short_text', required: true },
+      { key: 'item_purpose', label: 'Purpose / use case', type: 'long_text', required: true },
+      { key: 'item_specs', label: 'Specifications (power / fuel / qty)', type: 'long_text', required: true },
+      { key: 'item_safety', label: 'Safety measures', type: 'long_text', required: true },
+      { key: 'further_items', label: 'Any further items', type: 'long_text', required: false, help: 'One per line, with the same detail as above.' },
+
+      { key: 'compliance_heading', label: 'Compliance checklist', type: 'section_heading' },
+      {
+        key: 'confirm_screened',
+        label:
+          'I confirm all machinery is either screened or cased, or set back at least 1 metre from the stand edge.',
+        type: 'acknowledgement',
+        required: true,
+      },
+      {
+        key: 'confirm_fire_safety',
+        label: 'I confirm I have read and will adhere to the fire safety and liability requirements.',
+        type: 'acknowledgement',
+        required: true,
+      },
+      { key: 'certificates', label: 'Material safety certificates, where applicable', type: 'document_upload', required: false },
+      { key: 'signature', label: 'Authorised signature', type: 'short_text', required: true },
+      { key: 'signed_date', label: 'Date', type: 'date', required: true },
+    ],
+  },
+  {
+    id: 'gf_safety',
+    eventId: EVENT_ID,
+    title: 'Safety questionnaire (Form 6.8)',
+    category: 'Venue forms',
+    description:
+      'Raw space only. Materials fire rating, required for booths not fitted by Grimaldi Forum.',
+    dueDate: null,
+    assign: { type: 'entitlement', keys: ['has_raw_space'] },
+    allowResubmit: true,
+    fields: [
+      { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
+      { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true },
+
+      { key: 'materials_heading', label: 'Materials declared', type: 'section_heading' },
+      {
+        key: 'ratings_note',
+        label:
+          'French fire ratings: M0 fireproof, M1 non-flammable, M2 low flammability, M3 medium flammability.',
+        type: 'guidance',
+      },
+      {
+        key: 'required_note',
+        label:
+          'Ratings required — booth framework M0/M1 · partition walls M0/M1 · solid hard wood M2/M3 (14 mm min) · resinous wood, plywood, chipboard M2/M3 · melamine-coated panel M2/M3 (7–8 mm min) · partition wall covering M0/M1/M2 · floor covering M3 · ceiling M1/M2 · awning M1/M2 · plastic material M1/M2 · paint water-based · curtains and relief elements M0/M1/M2 · transparent or translucent elements M1/M2 · furniture M0/M1/M2/M3 · artificial flowers M2.',
+        type: 'guidance',
+      },
+      {
+        key: 'materials_declared',
+        label: 'Materials used, with thickness and rating provided',
+        type: 'long_text',
+        required: true,
+        help: 'One material per line: material, thickness / rating provided, trade mark, position on the diagram, laboratory certificate number.',
+      },
+      {
+        key: 'certificates',
+        label: 'Laboratory certificates for every material',
+        type: 'document_upload',
+        required: true,
+      },
+      { key: 'signature', label: 'Authorised signature', type: 'short_text', required: true },
+      { key: 'signed_date', label: 'Date', type: 'date', required: true },
+    ],
+  },
+  {
+    id: 'gf_wideload',
+    eventId: EVENT_ID,
+    title: 'Wide load escort request (Form 2.3)',
+    category: 'Venue forms',
+    description:
+      'Only for oversized vehicles. A police escort is required above 18.75 m long, 2.60 m wide or 4.30 m high.',
+    dueDate: null,
+    assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    allowResubmit: true,
+    fields: [
+      { key: 'company_heading', label: 'Company', type: 'section_heading' },
+      { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
+      { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true },
+      { key: 'requester_name', label: 'Requester name', type: 'short_text', required: true },
+      { key: 'requester_mobile', label: 'Requester mobile', type: 'telephone', required: true },
+
+      { key: 'dimensions_heading', label: 'Vehicle dimensions', type: 'section_heading' },
+      {
+        key: 'thresholds_note',
+        label: 'A police escort is triggered when any one of these thresholds is exceeded: length 18.75 m, width 2.60 m, height 4.30 m.',
+        type: 'guidance',
+      },
+      { key: 'length_m', label: 'Length (m)', type: 'number', required: true },
+      { key: 'width_m', label: 'Width (m)', type: 'number', required: true },
+      { key: 'height_m', label: 'Height (m)', type: 'number', required: true },
+      { key: 'vehicle', label: 'Vehicle type / registration', type: 'short_text', required: true },
+
+      { key: 'movement_heading', label: 'Requested movement', type: 'section_heading' },
+      { key: 'movement_note', label: 'Must fall between 21:00 and 07:00.', type: 'guidance' },
+      { key: 'arrival_date', label: 'Arrival date', type: 'date', required: true },
+      { key: 'arrival_time', label: 'Arrival time', type: 'time', required: true },
+      { key: 'departure_date', label: 'Departure date', type: 'date', required: true },
+      { key: 'departure_time', label: 'Departure time', type: 'time', required: true },
+      { key: 'escort_notes', label: 'Notes for the escort team', type: 'long_text', required: false },
+    ],
+  },
+  {
+    id: 'gf_payment',
+    eventId: EVENT_ID,
+    title: 'Payment (Form 6.3)',
+    category: 'Venue forms',
+    description: 'Compulsory for every exhibitor. How you will settle your order form total.',
+    dueDate: null,
+    assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    allowResubmit: true,
+    fields: [
+      { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
+      { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true },
+
+      { key: 'method_heading', label: 'Payment method', type: 'section_heading' },
+      {
+        key: 'method',
+        label: 'Choose one method',
+        type: 'single_select',
+        required: true,
+        options: ['Bank cheque', 'Bank transfer, in Euro', 'Credit card'],
+      },
+      {
+        key: 'transfer_confirmation',
+        label: 'Attach transfer confirmation',
+        type: 'document_upload',
+        required: false,
+        condition: { field: 'method', equals: 'Bank transfer, in Euro' },
+      },
+      { key: 'signature', label: 'Authorised signature', type: 'short_text', required: true },
+      { key: 'signed_date', label: 'Date', type: 'date', required: true },
     ],
   },
 ];
@@ -1155,15 +1609,16 @@ const taskTemplates: TaskTemplate[] = [
   {
     id: 'tt_hs',
     eventId: EVENT_ID,
-    title: 'Submit health & safety declaration',
+    title: 'Complete the venue safety questionnaire',
     category: 'Exhibition',
     module: 'forms',
     priority: 'high',
     required: true,
     dueDate: '2027-02-14',
-    requires: 'has_exhibition_space',
-    link: { type: 'form', target: 'f_hs' },
-    instructions: 'Required before any build can begin.',
+    requires: 'has_raw_space',
+    link: { type: 'form', target: 'gf_safety' },
+    instructions:
+      'Grimaldi Forum Form 6.8. Required before any build can begin on a raw-space stand.',
   },
   {
     id: 'tt_stand',
@@ -1405,6 +1860,7 @@ const participations: Participation[] = [
     packageId: null,
     addedEntitlements: [
       'has_exhibition_space',
+      'has_raw_space',
       'requires_stand_approval',
       'can_order_av',
       'can_order_furniture',
@@ -1444,7 +1900,7 @@ const participations: Participation[] = [
         quantity: 1,
         standNumber: 'A12',
         refs: [
-          { kind: 'form', id: 'f_hs' },
+          { kind: 'form', id: 'gf_safety' },
           { kind: 'task', id: 'tt_stand' },
           { kind: 'task', id: 'tt_rules' },
         ],
@@ -1478,13 +1934,18 @@ const participations: Participation[] = [
           description: 'Infrastructure software for regulated industries.',
         },
       },
-      f_hs: {
+      gf_safety: {
         status: 'changes_required',
         submittedAt: '2027-01-08T10:00:00Z',
         submittedBy: 'Sam Doyle',
         feedback:
-          'Risk assessment is missing the working-at-height section. Please revise and resubmit.',
-        values: { uses_contractor: true, contractor_name: 'AlpEvents GmbH' },
+          'Melamine panel is listed at 5 mm; the venue requires 7–8 mm minimum at M2/M3. Please revise and resubmit with the certificate.',
+        values: {
+          company_name: 'Helvetica Systems AG',
+          stand_number: 'A12',
+          materials_declared:
+            'Melamine-coated panel, 5 mm, M2, Egger, west wall, cert LNE-2026-114',
+        },
       },
     },
     ackState: {},
