@@ -28,6 +28,71 @@ function fingerprint(value: string | undefined): string {
   return `set (${value.length} chars)`;
 }
 
+/**
+ * Everything a failure will admit to.
+ *
+ * `error.message` on its own is routinely empty. A project that is
+ * paused, or a URL that resolves to nothing, fails underneath
+ * PostgREST — there is no SQL error to report, so the message is
+ * blank and the real cause sits on `cause`. This endpoint exists to
+ * name a fault, and `"error": ""` names nothing.
+ *
+ * Nothing here can leak a key: it is the database's own account of
+ * what went wrong, never the request that was made.
+ */
+function describe(error: unknown): string {
+  if (!error) return 'unknown error';
+
+  if (typeof error === 'string') return error;
+
+  const e = error as {
+    message?: string;
+    code?: string;
+    details?: string;
+    hint?: string;
+    cause?: unknown;
+  };
+
+  const parts = [e.message, e.details, e.hint].filter(
+    (part): part is string => Boolean(part && part.trim()),
+  );
+
+  // The cause is where "fetch failed" keeps the thing you need —
+  // ENOTFOUND, a refused connection, a TLS failure.
+  if (e.cause && e.cause !== error) {
+    const cause = describe(e.cause);
+    if (cause && cause !== 'unknown error' && !parts.includes(cause)) parts.push(cause);
+  }
+
+  if (e.code) parts.push(`[${e.code}]`);
+
+  return parts.join(' — ') || '';
+}
+
+/**
+ * Why one table could not be counted.
+ *
+ * The count is a HEAD request, which is cheap and returns no body —
+ * so when it fails there is nothing to read the reason out of, and
+ * the reason is the entire point of this endpoint. One ordinary
+ * GET for a single row, only on the failing path, gets the words.
+ */
+async function explain(
+  client: NonNullable<ReturnType<typeof supabase>>,
+  table: string,
+  headError: unknown,
+): Promise<string> {
+  const fromHead = describe(headError);
+  if (fromHead) return fromHead;
+
+  try {
+    const { error } = await client.from(table).select('*').limit(1);
+    return describe(error) || 'the request failed with no message';
+  } catch (e) {
+    return describe(e) || 'the request failed with no message';
+  }
+}
+
 export async function GET() {
   const configured = isSupabaseConfigured();
   const checks: Record<string, unknown> = {
@@ -114,10 +179,11 @@ export async function GET() {
       const { count, error } = await client!
         .from(table)
         .select('*', { count: 'exact', head: true });
-      if (error) failures.push({ table, error: error.message });
+
+      if (error) failures.push({ table, error: await explain(client!, table, error) });
       else counts[table] = count ?? 0;
     } catch (e) {
-      failures.push({ table, error: e instanceof Error ? e.message : 'unknown error' });
+      failures.push({ table, error: describe(e) || 'the request failed with no message' });
     }
   }
 
@@ -126,8 +192,22 @@ export async function GET() {
   checks.rowCounts = counts;
 
   if (failures.length) {
-    checks.failures = failures;
-    checks.verdict = `${failures.length} table(s) could not be read. See failures.`;
+    /*
+     * Every table failing and one table failing are different
+     * faults with different fixes, and thirty-two identical rows
+     * bury that rather than showing it. Say which it is.
+     */
+    const total = failures.length === tables.length;
+
+    checks.failures = total ? failures.slice(0, 3) : failures;
+    checks.verdict = total
+      ? `No table could be read — this is the project, not the schema. ` +
+        `Usually it is paused (restore it in the Supabase dashboard), or SUPABASE_URL ` +
+        `and SUPABASE_SECRET_KEY are wrong. While it lasts, every page of the portal ` +
+        `shows "Something went wrong", including sign-in.`
+      : `${failures.length} of ${tables.length} tables could not be read, so a migration ` +
+        `is probably outstanding. See failures.`;
+
     return NextResponse.json(checks, { status: 503 });
   }
 
