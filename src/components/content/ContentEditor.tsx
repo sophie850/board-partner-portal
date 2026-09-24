@@ -55,6 +55,7 @@ const ADDABLE: Array<{ kind: BlockKind; label: string }> = [
   { kind: 'video', label: 'Video' },
   { kind: 'download', label: 'Download' },
   { kind: 'timeline', label: 'Key dates' },
+  { kind: 'table', label: 'Table' },
   { kind: 'divider', label: 'Divider' },
 ];
 
@@ -69,6 +70,7 @@ const BLOCK_LABEL: Record<BlockKind, string> = {
   video: 'Video',
   download: 'Download',
   timeline: 'Key dates',
+  table: 'Table',
 };
 
 function formatBytes(bytes: number): string {
@@ -98,6 +100,10 @@ function emptyBlock(kind: BlockKind): ContentBlock {
       return { type: 'callout', tone: 'info', text: '' };
     case 'video':
       return { type: 'video', url: '', caption: '' };
+    case 'table':
+      // Two columns and a row to type into: an empty grid gives an
+      // author nothing to aim at.
+      return { type: 'table', columns: ['', ''], rows: [['', '']], caption: '' };
     case 'download':
       return { type: 'download', name: '', note: '' };
     case 'timeline':
@@ -663,7 +669,70 @@ function BlockFields({
 
     case 'timeline':
       return <TimelineFields block={block} onChange={onChange} />;
+
+    case 'table':
+      return <TableFields block={block} onChange={onChange} index={index} />;
   }
+}
+
+/**
+ * Editing a table.
+ *
+ * Tab-separated, one row per line, rather than a grid of inputs. It
+ * is the format that survives a paste out of a spreadsheet or the
+ * venue's own PDF, which is where every table in this portal comes
+ * from — and a real grid would need column-insert, row-delete and
+ * drag-reorder to be worth using at all.
+ */
+function TableFields({
+  block,
+  onChange,
+  index,
+}: {
+  block: Extract<ContentBlock, { type: 'table' }>;
+  onChange: (b: ContentBlock) => void;
+  index: number;
+}) {
+  const small =
+    'w-full rounded-xs border border-line-3 bg-inset px-[9px] py-2 text-[12.5px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line';
+
+  const grid = [block.columns, ...block.rows].map((r) => r.join('\t')).join('\n');
+
+  function parse(text: string) {
+    const lines = text.split('\n');
+    const [head = '', ...rest] = lines;
+    const columns = head.split('\t');
+    // Every row padded to the header width, so a short line does not
+    // silently lose the cells to its right.
+    const rows = rest.map((line) => {
+      const cells = line.split('\t');
+      return columns.map((_, i) => cells[i] ?? '');
+    });
+    onChange({ ...block, columns, rows });
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <textarea
+        className={clsx(small, 'resize-y font-mono text-[12px]')}
+        rows={Math.min(12, block.rows.length + 2)}
+        value={grid}
+        onChange={(e) => parse(e.target.value)}
+        aria-label={`Table contents, block ${index + 1}`}
+      />
+      <Help>
+        First line is the header. Separate cells with tabs — pasting straight from a
+        spreadsheet works.
+      </Help>
+      <input
+        className={small}
+        value={block.caption ?? ''}
+        onChange={(e) => onChange({ ...block, caption: e.target.value })}
+        placeholder="Caption (optional)"
+        aria-label={`Table caption, block ${index + 1}`}
+      />
+    </div>
+  );
 }
 
 function TimelineFields({

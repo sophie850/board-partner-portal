@@ -339,7 +339,16 @@ export type ContentBlock =
   | { type: 'video'; url: string; caption?: string }
   /** `url` is an app path served by /api/files/*, not a public link. */
   | { type: 'download'; name: string; note?: string; url?: string }
-  | { type: 'timeline'; items: TimelineItem[] };
+  | { type: 'timeline'; items: TimelineItem[] }
+  /**
+   * A real table, because some things are only true in columns.
+   *
+   * "Hall MC1, live load 4.50 t, cabin 2.00 × 3.95 × 2.20 m, passage
+   * 1.58 × 2.08 m" is a sentence nobody can check a crate against.
+   * Flattening venue specifications into a list is how a contractor
+   * turns up with something that will not fit in the lift.
+   */
+  | { type: 'table'; columns: string[]; rows: string[][]; caption?: string };
 
 export interface ContentPage {
   id: Id;

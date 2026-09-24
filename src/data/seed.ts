@@ -1526,6 +1526,268 @@ const contentPages: ContentPage[] = [
     published: true,
     body: 'Confidential operational brief for the Meridian rooftop activation. Visible only to Meridian Partners.',
   },
+  /* -------------------------------------------------------------
+     The Grimaldi Forum information sheets
+
+     The reference half of the exhibitor manual, as pages rather than
+     a download: a contractor checking a lift dimension wants it on
+     the screen they are already looking at, not in a file on
+     somebody's laptop.
+
+     Written straight into the data rather than through the block
+     editor, but they are ordinary content pages — Anna can open any
+     of them and edit a load limit when the venue revises one.
+
+     Gated on exhibition space. None of it means anything to a
+     partner without a stand.
+     ------------------------------------------------------------- */
+  {
+    id: 'pg_gf_deliveries',
+    eventId: EVENT_ID,
+    categoryId: 'cc_venue',
+    title: 'Deliveries & logistics',
+    updated: '2026-09-24',
+    visibility: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    requireAck: false,
+    published: true,
+    body: 'Grimaldi Forum Monaco receives parcels subject to availability. Deliveries that miss the conditions below are refused at the bay.',
+    blocks: [
+      { type: 'paragraph', text: 'Grimaldi Forum Monaco receives parcels subject to availability. Deliveries that miss the conditions below are refused at the bay.' },
+      {
+        type: 'table',
+        columns: ['Bay', 'Level', 'Serves'],
+        rows: [
+          ['Quai S2', 'Level −4', 'Open daily for Ravel, Diaghilev, Guelfe, Génois, Indigo, Verrière, Atrium/Foyer −2. Includes bus parking, E3 unloading (zone verte) and logistic zone E3.'],
+          ['Quai E3', 'Level −1', 'Galerie Diaghilev, Patio area, Pinède (during events only).'],
+          ['Quai B / G1', 'External', 'Avenue Princesse Grâce.'],
+        ],
+      },
+      {
+        type: 'list',
+        items: [
+          'Sent less than 8 days before opening.',
+          'Volume no greater than 1 m³, maximum height 1.80 m.',
+          'Compulsory label naming the event, the exhibition hall and the correct delivery bay.',
+          'Parcels received at the delivery bay are not delivered to booths ; that is the exhibitor\'s responsibility. Trolleys are provided.',
+          'DDU (delivery duty unpaid) shipments are not accepted. Grimaldi Forum is not liable for items lost or damaged before receipt.',
+          'No storage is offered for empty crates or packaging; remove them as installation progresses, via the agreed forwarding agent if needed.',
+          'Waste container placement and removal is available at the exhibitor\'s expense.',
+          'Grimaldi Forum cleans before opening and after dismantling, plus daily cleaning of aisles and common areas. Daily booth cleaning is billed to the exhibitor unless the organiser states otherwise.',
+          'Leave the space clear of all structures and materials, including carpet, at close. Unclaimed rubbish is removed at the exhibitor\'s cost.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'pg_gf_transport',
+    eventId: EVENT_ID,
+    categoryId: 'cc_venue',
+    title: 'Transport & parking',
+    updated: '2026-09-24',
+    visibility: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    requireAck: false,
+    published: true,
+    body: 'Monaco restricts heavy goods movement and offers no truck parking. Plan vehicle movements before you travel.',
+    blocks: [
+      { type: 'paragraph', text: 'Monaco restricts heavy goods movement and offers no truck parking. Plan vehicle movements before you travel.' },
+      { type: 'paragraph', text: 'Truck parking is not possible anywhere in the Principality. Grimaldi Forum organises access to the delivery docks only; each exhibitor must make their own truck-parking arrangements outside Monaco and contact the exhibitors advisor for guidance.' },
+      { type: 'paragraph', text: 'Parking des Salines, at the Monaco entrance on the Jardin Exotique side, offers long-term rates: 15 min–4 h €7.50 (against €14.90 elsewhere) and 4–12 h €11 (against €24 elsewhere). A bus line connects it to the Grimaldi Forum at the Portier stop, plus a ten minute walk.' },
+      {
+        type: 'table',
+        columns: ['Public car park', 'Address'],
+        rows: [
+          ['Parking public du Testimonio', '73 avenue Princesse Grace'],
+          ['Parking public du Larvotto', '39 avenue Princesse Grace'],
+          ['Parking public du Grimaldi Forum', '4 avenue Princesse Grace'],
+          ['Parking public du Portier', 'Rond point du Portier'],
+          ['Parking public Louis II', '35 Boulevard Louis II'],
+        ],
+      },
+      {
+        type: 'list',
+        items: [
+          'Heavy goods vehicles over 3.5 tonnes GVW are prohibited daily 08:00–09:00 .',
+          'At all other times they are restricted to approved access and departure itineraries. Movement outside those itineraries is prohibited anywhere in the Principality.',
+          'Grimaldi Forum strongly advises using its approved transport suppliers for on-site product transport.',
+          'Venue access points: Esplanade · Staff entrance · Quai A (S2) · Quai B (G1) · Trucks parking · Diaghilev & MC6 · Quai E3.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'pg_gf_technical',
+    eventId: EVENT_ID,
+    categoryId: 'cc_build',
+    title: 'Technical specifications',
+    updated: '2026-09-24',
+    visibility: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    requireAck: false,
+    published: true,
+    body: 'Goods lift capacities and floor loading limits for the Grimaldi Forum halls. Check both before specifying a build.',
+    blocks: [
+      { type: 'paragraph', text: 'Goods lift capacities and floor loading limits for the Grimaldi Forum halls. Check both before specifying a build.' },
+      {
+        type: 'table',
+        columns: ['Hall', 'Live load (t)', 'Cabin W×D×H (m)', 'Passage W×H (m)'],
+        rows: [
+          ['MC1', '4.50', '2.00 × 3.95 × 2.20', '1.58 × 2.08'],
+          ['MC2', '4.80', '2.00 × 4.30 × 2.20', '1.58 × 2.08'],
+          ['MC4', '4.125', '2.00 × 3.80 × 2.20', '1.94 × 2.08'],
+          ['MC6', '4.05', '1.80 × 4.00 × 3.40', '1.58 × 3.48'],
+          ['MC8', '4.25', '2.00 × 3.80 × 3.60', '1.98 × 3.49'],
+          ['MC20 (extension)', '4.40', '2.00 × 4.10 × 2.50', '2.00 × 2.50'],
+          ['MC21 (extension)', '4.50', '2.50 × 5.50 × 2.50', '2.50 × 2.50'],
+        ],
+      },
+      {
+        type: 'table',
+        columns: ['Area', 'Limit'],
+        rows: [
+          ['Diaghilev (mezzanine, upper & lower)', '500 kg/m²'],
+          ['Guelfe & Génois (2nd floor)', '400 kg/m²'],
+          ['Ravel (1st floor)', '1000 kg/m²'],
+          ['Foyer (lower ground floor)', '500 kg/m²'],
+          ['Esplanade (floor 0)', '1000 kg/m²'],
+          ['Indigo (1st floor)', '500 kg/m²'],
+          ['Hall (floor 0)', '500 kg/m²'],
+          ['Le Carré · Galerie Diaghilev · Hall Pinède · Salles Patio', '500 kg/m²'],
+          ['Parvis Emeraude', '1000 kg/m²'],
+        ],
+      },
+    ],
+  },
+  {
+    id: 'pg_gf_safety',
+    eventId: EVENT_ID,
+    categoryId: 'cc_build',
+    title: 'Stand safety rules',
+    updated: '2026-09-24',
+    visibility: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    requireAck: false,
+    published: true,
+    body: 'Booths designed or fitted by exhibitors must comply with public-building fire and panic-risk rules and the Chief Fire Safety Officer\'s instructions.',
+    blocks: [
+      { type: 'paragraph', text: 'Booths designed or fitted by exhibitors must comply with public-building fire and panic-risk rules and the Chief Fire Safety Officer\'s instructions.' },
+      { type: 'paragraph', text: 'Installation by professionals only. The exhibitor owns responsibility from the supply box outward and must complete the electrical security information form. The box must stay inaccessible to the public but reachable by staff. Power runs during opening hours only; 24-hour supply requires an Operations Department request.' },
+      {
+        type: 'table',
+        columns: ['Forbidden', 'Compulsory', 'Recommended'],
+        rows: [
+          ['Modifying the supply box · conductors under 1.5 mm² · H03VH-H cable below 500V · spliced cables · unprotected connections · two-pole 6A multi-sockets · unsecured sockets · non-NFC-15-150 discharge lamps', 'Permanent staff access to the supply box, power off when unmanned if locked · earth connection on Class 1 equipment · halogen lamps at 2.25 m or above with a glass safety shield · Class 2 double-insulated equipment · C2-rated cable and sockets on illuminating garlands', 'Three-pin multiple sockets and adaptors, 10A/16A'],
+        ],
+      },
+      {
+        type: 'list',
+        items: [
+          'French fire ratings apply: M0 fireproof, M1 non-flammable, M2 low flammability, M3 medium flammability, M4 flammable. Certificates must match the exact structure, adhesive and wall-covering combination used.',
+          'White lettering on green is reserved for general safety signage, never for booth signs.',
+          'Under Monaco\'s Ministerial Decree No. 2017-893, every stand entrance must be threshold-free or have an inclined threshold. An elevation of 2 cm or less must be rounded or bevelled; up to 4 cm is allowed with a gentle slope, maximum 33%, across its full height. Successive steps are prohibited, and furniture and signage must be usable by people with reduced mobility.',
+          'Booth layout must never hide exit or emergency signage, or obstruct extinguishers, hose cabinets, glass-breaking tools or emergency phones.',
+          'Where a stand has a height derogation beyond the standard limit, decoration finishes are mandatory on the back of the stand.',
+          'Storing wood, paper, straw, cardboard or packaging in the exhibition areas, the booths, the areas behind them or the cabins is strictly forbidden. Gas and flammable liquids are absolutely forbidden inside the Grimaldi Forum.',
+          'Vehicles on booths: fuel kept on reserve, around 5 litres; never start the engine during assembly, operation or dismantling. If the hood is open, battery terminals must be protected and inaccessible; otherwise the hood stays closed.',
+          'Machines with moving parts, hot surfaces or sharp edges need guarding or casing, or a 1 m aisle setback with a barrier. Hydraulic-jack displays need a secondary mechanical safety device, and all machines must be stabilised against tipping.',
+          'PPE is mandatory in any work situation requiring it, per Sovereign Ordinance No. 3.706. Grimaldi Forum can halt work it deems dangerous.',
+          'All booths must be finished before the Safety Committee\'s inspection, the day before or the morning of opening. The exhibitor or a qualified representative must be present with certificates. The Committee can ban use of the booth, enforced immediately; no liability is accepted for a closure caused by non-compliance.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'pg_gf_induction',
+    eventId: EVENT_ID,
+    categoryId: 'cc_build',
+    title: 'Emergency & site induction',
+    updated: '2026-09-24',
+    visibility: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    requireAck: false,
+    published: true,
+    body: 'Brief every member of your team before they enter the halls. Post this sheet on your stand during build-up.',
+    blocks: [
+      { type: 'paragraph', text: 'Brief every member of your team before they enter the halls. Post this sheet on your stand during build-up.' },
+      { type: 'paragraph', text: 'Risk Assessment and Method Statements are a legal requirement.' },
+      {
+        type: 'list',
+        items: [
+          'Look for hazards: equipment, heavy lifting, working at height.',
+          'Decide who could be harmed and how.',
+          'Evaluate risks and implement control measures: eliminate, isolate or reduce.',
+          'Responsible person: name and emergency mobile number for the on-site supervisor.',
+          'Erection and timetable: detailed build sequence, hours required and personnel count.',
+          'Stability: methods for structural support, with calculations.',
+          'Children under 16 are strictly not permitted in the halls during build-up and breakdown, for health and safety reasons.',
+          'Smoking is not allowed anywhere on site.',
+          '24/7 in-house security with video surveillance. Individual booth surveillance can be ordered separately. Badges are produced by the organiser.',
+          'Exhibitors must carry civil and third-party liability insurance, plus cover for goods entrusted to them, including a waiver of recourse against Grimaldi Forum Monaco and its insurers. Written proof is due before opening.',
+          'A cloakroom operates during public opening days, with a standard charge per item. Concierge support is available for taxis, restaurants, theatre and airport transfers.',
+          'Animals are forbidden without Grimaldi Forum\'s prior written authorisation.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'pg_gf_suppliers',
+    eventId: EVENT_ID,
+    categoryId: 'cc_venue',
+    title: 'Agreed suppliers',
+    updated: '2026-09-24',
+    visibility: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    requireAck: false,
+    published: true,
+    body: 'Customs procedures and on-site lifting must go through one of the forwarding agents below. Contact suppliers directly; orders are between you and them.',
+    blocks: [
+      { type: 'paragraph', text: 'Customs procedures and on-site lifting must go through one of the forwarding agents below. Contact suppliers directly; orders are between you and them.' },
+      {
+        type: 'table',
+        columns: ['Category', 'Supplier', 'Contact'],
+        rows: [
+          ['Booth catering', 'SARL Favi Traiteur', '+33 4 92 28 35 28 · commercial@pavillontraiteur.com'],
+          ['Water fountains', 'Essence Exhibition Services', '+33 4 93 95 97 34 · essence.services@orange.fr'],
+          ['Computer equipment rental', 'Key4Events', '+377 97 97 56 01 · marie.lecomte@key4events.com'],
+          ['Furniture rental', 'Caroli Expo', '+377 97 98 50 00 · info.caroliexpo@groupecaroli.mc'],
+          ['Furniture rental (alt.)', 'Alive', '+33 1 34 38 33 10 · paris-nord@group-alive.com'],
+          ['Plants rental', 'Green Plus (SARL Narmino)', '+377 97 70 28 50 · info@greenplus.mc'],
+          ['Flower rental', 'Gastaldi Fleurs', '+377 97 70 41 27 · info@gastaldimonaco.com'],
+          ['Flower rental (alt.)', 'Narmino Sorasio', '+377 93 50 54 05 · monte-carlo@narminosorasio.com'],
+          ['VAT refund', 'Mathez Monaco International', '+377 93 101 330 · onsite@mathez-monaco.com'],
+          ['Music & performance rights', 'SACEM Monaco', '+377 93 50 96 48 · dl.monaco@sacem.fr'],
+          ['Forwarding agent · on-site lifting', 'Office Maritime Monégasque', '+377 92 05 76 15 · log@omm-monaco.com'],
+          ['Forwarding agent (alt.)', 'Monaco Logistique', '+377 97 97 23 33 · j.bizi@monacologistique.mc'],
+          ['Bespoke booth design', 'Grimaldi Forum (Hervé Masson)', '+377 99 99 22 25 · hmasson@grimaldiforum.com'],
+          ['Exhibitors advisors', 'Paloma Maas / Matthieu Testory', '+377 99 99 22 17 / 18 · email TBC'],
+        ],
+      },
+    ],
+  },
+  {
+    id: 'pg_gf_green',
+    eventId: EVENT_ID,
+    categoryId: 'cc_venue',
+    title: 'Act Green',
+    updated: '2026-09-24',
+    visibility: { type: 'entitlement', keys: ['has_exhibition_space'] },
+    requireAck: false,
+    published: true,
+    body: 'Grimaldi Forum runs an ISO 14001:2015-aligned environmental programme. Exhibitors are asked to work with it.',
+    blocks: [
+      { type: 'paragraph', text: 'Grimaldi Forum runs an ISO 14001:2015-aligned environmental programme. Exhibitors are asked to work with it.' },
+      {
+        type: 'list',
+        items: [
+          'Energy-efficient systems and seawater cooling.',
+          '100% renewable-energy consumption.',
+          'A signed staff charter of CSR good practices.',
+          'Eco-labelled products and low-consumption lighting.',
+          'Recycling of carpet, signage and wood.',
+          'Sort waste into the containers provided during set-up.',
+          'Leave waste sorted in the aisles every evening.',
+          'Remove empty crates and packaging as installation progresses.',
+          'Specify reusable structures and graphics where you can.',
+          'Order large waste or wood bins on estimate if you need them.',
+        ],
+      },
+    ],
+  },
 ];
 
 /* ---------------------------------------------------------------

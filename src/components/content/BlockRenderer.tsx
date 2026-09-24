@@ -237,9 +237,68 @@ function Block({ block }: { block: ContentBlock }): ReactNode {
     case 'timeline':
       return <KeyDates items={block.items} />;
 
+    case 'table':
+      return <DataTable block={block} />;
+
     default:
       return null;
   }
+}
+
+/* ---------------------------------------------------------------
+   Tables
+
+   Scrolls sideways in its own container rather than pushing the page
+   wide, so a seven-column venue specification stays readable on a
+   phone without the whole article shifting under the reader's thumb.
+   Figures are tabular-lined: tonnages and dimensions are compared
+   down a column, and proportional digits make that harder than it
+   needs to be.
+   --------------------------------------------------------------- */
+
+function DataTable({
+  block,
+}: {
+  block: { columns: string[]; rows: string[][]; caption?: string };
+}) {
+  return (
+    <figure className="my-6 w-full">
+      <div className="overflow-x-auto rounded-xl border border-line-2">
+        <table className="w-full border-collapse text-left text-[13px]">
+          <thead>
+            <tr>
+              {block.columns.map((c, i) => (
+                <th
+                  key={i}
+                  scope="col"
+                  className="border-b border-line-3 bg-inset px-[14px] py-[10px] text-[11px] font-normal tracking-[0.08em] text-ink-3 uppercase whitespace-nowrap"
+                >
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row, r) => (
+              <tr key={r}>
+                {row.map((cell, c) => (
+                  <td
+                    key={c}
+                    className="border-b border-line px-[14px] py-[11px] align-top leading-relaxed text-ink-2 tabular-nums last:border-b-0"
+                  >
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {block.caption && (
+        <figcaption className="mt-2 text-[11.5px] text-ink-4">{block.caption}</figcaption>
+      )}
+    </figure>
+  );
 }
 
 /* ---------------------------------------------------------------
@@ -325,6 +384,8 @@ export function blocksToText(blocks: ContentBlock[] | undefined): string {
           return b.name;
         case 'timeline':
           return b.items.map((i) => `${fmtDate(i.date)} ${i.title}`).join('. ');
+        case 'table':
+          return [b.columns.join(' '), ...b.rows.map((r) => r.join(' '))].join('. ');
         default:
           return '';
       }
