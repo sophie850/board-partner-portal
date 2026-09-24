@@ -20,9 +20,26 @@ export const config = {
   schedule: '0 8 * * *',
 };
 
+/**
+ * Read a variable without baking it into the bundle.
+ *
+ * A static `process.env.CRON_SECRET` is replaced with the literal
+ * value when this function is bundled, which puts the secret in a
+ * deploy artifact — Netlify's secret scanner catches it and fails
+ * the build, correctly. An indexed lookup on a computed key cannot
+ * be statically replaced, so the value is resolved at run time.
+ *
+ * The same trick as src/lib/env.ts, repeated rather than imported:
+ * this file is bundled on its own, outside the Next build.
+ */
+function env(name: string): string | undefined {
+  const key = name;
+  return process.env[key];
+}
+
 export default async function run() {
-  const secret = process.env.CRON_SECRET;
-  const base = process.env.URL ?? process.env.SITE_URL;
+  const secret = env('CRON_SECRET');
+  const base = env('URL') ?? env('SITE_URL');
 
   if (!secret || !base) {
     // Logged rather than thrown: a misconfigured schedule should say
