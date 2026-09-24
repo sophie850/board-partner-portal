@@ -55,10 +55,8 @@ export async function proxy(request: NextRequest) {
   if (authSecret) {
     if (isOpenPath(pathname)) return NextResponse.next();
 
-    const claims = await readSession(
-      request.cookies.get(SESSION_COOKIE)?.value,
-      authSecret,
-    );
+    const cookie = request.cookies.get(SESSION_COOKIE)?.value;
+    const claims = await readSession(cookie, authSecret);
     if (claims) return NextResponse.next();
 
     const url = request.nextUrl.clone();
@@ -66,6 +64,14 @@ export async function proxy(request: NextRequest) {
     url.search = '';
     // Send them back where they were aiming once they are through.
     url.searchParams.set('next', pathname);
+    /*
+     * Holding a cookie we will not accept is a different fault from
+     * holding none, and the person can tell neither apart: both are
+     * "it sent me back to sign in". Naming it is the difference
+     * between "ask for a new link" and "AUTH_SECRET has changed
+     * under everybody, and every session died at once".
+     */
+    if (cookie) url.searchParams.set('error', 'session');
     return NextResponse.redirect(url);
   }
 

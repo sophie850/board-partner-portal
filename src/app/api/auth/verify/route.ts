@@ -19,13 +19,21 @@ import { env } from '@/lib/env';
  */
 export const dynamic = 'force-dynamic';
 
-/** Where somebody lands when the link carried no destination. */
-async function homeFor(kind: 'organiser' | 'partner', userId: string): Promise<string> {
+/**
+ * Where somebody lands when the link carried no destination.
+ *
+ * Null when the token names a partner user who is no longer there.
+ * That is not a home page — it is a sign-in that cannot succeed, and
+ * sending them to `/signin` with a cookie and no explanation is how
+ * you get the report "I click the link and it just goes back to the
+ * sign-in page".
+ */
+async function homeFor(kind: 'organiser' | 'partner', userId: string): Promise<string | null> {
   if (kind === 'organiser') return '/organiser';
 
   const db = await getDb();
   const user = db.partnerUsers.find((u) => u.id === userId);
-  return user ? `/portal/${user.partnerId}` : '/signin';
+  return user ? `/portal/${user.partnerId}` : null;
 }
 
 export async function GET(request: NextRequest) {
@@ -44,6 +52,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/signin?error=${result.reason}`, request.url));
   }
 
+  /*
+   * Work out where they are going before minting anything. A session
+   * for an account that is not there is worse than no session: every
+   * guarded page bounces it back here, and the cookie makes the loop
+   * look like the link's fault.
+   */
+  const destination = result.nextPath || (await homeFor(result.kind, result.userId));
+
+  if (destination === null) {
+    return NextResponse.redirect(new URL('/signin?error=no_account', request.url));
+  }
+
   await markAccepted(result.kind, result.userId);
 
   const now = Math.floor(Date.now() / 1000);
@@ -58,8 +78,6 @@ export async function GET(request: NextRequest) {
     },
     secret,
   );
-
-  const destination = result.nextPath || (await homeFor(result.kind, result.userId));
 
   const response = NextResponse.redirect(new URL(destination, request.url));
 

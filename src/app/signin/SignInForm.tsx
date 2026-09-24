@@ -22,6 +22,17 @@ const LINK_ERRORS: Record<string, string> = {
   used: 'That link had already been used. Links work once; ask for another below.',
   not_configured:
     'Sign-in is not switched on for this deployment yet. Your BOARD contact can help.',
+  /*
+   * The two that used to be silent. Both land you back here looking
+   * exactly like a link that did not work, and neither is: the link
+   * worked perfectly and something on this side did not.
+   */
+  session:
+    'Your last sign-in is no longer valid, so we have asked you to start again. ' +
+    'A new link will sort it.',
+  no_account:
+    'That link is for an account that is no longer listed for this event. ' +
+    'Ask your BOARD contact to restore your access.',
 };
 
 export function SignInForm({

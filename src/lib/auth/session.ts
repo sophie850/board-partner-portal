@@ -39,31 +39,52 @@ export function authConfigured(): boolean {
 }
 
 /**
- * The signed-in user, or null.
+ * What the cookie turned out to be.
  *
- * Cached per request: a page and its layout both ask, and this
- * should not re-read the cookie and re-scan the user list each time.
+ * Three outcomes, not two, because `orphaned` is the one that
+ * otherwise disappears: the cookie is perfectly good and the account
+ * it names is not there any more. Collapsing that into "not signed
+ * in" produces a sign-in that appears to work and lands you back on
+ * the sign-in page with nothing said — the single most confusing
+ * thing this system can do, and indistinguishable from a bad link.
  */
-export const getSession = cache(async (): Promise<Session | null> => {
+type SessionRead =
+  | { state: 'none' }
+  | { state: 'orphaned' }
+  | { state: 'ok'; session: Session };
+
+/**
+ * Read and resolve the cookie, once per request.
+ *
+ * Cached: a page and its layout both ask, and this should not
+ * re-read the cookie and re-scan the user list each time.
+ */
+const readCurrent = cache(async (): Promise<SessionRead> => {
   const secret = env('AUTH_SECRET');
-  if (!secret) return null;
+  if (!secret) return { state: 'none' };
 
   const store = await cookies();
   const claims = await readSession(store.get(SESSION_COOKIE)?.value, secret);
-  if (!claims) return null;
+  if (!claims) return { state: 'none' };
 
   const db = await getDb();
 
   if (claims.kind === 'organiser') {
     const user = db.organiserUsers.find((u) => u.id === claims.userId);
-    return user ? { kind: 'organiser', user } : null;
+    return user ? { state: 'ok', session: { kind: 'organiser', user } } : { state: 'orphaned' };
   }
 
   const user = db.partnerUsers.find((u) => u.id === claims.userId);
-  if (!user) return null;
+  if (!user) return { state: 'orphaned' };
 
-  return { kind: 'partner', user, partnerId: user.partnerId };
+  return { state: 'ok', session: { kind: 'partner', user, partnerId: user.partnerId } };
 });
+
+/** The signed-in user, or null. */
+export async function getSession(): Promise<Session | null> {
+  const read = await readCurrent();
+  return read.state === 'ok' ? read.session : null;
+}
 
 /* ---------------------------------------------------------------
    Guards
@@ -73,10 +94,16 @@ export const getSession = cache(async (): Promise<Session | null> => {
  * Send an unauthenticated visitor to sign in, remembering where they
  * were going.
  *
+ * `reason` is carried when there is one, because a bounce with
+ * nothing said is the hardest fault in this system to diagnose —
+ * from the outside it looks exactly like a link that did not work.
+ *
  * `redirect` throws, so callers do not need to return afterwards.
  */
-function toSignIn(next: string): never {
-  redirect(`/signin?next=${encodeURIComponent(next)}`);
+function toSignIn(next: string, reason?: string): never {
+  const query = new URLSearchParams({ next });
+  if (reason) query.set('error', reason);
+  redirect(`/signin?${query}`);
 }
 
 /**
@@ -97,9 +124,10 @@ export async function requireSession(next: string): Promise<Session> {
   // before sign-in existed.
   if (!authConfigured()) return openSession();
 
-  const session = await getSession();
-  if (!session) toSignIn(next);
-  return session;
+  const read = await readCurrent();
+  if (read.state === 'ok') return read.session;
+
+  toSignIn(next, read.state === 'orphaned' ? 'no_account' : undefined);
 }
 
 /**
@@ -204,6 +232,19 @@ export interface Refusal {
 }
 
 /**
+ * Why an action is refusing somebody who is not signed in.
+ *
+ * "Sign in again" is useless advice when signing in again will land
+ * in the same place, so the orphaned case says what is actually
+ * wrong and who can fix it.
+ */
+function lapsed(read: SessionRead): string {
+  return read.state === 'orphaned'
+    ? 'Your account is no longer listed for this event. Ask your BOARD contact to restore it.'
+    : 'Your session has expired. Sign in again.';
+}
+
+/**
  * The same checks, shaped for a server action.
  *
  * Actions are public endpoints — being reachable only from a page
@@ -220,8 +261,9 @@ export async function guardPartner(
 ): Promise<Refusal | null> {
   if (!authConfigured()) return null;
 
-  const session = await getSession();
-  if (!session) return { ok: false, error: 'Your session has expired. Sign in again.' };
+  const read = await readCurrent();
+  if (read.state !== 'ok') return { ok: false, error: lapsed(read) };
+  const { session } = read;
 
   if (session.kind === 'partner' && session.partnerId !== partnerId) {
     return { ok: false, error: 'You do not have access to that.' };
@@ -239,8 +281,9 @@ export async function guardOrganiser(
 ): Promise<Refusal | null> {
   if (!authConfigured()) return null;
 
-  const session = await getSession();
-  if (!session) return { ok: false, error: 'Your session has expired. Sign in again.' };
+  const read = await readCurrent();
+  if (read.state !== 'ok') return { ok: false, error: lapsed(read) };
+  const { session } = read;
 
   if (session.kind !== 'organiser') {
     return { ok: false, error: 'Only the BOARD team can do that.' };
