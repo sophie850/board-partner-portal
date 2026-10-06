@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed:sql": "tsx scripts/generate-seed-sql.ts",
+    "grimaldi:sql": "tsx scripts/generate-grimaldi-sql.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
