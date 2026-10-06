@@ -9,7 +9,26 @@
  *
  * Run: npx tsx scripts/test-session-cookie.ts
  */
+import { randomBytes } from 'node:crypto';
+
 import { readSession, signSession, SESSION_DAYS } from '../src/lib/auth/cookie';
+
+/**
+ * A base64 secret that definitely contains + and / and =.
+ *
+ * Random base64 usually does, but "usually" makes a test that passes
+ * on Tuesday and skips the interesting case on Wednesday. Keep
+ * drawing until the awkward characters are all present.
+ */
+function base64WithAwkwardCharacters(): string {
+  for (let i = 0; i < 200; i++) {
+    const candidate = randomBytes(32).toString('base64');
+    if (candidate.includes('+') && candidate.includes('/')) return candidate;
+  }
+  // 200 draws without one is not possible in practice, but a test
+  // that silently tested nothing would be worse than a loud failure.
+  throw new Error('Could not generate a base64 secret containing + and /');
+}
 
 async function main() {
   const now = Math.floor(Date.now() / 1000);
@@ -23,16 +42,25 @@ async function main() {
   };
 
   /*
-   * Real-shaped secrets. `openssl rand -base64 32` is what the README
-   * tells you to run, and it produces + / and = — the characters most
-   * likely to be mangled somewhere between a dashboard field and a
-   * runtime environment.
+   * Real-shaped secrets, generated rather than written down.
+   *
+   * Two reasons, and the second is the one that bit us. A fresh
+   * secret every run tests the whole shape rather than the single
+   * example somebody happened to paste — and a credential-shaped
+   * literal sitting in the repository is a thing every secret
+   * scanner between here and production is right to object to, even
+   * when it opens nothing.
+   *
+   * `openssl rand -base64 32` is what the README tells you to run,
+   * and it produces + / and = — the characters most likely to be
+   * mangled somewhere between a dashboard field and a runtime
+   * environment, so that case is sought out rather than hoped for.
    */
   const SECRETS: Array<[string, string]> = [
-    ['base64 with + / =', 'kP3+aZ/vQ8nR1sT4uW7xY0bC2dE5fG8hJ1kL4mN7oP0='],
-    ['plain hex', 'a3f1c7d59e2b4806a3f1c7d59e2b4806a3f1c7d59e2b4806'],
-    ['with spaces either side', '  spaced-secret-value-long-enough-to-be-real  '],
-    ['unicode', 'sécret-à-clé-très-longue-pour-être-réaliste-0123'],
+    ['base64 with + / =', base64WithAwkwardCharacters()],
+    ['plain hex', randomBytes(24).toString('hex')],
+    ['with spaces either side', `  ${randomBytes(12).toString('base64url')}  `],
+    ['unicode', `sécret-à-clé-très-longue-${randomBytes(6).toString('hex')}`],
     ['very long', 'x'.repeat(512)],
   ];
 
