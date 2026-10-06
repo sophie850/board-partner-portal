@@ -106,7 +106,20 @@ const sql = `-- ============================================================
 -- Safe to run twice. Every statement is idempotent.
 --
 -- It does NOT decide who has raw space. That is a commercial fact
--- about each partner, not something to infer — see part four.
+-- about each partner, not something to infer. Part four lists where
+-- everyone stands. To grant it, either use the organiser portal, or
+-- run this with the partner id filled in and a semicolon on the end
+--
+--   update event_participations
+--      set added_entitlements = array_append(added_entitlements, 'has_raw_space'),
+--          updated_at = now()
+--    where partner_id = 'part_xxx'
+--      and not (added_entitlements @> array['has_raw_space'])
+--
+-- No comment in this file ends in a semicolon, on purpose. Some SQL
+-- consoles split a script on semicolons before sending it, and one
+-- inside a comment hands the database a fragment made of nothing but
+-- commented-out lines.
 -- ============================================================
 
 begin;
@@ -163,49 +176,52 @@ on conflict (id) do update set
 -- fields with it.
 -- ------------------------------------------------------------
 
+-- jsonb_exists() rather than the question-mark operator,
+-- deliberately. The two mean the same thing to PostgreSQL, but a
+-- bare question mark is a bind placeholder to a great many database
+-- clients, including the one behind the Supabase SQL editor. It
+-- mangles the statement before PostgreSQL ever sees it, and reports
+-- a syntax error at end of input pointing at nothing. The function
+-- form cannot be mistaken for anything.
 update event_participations
    set form_state = (form_state - 'f_hs')
                     || jsonb_build_object('gf_safety', form_state -> 'f_hs'),
        updated_at = now()
- where form_state ? 'f_hs'
-   and not (form_state ? 'gf_safety');
+ where jsonb_exists(form_state, 'f_hs')
+   and not jsonb_exists(form_state, 'gf_safety');
 
 -- Nothing to carry over, so just drop the key.
 update event_participations
    set form_state = form_state - 'f_hs',
        updated_at = now()
- where form_state ? 'f_hs';
+ where jsonb_exists(form_state, 'f_hs');
 
 delete from form_fields where form_id = 'f_hs';
 delete from forms where id = 'f_hs';
 
 commit;
 
--- ============================================================
--- 4. Who has raw space — a decision, not a migration
+-- ------------------------------------------------------------
+-- 4. Who has raw space
 --
--- Forms 6.6 (security) and 6.8 (safety) apply only to partners
--- building their own stand rather than taking the shell scheme.
--- Which partners those are is a commercial fact; guessing it would
--- either hide a form somebody must complete, or chase somebody for
--- a form that does not apply to them.
+-- Nothing above grants it. Forms 6.6 and 6.8 apply only to partners
+-- building their own stand rather than taking the shell scheme, and
+-- which partners those are is a commercial fact. Guessing would
+-- either hide a form somebody must complete or chase somebody for
+-- one that does not apply to them.
 --
--- So grant it deliberately, either in the organiser portal under
--- the partner's entitlements, or here:
---
---   update event_participations
---      set added_entitlements = array_append(added_entitlements, 'has_raw_space'),
---          updated_at = now()
---    where partner_id = 'part_xxx'
---      and not (added_entitlements @> array['has_raw_space']);
---
--- To see who would be affected before deciding:
---
---   select p.name, ep.reference, ep.stand_ref, ep.added_entitlements
---     from event_participations ep
---     join partner_organisations p on p.id = ep.partner_id
---    order by p.name;
--- ============================================================
+-- So this last statement only shows you where everyone stands. Set
+-- it in the organiser portal under the partner's entitlements, or
+-- with the statement given at the top of this file.
+-- ------------------------------------------------------------
+
+select p.name                                            as partner,
+       ep.reference,
+       ep.stand_ref,
+       ep.added_entitlements @> array['has_raw_space']    as has_raw_space
+  from event_participations ep
+  join partner_organisations p on p.id = ep.partner_id
+ order by p.name;
 `;
 
 writeFileSync(outPath, sql);
