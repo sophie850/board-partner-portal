@@ -13,7 +13,7 @@
    Run: npm run grimaldi:sql
    ============================================================ */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,6 +21,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 const seedPath = join(root, 'supabase', 'SEED_SUPABASE.sql');
 const outPath = join(root, 'supabase', 'APPLY_GRIMALDI_FORUM.sql');
+const partsDir = join(root, 'supabase', 'grimaldi');
 
 interface Block {
   table: string;
@@ -62,7 +63,8 @@ const WANTED: Record<string, RegExp> = {
 const ORDER = ['entitlements', 'forms', 'form_fields', 'products', 'content_pages'];
 
 const blocks = blocksOf(readFileSync(seedPath, 'utf8'));
-const parts: string[] = [];
+/** One ready-to-run insert per table, keyed by table. */
+const sections: Record<string, string> = {};
 const counts: Array<[string, number]> = [];
 
 for (const table of ORDER) {
@@ -76,7 +78,7 @@ for (const table of ORDER) {
 
   // The last row carries a comma from the seed; it must not here.
   const body = rows.map((r) => r.replace(/,\s*$/, '')).join(',\n');
-  parts.push(`${block.header}\n${body}\n${block.tail}`);
+  sections[table] = `${block.header}\n${body}\n${block.tail}`;
 }
 
 /** The task template that pointed at the retired form, as it is now. */
@@ -86,6 +88,62 @@ const taskRow = blocks
   .replace(/,\s*$/, '');
 
 const taskHeader = blocks.find((b) => b.table === 'task_templates')!.header;
+
+/**
+ * Everything the invented form's retirement involves.
+ *
+ * Shared verbatim between the one-file version and the pieces, so
+ * the two cannot say different things.
+ *
+ * jsonb_exists() rather than the question-mark operator throughout:
+ * the two mean the same thing to PostgreSQL, but a bare question
+ * mark is a bind placeholder to a great many database clients, and
+ * the function form cannot be mistaken for anything.
+ */
+const retirement = `${taskHeader}
+${taskRow}
+on conflict (id) do update set
+  title        = excluded.title,
+  description  = excluded.description,
+  category     = excluded.category,
+  module       = excluded.module,
+  priority     = excluded.priority,
+  required     = excluded.required,
+  due_date     = excluded.due_date,
+  requires     = excluded.requires,
+  link_type    = excluded.link_type,
+  link_target  = excluded.link_target,
+  instructions = excluded.instructions,
+  attachments  = excluded.attachments,
+  updated_at   = now();
+
+-- Carry across answers already given, so a partner who filled the
+-- old form in is not asked the same questions twice.
+update event_participations
+   set form_state = (form_state - 'f_hs')
+                    || jsonb_build_object('gf_safety', form_state -> 'f_hs'),
+       updated_at = now()
+ where jsonb_exists(form_state, 'f_hs')
+   and not jsonb_exists(form_state, 'gf_safety');
+
+-- Nothing to carry over, so just drop the key.
+update event_participations
+   set form_state = form_state - 'f_hs',
+       updated_at = now()
+ where jsonb_exists(form_state, 'f_hs');
+
+-- Last, because deleting the form takes its fields with it.
+delete from form_fields where form_id = 'f_hs';
+delete from forms where id = 'f_hs';`;
+
+/** Who has raw space. Reads only. */
+const listing = `select p.name                                            as partner,
+       ep.reference,
+       ep.stand_ref,
+       ep.added_entitlements @> array['has_raw_space']    as has_raw_space
+  from event_participations ep
+  join partner_organisations p on p.id = ep.partner_id
+ order by p.name;`;
 
 const sql = `-- ============================================================
 -- BOARD Partner Portal — the Grimaldi Forum exhibitor pack
@@ -122,8 +180,6 @@ const sql = `-- ============================================================
 -- commented-out lines.
 -- ============================================================
 
-begin;
-
 -- ------------------------------------------------------------
 -- 1. What is new
 --
@@ -134,75 +190,25 @@ begin;
 -- fails on a foreign key, that is the thing to check first.
 -- ------------------------------------------------------------
 
-${parts.join('\n\n')}
+${ORDER.map((t) => sections[t]).join('\n\n')}
 
 -- ------------------------------------------------------------
--- 2. Re-point the safety task at the venue's own form
+-- 2. Retire the form BOARD invented, and re-point its task
 --
--- 'tt_hs' asked for a Health & safety declaration that BOARD had
--- invented before Anna's pack arrived. Forms 6.6 and 6.8 are the
--- real thing, so the task now sends partners to 6.8 and applies
--- only to raw space.
+-- 'tt_hs' asked for a Health & safety declaration written before
+-- Anna's pack arrived. Forms 6.6 and 6.8 are the real thing, so the
+-- task now sends partners to 6.8 and applies only to raw space.
 --
--- This one is an update, not an insert, which is exactly what the
--- seed could not do. Note that it overwrites any wording the BOARD
--- team has edited on this task in the organiser portal — it has to,
--- because the form it used to point at is deleted in part three.
+-- These are updates and deletes, which is exactly what the seed
+-- could not do. Note the first overwrites any wording the BOARD team
+-- has edited on this task in the organiser portal — it has to,
+-- because the form it used to point at is deleted below.
 -- ------------------------------------------------------------
 
-${taskHeader}
-${taskRow}
-on conflict (id) do update set
-  title        = excluded.title,
-  description  = excluded.description,
-  category     = excluded.category,
-  module       = excluded.module,
-  priority     = excluded.priority,
-  required     = excluded.required,
-  due_date     = excluded.due_date,
-  requires     = excluded.requires,
-  link_type    = excluded.link_type,
-  link_target  = excluded.link_target,
-  instructions = excluded.instructions,
-  attachments  = excluded.attachments,
-  updated_at   = now();
+${retirement}
 
 -- ------------------------------------------------------------
--- 3. Retire the invented form
---
--- Any answers already given against it are carried over to 6.8
--- rather than dropped — a partner who filled it in should not be
--- asked again. Moved first, because deleting the form takes its
--- fields with it.
--- ------------------------------------------------------------
-
--- jsonb_exists() rather than the question-mark operator,
--- deliberately. The two mean the same thing to PostgreSQL, but a
--- bare question mark is a bind placeholder to a great many database
--- clients, including the one behind the Supabase SQL editor. It
--- mangles the statement before PostgreSQL ever sees it, and reports
--- a syntax error at end of input pointing at nothing. The function
--- form cannot be mistaken for anything.
-update event_participations
-   set form_state = (form_state - 'f_hs')
-                    || jsonb_build_object('gf_safety', form_state -> 'f_hs'),
-       updated_at = now()
- where jsonb_exists(form_state, 'f_hs')
-   and not jsonb_exists(form_state, 'gf_safety');
-
--- Nothing to carry over, so just drop the key.
-update event_participations
-   set form_state = form_state - 'f_hs',
-       updated_at = now()
- where jsonb_exists(form_state, 'f_hs');
-
-delete from form_fields where form_id = 'f_hs';
-delete from forms where id = 'f_hs';
-
-commit;
-
--- ------------------------------------------------------------
--- 4. Who has raw space
+-- 3. Who has raw space
 --
 -- Nothing above grants it. Forms 6.6 and 6.8 apply only to partners
 -- building their own stand rather than taking the shell scheme, and
@@ -215,16 +221,73 @@ commit;
 -- with the statement given at the top of this file.
 -- ------------------------------------------------------------
 
-select p.name                                            as partner,
-       ep.reference,
-       ep.stand_ref,
-       ep.added_entitlements @> array['has_raw_space']    as has_raw_space
-  from event_participations ep
-  join partner_organisations p on p.id = ep.partner_id
- order by p.name;
+${listing}
 `;
 
 writeFileSync(outPath, sql);
 
 console.log(`Wrote ${outPath}`);
 for (const [table, n] of counts) console.log(`  ${String(n).padStart(4)}  ${table}`);
+
+/* ------------------------------------------------------------
+   The same thing, in pieces.
+
+   One 41 KB paste is a single point of failure: when a console
+   refuses it, there is nothing in the error to say which part it
+   objected to. These are small enough to paste by hand and run one
+   at a time, so a failure names itself.
+
+   Each is independently idempotent and they go in order — a form's
+   fields cannot land before the form.
+   ------------------------------------------------------------ */
+
+mkdirSync(partsDir, { recursive: true });
+
+const PART_NOTES: Record<string, string> = {
+  entitlements:
+    'Raw space, as a thing a partner can have. Nothing is granted here — see part 7.',
+  forms: 'The eight venue forms, numbered as the Grimaldi Forum numbers them.',
+  form_fields: 'Their questions. The largest part by far, and the slowest to run.',
+  products: 'Form 6.2, which is a catalogue with a quantity box, so it lives in the Shop.',
+  content_pages: 'The exhibitor information sheets.',
+};
+
+const parts: Array<[string, string]> = [];
+
+ORDER.forEach((table, i) => {
+  const n = counts.find(([t]) => t === table)![1];
+  parts.push([
+    `${String(i + 1).padStart(2, '0')}_${table}.sql`,
+    `-- ${i + 1}. ${table} — ${n} row${n === 1 ? '' : 's'}\n--\n-- ${PART_NOTES[table]}\n-- Safe to run twice.\n\n${sections[table]}\n`,
+  ]);
+});
+
+parts.push([
+  '06_retire_invented_form.sql',
+  `-- 6. Retire the Health & safety declaration BOARD invented\n` +
+    `--\n` +
+    `-- Forms 6.6 and 6.8 are the real thing. The task that pointed at\n` +
+    `-- the invented form now points at 6.8, any answers already given\n` +
+    `-- are carried across rather than dropped, and only then is the\n` +
+    `-- form deleted.\n` +
+    `--\n` +
+    `-- Run this only after parts 1 to 5, which is where 6.8 comes from.\n` +
+    `-- Safe to run twice.\n\n${retirement}\n`,
+]);
+
+parts.push(['07_who_has_raw_space.sql', `-- 7. Where everyone stands. Changes nothing.\n\n${listing}\n`]);
+
+parts.push([
+  '00_canary.sql',
+  `-- Run this first, on its own.\n` +
+    `--\n` +
+    `-- If this fails with "syntax error at end of input" then the\n` +
+    `-- console is not receiving the SQL at all, and nothing about the\n` +
+    `-- other files will fix it.\n\n` +
+    `select 'the editor is receiving SQL' as canary;\n`,
+]);
+
+for (const [name, body] of parts) writeFileSync(join(partsDir, name), body);
+
+console.log(`\nWrote ${parts.length} pieces to ${partsDir}`);
+for (const [name] of parts.sort()) console.log(`  ${name}`);

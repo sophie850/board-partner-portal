@@ -33,8 +33,6 @@
 -- commented-out lines.
 -- ============================================================
 
-begin;
-
 -- ------------------------------------------------------------
 -- 1. What is new
 --
@@ -186,17 +184,16 @@ insert into content_pages ("id", "event_id", "category_id", "title", "body", "bl
 on conflict (id) do nothing;
 
 -- ------------------------------------------------------------
--- 2. Re-point the safety task at the venue's own form
+-- 2. Retire the form BOARD invented, and re-point its task
 --
--- 'tt_hs' asked for a Health & safety declaration that BOARD had
--- invented before Anna's pack arrived. Forms 6.6 and 6.8 are the
--- real thing, so the task now sends partners to 6.8 and applies
--- only to raw space.
+-- 'tt_hs' asked for a Health & safety declaration written before
+-- Anna's pack arrived. Forms 6.6 and 6.8 are the real thing, so the
+-- task now sends partners to 6.8 and applies only to raw space.
 --
--- This one is an update, not an insert, which is exactly what the
--- seed could not do. Note that it overwrites any wording the BOARD
--- team has edited on this task in the organiser portal — it has to,
--- because the form it used to point at is deleted in part three.
+-- These are updates and deletes, which is exactly what the seed
+-- could not do. Note the first overwrites any wording the BOARD team
+-- has edited on this task in the organiser portal — it has to,
+-- because the form it used to point at is deleted below.
 -- ------------------------------------------------------------
 
 insert into task_templates ("id", "event_id", "title", "description", "category", "module", "priority", "required", "due_date", "requires", "link_type", "link_target", "instructions", "attachments") values
@@ -216,22 +213,8 @@ on conflict (id) do update set
   attachments  = excluded.attachments,
   updated_at   = now();
 
--- ------------------------------------------------------------
--- 3. Retire the invented form
---
--- Any answers already given against it are carried over to 6.8
--- rather than dropped — a partner who filled it in should not be
--- asked again. Moved first, because deleting the form takes its
--- fields with it.
--- ------------------------------------------------------------
-
--- jsonb_exists() rather than the question-mark operator,
--- deliberately. The two mean the same thing to PostgreSQL, but a
--- bare question mark is a bind placeholder to a great many database
--- clients, including the one behind the Supabase SQL editor. It
--- mangles the statement before PostgreSQL ever sees it, and reports
--- a syntax error at end of input pointing at nothing. The function
--- form cannot be mistaken for anything.
+-- Carry across answers already given, so a partner who filled the
+-- old form in is not asked the same questions twice.
 update event_participations
    set form_state = (form_state - 'f_hs')
                     || jsonb_build_object('gf_safety', form_state -> 'f_hs'),
@@ -245,13 +228,12 @@ update event_participations
        updated_at = now()
  where jsonb_exists(form_state, 'f_hs');
 
+-- Last, because deleting the form takes its fields with it.
 delete from form_fields where form_id = 'f_hs';
 delete from forms where id = 'f_hs';
 
-commit;
-
 -- ------------------------------------------------------------
--- 4. Who has raw space
+-- 3. Who has raw space
 --
 -- Nothing above grants it. Forms 6.6 and 6.8 apply only to partners
 -- building their own stand rather than taking the shell scheme, and
