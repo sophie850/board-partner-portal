@@ -116,7 +116,16 @@ export function ruleMatches(
  * "restricted" tells nobody anything useful. Kept beside
  * `ruleMatches` so the sentence and the behaviour cannot drift.
  */
-export function visibilityLabel(db: Db, rule: VisibilityRule | undefined | null): string {
+/*
+ * Takes the two lists it actually reads rather than the whole Db, so
+ * an editor in the browser — which is handed partners and
+ * entitlements as props and nothing else — can describe a rule in
+ * the same words the organiser pages use.
+ */
+export function visibilityLabel(
+  db: Pick<Db, 'partners' | 'entitlements'>,
+  rule: VisibilityRule | undefined | null,
+): string {
   if (!rule || rule.type === 'all' || Object.keys(rule).length === 0) return 'All partners';
 
   const named = (ids: string[]) =>
@@ -239,6 +248,24 @@ export function priceFor(part: Participation, product: Product): number | null {
   return o ? o.price : product.basePrice;
 }
 
+/**
+ * Whether a field's "show only when" condition is satisfied.
+ *
+ * Pure, and free of the database, because this half of the decision
+ * is re-made in the browser on every keystroke — answering "yes" to
+ * "are you appointing a contractor?" has to reveal the contractor
+ * questions at once. The entitlement half is settled on the server
+ * and never changes while somebody is typing.
+ *
+ * It lives here so the filler a partner uses and the preview an
+ * organiser builds against cannot come to different conclusions
+ * about the same form.
+ */
+export function conditionHolds(field: FormField, values?: FormValues): boolean {
+  if (!field.condition) return true;
+  return (values ? values[field.condition.field] : undefined) === field.condition.equals;
+}
+
 /** A field is shown when its visibility rule passes AND its condition holds. */
 export function fieldVisible(
   db: Db,
@@ -247,11 +274,7 @@ export function fieldVisible(
   values?: FormValues,
 ): boolean {
   if (field.visibility && !ruleMatches(db, field.visibility, part)) return false;
-  if (field.condition) {
-    const v = values ? values[field.condition.field] : undefined;
-    if (v !== field.condition.equals) return false;
-  }
-  return true;
+  return conditionHolds(field, values);
 }
 
 export function formApplies(db: Db, form: FormDef, part: Participation): boolean {

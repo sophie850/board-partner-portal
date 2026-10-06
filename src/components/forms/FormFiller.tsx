@@ -5,8 +5,8 @@ import { useMemo, useState, useTransition } from 'react';
 
 import { FieldRenderer } from '@/components/forms/FieldRenderer';
 import { Button, Callout, Panel } from '@/components/ui/primitives';
+import { conditionHolds } from '@/lib/resolvers';
 import type {
-  Entitlement,
   FieldValue,
   FormDef,
   FormSubmission,
@@ -64,13 +64,12 @@ export function FormFiller({
    * Conditions are evaluated here rather than on the server so the
    * form reacts as answers change. Entitlement rules are not — those
    * were resolved server-side and the fields are simply absent.
+   *
+   * Through the shared resolver, so this and the organiser's preview
+   * cannot disagree about the same form.
    */
   const visible = useMemo(
-    () =>
-      form.fields.filter((f) => {
-        if (!f.condition) return true;
-        return values[f.condition.field] === f.condition.equals;
-      }),
+    () => form.fields.filter((f) => conditionHolds(f, values)),
     [form.fields, values],
   );
 
