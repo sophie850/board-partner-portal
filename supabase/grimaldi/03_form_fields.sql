@@ -8,7 +8,8 @@ insert into form_fields ("id", "form_id", "key", "label", "type", "required", "h
   ('gf_exhibitor__company_name', 'gf_exhibitor', 'company_name', 'Company name', 'short_text', true, 'Legal entity name.', false, '{}', '{}'::jsonb, null, 1),
   ('gf_exhibitor__stand_number', 'gf_exhibitor', 'stand_number', 'Stand number', 'short_text', true, 'e.g. B14', false, '{}', '{}'::jsonb, null, 2),
   ('gf_exhibitor__contacts_heading', 'gf_exhibitor', 'contacts_heading', 'Contacts', 'section_heading', false, '', false, '{}', '{}'::jsonb, null, 3),
-  ('gf_exhibitor__contacts_note', 'gf_exhibitor', 'contacts_note', 'Three contacts are required: the person preparing and supervising the stand, the person present on site, and the stand contractor.', 'guidance', false, '', false, '{}', '{}'::jsonb, null, 4),
+  ('gf_exhibitor__contacts_note', 'gf_exhibitor', 'contacts_note', 'Three contacts are required: the person preparing and supervising the stand, the person present on site, and the stand contractor.', 'g'
+    'uidance', false, '', false, '{}', '{}'::jsonb, null, 4),
   ('gf_exhibitor__contact_preparing', 'gf_exhibitor', 'contact_preparing', 'Preparing and supervising the stand', 'contact', true, '', false, '{}', '{}'::jsonb, null, 5),
   ('gf_exhibitor__contact_preparing_company', 'gf_exhibitor', 'contact_preparing_company', 'Their company', 'short_text', false, '', false, '{}', '{}'::jsonb, null, 6),
   ('gf_exhibitor__contact_onsite', 'gf_exhibitor', 'contact_onsite', 'Present on site', 'contact', true, '', false, '{}', '{}'::jsonb, null, 7),
@@ -21,10 +22,13 @@ insert into form_fields ("id", "form_id", "key", "label", "type", "required", "h
   ('gf_exhibitor__billing_address', 'gf_exhibitor', 'billing_address', 'Billing address', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 14),
   ('gf_exhibitor__billing_locality', 'gf_exhibitor', 'billing_locality', 'Postcode / City / Country', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 15),
   ('gf_exhibitor__build_heading', 'gf_exhibitor', 'build_heading', 'Stand build', 'section_heading', false, '', false, '{}', '{}'::jsonb, null, 16),
-  ('gf_exhibitor__stand_build', 'gf_exhibitor', 'stand_build', 'How will your stand be built?', 'single_select', true, 'Building your own stand is what the venue calls raw space, and it brings Forms 6.6 and 6.8 with it.', false, '{"We have our own booth and will do the set-up","We will use the shell-scheme booth provided by the organisation","We want to contact Grimaldi Forum for a custom-made stand"}', '{}'::jsonb, null, 17),
+  ('gf_exhibitor__stand_build', 'gf_exhibitor', 'stand_build', 'How will your stand be built?', 'single_select', true, 'Building your own stand is what the venue calls raw space, and it brings Forms 6'
+    '.6 and 6.8 with it.', false, '{"We have our own booth and will do the set-up","We will use the shell-scheme booth provided by the organisation","We want to contact Grimaldi Forum for a custom-ma'
+    'de stand"}', '{}'::jsonb, null, 17),
   ('gf_diagram__company_name', 'gf_diagram', 'company_name', 'Company name', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 0),
   ('gf_diagram__stand_number', 'gf_diagram', 'stand_number', 'Stand number', 'short_text', true, 'e.g. B14', false, '{}', '{}'::jsonb, null, 1),
-  ('gf_diagram__diagram_note', 'gf_diagram', 'diagram_note', 'Mark the position of every ordered connection and fixture on the grid. One grid square equals one metre. Label the neighbouring stand or aisle on all sides.', 'guidance', false, '', false, '{}', '{}'::jsonb, null, 2),
+  ('gf_diagram__diagram_note', 'gf_diagram', 'diagram_note', 'Mark the position of every ordered connection and fixture on the grid. One grid square equals one metre. Label the neighbouring stand or a'
+    'isle on all sides.', 'guidance', false, '', false, '{}', '{}'::jsonb, null, 2),
   ('gf_diagram__diagram', 'gf_diagram', 'diagram', 'Your stand diagram', 'document_upload', true, '', false, '{}', '{}'::jsonb, null, 3),
   ('gf_diagram__technical_notes', 'gf_diagram', 'technical_notes', 'Notes for the Grimaldi Forum technical team', 'long_text', false, 'Anything the diagram cannot show.', false, '{}', '{}'::jsonb, null, 4),
   ('gf_additional__company_name', 'gf_additional', 'company_name', 'Company name', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 0),
@@ -35,8 +39,10 @@ insert into form_fields ("id", "form_id", "key", "label", "type", "required", "h
   ('gf_additional__warehouseman', 'gf_additional', 'warehouseman', 'Warehouseman — dates and hours', 'long_text', false, '', false, '{}', '{}'::jsonb, null, 5),
   ('gf_additional__security_staff', 'gf_additional', 'security_staff', 'Security — dates and hours', 'long_text', false, '', false, '{}', '{}'::jsonb, null, 6),
   ('gf_additional__setup_heading', 'gf_additional', 'setup_heading', 'Booth setup', 'section_heading', false, '', false, '{}', '{}'::jsonb, null, 7),
-  ('gf_additional__carpet', 'gf_additional', 'carpet', 'Carpet colour', 'single_select', false, '', false, '{"Black (ref 270)","Grey (ref 262)","Red (ref 271)","Navy blue (ref 227)","Blue (ref 265)","Other — see below"}', '{}'::jsonb, null, 8),
-  ('gf_additional__carpet_other', 'gf_additional', 'carpet_other', 'Other (custom colour, over 25 m²)', 'short_text', false, '', false, '{}', '{}'::jsonb, '{"field":"carpet","equals":"Other — see below"}'::jsonb, 9),
+  ('gf_additional__carpet', 'gf_additional', 'carpet', 'Carpet colour', 'single_select', false, '', false, '{"Black (ref 270)","Grey (ref 262)","Red (ref 271)","Navy blue (ref 227)","Blue (ref 265)","'
+    'Other — see below"}', '{}'::jsonb, null, 8),
+  ('gf_additional__carpet_other', 'gf_additional', 'carpet_other', 'Other (custom colour, over 25 m²)', 'short_text', false, '', false, '{}', '{}'::jsonb, '{"field":"carpet","equals":"Other — see belo'
+    'w"}'::jsonb, 9),
   ('gf_additional__signage_text', 'gf_additional', 'signage_text', 'Signage text', 'short_text', false, 'Exactly as it should be produced.', false, '{}', '{}'::jsonb, null, 10),
   ('gf_additional__connectivity_heading', 'gf_additional', 'connectivity_heading', 'Technical connectivity', 'section_heading', false, '', false, '{}', '{}'::jsonb, null, 11),
   ('gf_additional__av', 'gf_additional', 'av', 'AV connection', 'single_select', false, '', false, '{"PC DVI","HDMI"}', '{}'::jsonb, null, 12),
@@ -51,9 +57,12 @@ insert into form_fields ("id", "form_id", "key", "label", "type", "required", "h
   ('gf_security__contractor_contact', 'gf_security', 'contractor_contact', 'Contractor contact', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 4),
   ('gf_security__declarations_heading', 'gf_security', 'declarations_heading', 'Declarations', 'section_heading', false, '', false, '{}', '{}'::jsonb, null, 5),
   ('gf_security__declarations_note', 'gf_security', 'declarations_note', 'Select one option per declaration.', 'guidance', false, '', false, '{}', '{}'::jsonb, null, 6),
-  ('gf_security__devices', 'gf_security', 'devices', 'Declaration of devices in operation', 'single_select', true, '', false, '{"I declare not to bring or use any device requiring this document.","Enclosed document (see Form 6.7)."}', '{}'::jsonb, null, 7),
-  ('gf_security__questionnaire', 'gf_security', 'questionnaire', 'Safety questionnaire', 'single_select', true, '', false, '{"I declare not to bring my own construction materials.","Enclosed document, with certificates for each material."}', '{}'::jsonb, null, 8),
-  ('gf_security__electrical', 'gf_security', 'electrical', 'Certificate of electrical compliance', 'single_select', true, '', false, '{"I declare not to install any electrical fitting.","Fittings installed by competent staff, to code."}', '{}'::jsonb, null, 9),
+  ('gf_security__devices', 'gf_security', 'devices', 'Declaration of devices in operation', 'single_select', true, '', false, '{"I declare not to bring or use any device requiring this document.","Enc'
+    'losed document (see Form 6.7)."}', '{}'::jsonb, null, 7),
+  ('gf_security__questionnaire', 'gf_security', 'questionnaire', 'Safety questionnaire', 'single_select', true, '', false, '{"I declare not to bring my own construction materials.","Enclosed document,'
+    ' with certificates for each material."}', '{}'::jsonb, null, 8),
+  ('gf_security__electrical', 'gf_security', 'electrical', 'Certificate of electrical compliance', 'single_select', true, '', false, '{"I declare not to install any electrical fitting.","Fittings inst'
+    'alled by competent staff, to code."}', '{}'::jsonb, null, 9),
   ('gf_security__supporting_documents', 'gf_security', 'supporting_documents', 'Attach supporting documents', 'document_upload', false, '', false, '{}', '{}'::jsonb, null, 10),
   ('gf_security__signature', 'gf_security', 'signature', 'Authorised signature', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 11),
   ('gf_security__signed_date', 'gf_security', 'signed_date', 'Date', 'date', true, '', false, '{}', '{}'::jsonb, null, 12),
@@ -68,8 +77,10 @@ insert into form_fields ("id", "form_id", "key", "label", "type", "required", "h
   ('gf_equipment__item_safety', 'gf_equipment', 'item_safety', 'Safety measures', 'long_text', true, '', false, '{}', '{}'::jsonb, null, 8),
   ('gf_equipment__further_items', 'gf_equipment', 'further_items', 'Any further items', 'long_text', false, 'One per line, with the same detail as above.', false, '{}', '{}'::jsonb, null, 9),
   ('gf_equipment__compliance_heading', 'gf_equipment', 'compliance_heading', 'Compliance checklist', 'section_heading', false, '', false, '{}', '{}'::jsonb, null, 10),
-  ('gf_equipment__confirm_screened', 'gf_equipment', 'confirm_screened', 'I confirm all machinery is either screened or cased, or set back at least 1 metre from the stand edge.', 'acknowledgement', true, '', false, '{}', '{}'::jsonb, null, 11),
-  ('gf_equipment__confirm_fire_safety', 'gf_equipment', 'confirm_fire_safety', 'I confirm I have read and will adhere to the fire safety and liability requirements.', 'acknowledgement', true, '', false, '{}', '{}'::jsonb, null, 12),
+  ('gf_equipment__confirm_screened', 'gf_equipment', 'confirm_screened', 'I confirm all machinery is either screened or cased, or set back at least 1 metre from the stand edge.', 'acknowledgement', true, '', false, '{'
+    '}', '{}'::jsonb, null, 11),
+  ('gf_equipment__confirm_fire_safety', 'gf_equipment', 'confirm_fire_safety', 'I confirm I have read and will adhere to the fire safety and liability requirements.', 'acknowledgement', true, '', false, '{'
+    '}', '{}'::jsonb, null, 12),
   ('gf_equipment__certificates', 'gf_equipment', 'certificates', 'Material safety certificates, where applicable', 'document_upload', false, '', false, '{}', '{}'::jsonb, null, 13),
   ('gf_equipment__signature', 'gf_equipment', 'signature', 'Authorised signature', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 14),
   ('gf_equipment__signed_date', 'gf_equipment', 'signed_date', 'Date', 'date', true, '', false, '{}', '{}'::jsonb, null, 15),
@@ -77,8 +88,11 @@ insert into form_fields ("id", "form_id", "key", "label", "type", "required", "h
   ('gf_safety__stand_number', 'gf_safety', 'stand_number', 'Stand number', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 1),
   ('gf_safety__materials_heading', 'gf_safety', 'materials_heading', 'Materials declared', 'section_heading', false, '', false, '{}', '{}'::jsonb, null, 2),
   ('gf_safety__ratings_note', 'gf_safety', 'ratings_note', 'French fire ratings: M0 fireproof, M1 non-flammable, M2 low flammability, M3 medium flammability.', 'guidance', false, '', false, '{}', '{}'::jsonb, null, 3),
-  ('gf_safety__required_note', 'gf_safety', 'required_note', 'Ratings required — booth framework M0/M1 · partition walls M0/M1 · solid hard wood M2/M3 (14 mm min) · resinous wood, plywood, chipboard M2/M3 · melamine-coated panel M2/M3 (7–8 mm min) · partition wall covering M0/M1/M2 · floor covering M3 · ceiling M1/M2 · awning M1/M2 · plastic material M1/M2 · paint water-based · curtains and relief elements M0/M1/M2 · transparent or translucent elements M1/M2 · furniture M0/M1/M2/M3 · artificial flowers M2.', 'guidance', false, '', false, '{}', '{}'::jsonb, null, 4),
-  ('gf_safety__materials_declared', 'gf_safety', 'materials_declared', 'Materials used, with thickness and rating provided', 'long_text', true, 'One material per line: material, thickness / rating provided, trade mark, position on the diagram, laboratory certificate number.', false, '{}', '{}'::jsonb, null, 5),
+  ('gf_safety__required_note', 'gf_safety', 'required_note', 'Ratings required — booth framework M0/M1 · partition walls M0/M1 · solid hard wood M2/M3 (14 mm min) · resinous wood, plywood, chipboard M'
+    '2/M3 · melamine-coated panel M2/M3 (7–8 mm min) · partition wall covering M0/M1/M2 · floor covering M3 · ceiling M1/M2 · awning M1/M2 · plastic material M1/M2 · paint water-based · curtains and '
+    'relief elements M0/M1/M2 · transparent or translucent elements M1/M2 · furniture M0/M1/M2/M3 · artificial flowers M2.', 'guidance', false, '', false, '{}', '{}'::jsonb, null, 4),
+  ('gf_safety__materials_declared', 'gf_safety', 'materials_declared', 'Materials used, with thickness and rating provided', 'long_text', true, 'One material per line: material, thickness / rating pro'
+    'vided, trade mark, position on the diagram, laboratory certificate number.', false, '{}', '{}'::jsonb, null, 5),
   ('gf_safety__certificates', 'gf_safety', 'certificates', 'Laboratory certificates for every material', 'document_upload', true, '', false, '{}', '{}'::jsonb, null, 6),
   ('gf_safety__signature', 'gf_safety', 'signature', 'Authorised signature', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 7),
   ('gf_safety__signed_date', 'gf_safety', 'signed_date', 'Date', 'date', true, '', false, '{}', '{}'::jsonb, null, 8),
@@ -88,7 +102,8 @@ insert into form_fields ("id", "form_id", "key", "label", "type", "required", "h
   ('gf_wideload__requester_name', 'gf_wideload', 'requester_name', 'Requester name', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 3),
   ('gf_wideload__requester_mobile', 'gf_wideload', 'requester_mobile', 'Requester mobile', 'telephone', true, '', false, '{}', '{}'::jsonb, null, 4),
   ('gf_wideload__dimensions_heading', 'gf_wideload', 'dimensions_heading', 'Vehicle dimensions', 'section_heading', false, '', false, '{}', '{}'::jsonb, null, 5),
-  ('gf_wideload__thresholds_note', 'gf_wideload', 'thresholds_note', 'A police escort is triggered when any one of these thresholds is exceeded: length 18.75 m, width 2.60 m, height 4.30 m.', 'guidance', false, '', false, '{}', '{}'::jsonb, null, 6),
+  ('gf_wideload__thresholds_note', 'gf_wideload', 'thresholds_note', 'A police escort is triggered when any one of these thresholds is exceeded: length 18.75 m, width 2.60 m, height 4.30 m.', 'guidanc'
+    'e', false, '', false, '{}', '{}'::jsonb, null, 6),
   ('gf_wideload__length_m', 'gf_wideload', 'length_m', 'Length (m)', 'number', true, '', false, '{}', '{}'::jsonb, null, 7),
   ('gf_wideload__width_m', 'gf_wideload', 'width_m', 'Width (m)', 'number', true, '', false, '{}', '{}'::jsonb, null, 8),
   ('gf_wideload__height_m', 'gf_wideload', 'height_m', 'Height (m)', 'number', true, '', false, '{}', '{}'::jsonb, null, 9),
@@ -104,7 +119,8 @@ insert into form_fields ("id", "form_id", "key", "label", "type", "required", "h
   ('gf_payment__stand_number', 'gf_payment', 'stand_number', 'Stand number', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 1),
   ('gf_payment__method_heading', 'gf_payment', 'method_heading', 'Payment method', 'section_heading', false, '', false, '{}', '{}'::jsonb, null, 2),
   ('gf_payment__method', 'gf_payment', 'method', 'Choose one method', 'single_select', true, '', false, '{"Bank cheque","Bank transfer, in Euro","Credit card"}', '{}'::jsonb, null, 3),
-  ('gf_payment__transfer_confirmation', 'gf_payment', 'transfer_confirmation', 'Attach transfer confirmation', 'document_upload', false, '', false, '{}', '{}'::jsonb, '{"field":"method","equals":"Bank transfer, in Euro"}'::jsonb, 4),
+  ('gf_payment__transfer_confirmation', 'gf_payment', 'transfer_confirmation', 'Attach transfer confirmation', 'document_upload', false, '', false, '{}', '{}'::jsonb, '{"field":"method","equals":"Bank'
+    ' transfer, in Euro"}'::jsonb, 4),
   ('gf_payment__signature', 'gf_payment', 'signature', 'Authorised signature', 'short_text', true, '', false, '{}', '{}'::jsonb, null, 5),
   ('gf_payment__signed_date', 'gf_payment', 'signed_date', 'Date', 'date', true, '', false, '{}', '{}'::jsonb, null, 6)
 on conflict (id) do nothing;

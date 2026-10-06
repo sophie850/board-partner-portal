@@ -62,6 +62,73 @@ const WANTED: Record<string, RegExp> = {
 /** The order matters: a form's fields cannot land before the form. */
 const ORDER = ['entitlements', 'forms', 'form_fields', 'products', 'content_pages'];
 
+/**
+ * The longest line we are willing to emit.
+ *
+ * 194 is the longest line in APPLY_TO_SUPABASE.sql, which is the one
+ * file this database is known to have accepted through the Supabase
+ * SQL console. One content page's blocks run to 3,630 characters on
+ * a single line, which is the only structural difference left
+ * between what works and what does not, so it goes.
+ */
+const MAX_LINE = 200;
+
+/**
+ * Break over-long lines without changing a single byte of data.
+ *
+ * Two string constants separated by whitespace containing at least
+ * one newline are concatenated by PostgreSQL — standard SQL, and the
+ * reason this is a reformatting rather than an edit. No operator is
+ * introduced and no value changes: 'abc' newline 'def' *is* 'abcdef'
+ * as far as the parser is concerned.
+ *
+ * Only breaks inside a string literal, and never between the two
+ * halves of a doubled quote, which is how a literal escapes one.
+ */
+function wrap(sql: string): string {
+  return sql
+    .split('\n')
+    .map((line) => (line.length <= MAX_LINE ? line : breakUp(line)))
+    .join('\n');
+}
+
+function breakUp(line: string): string {
+  // A comment cannot be broken this way, and none of ours is long.
+  if (line.trimStart().startsWith('--')) return line;
+
+  let out = '';
+  let since = 0;
+  let inString = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+
+    if (ch === "'") {
+      if (inString && line[i + 1] === "'") {
+        // An escaped quote. Both halves travel together.
+        out += "''";
+        since += 2;
+        i += 1;
+        continue;
+      }
+      inString = !inString;
+      out += ch;
+      since += 1;
+      continue;
+    }
+
+    out += ch;
+    since += 1;
+
+    if (inString && since >= MAX_LINE) {
+      out += "'\n    '";
+      since = 6;
+    }
+  }
+
+  return out;
+}
+
 const blocks = blocksOf(readFileSync(seedPath, 'utf8'));
 /** One ready-to-run insert per table, keyed by table. */
 const sections: Record<string, string> = {};
@@ -78,7 +145,7 @@ for (const table of ORDER) {
 
   // The last row carries a comma from the seed; it must not here.
   const body = rows.map((r) => r.replace(/,\s*$/, '')).join(',\n');
-  sections[table] = `${block.header}\n${body}\n${block.tail}`;
+  sections[table] = wrap(`${block.header}\n${body}\n${block.tail}`);
 }
 
 /** The task template that pointed at the retired form, as it is now. */
@@ -100,7 +167,7 @@ const taskHeader = blocks.find((b) => b.table === 'task_templates')!.header;
  * mark is a bind placeholder to a great many database clients, and
  * the function form cannot be mistaken for anything.
  */
-const retirement = `${taskHeader}
+const retirement = wrap(`${taskHeader}
 ${taskRow}
 on conflict (id) do update set
   title        = excluded.title,
@@ -134,7 +201,7 @@ update event_participations
 
 -- Last, because deleting the form takes its fields with it.
 delete from form_fields where form_id = 'f_hs';
-delete from forms where id = 'f_hs';`;
+delete from forms where id = 'f_hs';`);
 
 /** Who has raw space. Reads only. */
 const listing = `select p.name                                            as partner,

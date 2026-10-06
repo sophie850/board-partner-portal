@@ -9,7 +9,8 @@
 -- Safe to run twice.
 
 insert into task_templates ("id", "event_id", "title", "description", "category", "module", "priority", "required", "due_date", "requires", "link_type", "link_target", "instructions", "attachments") values
-  ('tt_hs', 'board_monaco_2027', 'Complete the venue safety questionnaire', '', 'Exhibition', 'forms', 'high', true, '2027-02-14', '{"has_raw_space"}', 'form', 'gf_safety', 'Grimaldi Forum Form 6.8. Required before any build can begin on a raw-space stand.', '{}')
+  ('tt_hs', 'board_monaco_2027', 'Complete the venue safety questionnaire', '', 'Exhibition', 'forms', 'high', true, '2027-02-14', '{"has_raw_space"}', 'form', 'gf_safety', 'Grimaldi Forum Form 6.8. R'
+    'equired before any build can begin on a raw-space stand.', '{}')
 on conflict (id) do update set
   title        = excluded.title,
   description  = excluded.description,
