@@ -166,7 +166,9 @@ variables**:
 | `RESEND_API_KEY` | Delivers sign-in links. Without it nothing is emailed. |
 | `SITE_URL` | Where sign-in links point. Netlify usually sets `URL` for you; set this if links come out wrong. |
 | `PORTAL_PASSPHRASE` | The shared passphrase, used only when `AUTH_SECRET` is unset. |
-| `CRON_SECRET` | Authorises the daily reminder run. Any long random string. Without it, reminders do not send. |
+| `CRON_SECRET` | Authorises the daily reminder run and the nightly Sheets export. Any long random string — paste what `openssl rand -base64 32` **prints**, not the command. Without it, neither runs. |
+| `SHEETS_WEBHOOK_URL` | Where the nightly snapshot goes. The `/exec` URL of the Apps Script in your spreadsheet — see [docs/sheets-export.md](docs/sheets-export.md). |
+| `SHEETS_WEBHOOK_SECRET` | Signs that snapshot. Must match the `SECRET` in the Apps Script. |
 
 ### What the portal emails, and when
 
