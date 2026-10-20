@@ -238,6 +238,18 @@ export interface FormDef {
   dueDate: IsoDate | null;
   assign: VisibilityRule;
   allowResubmit?: boolean;
+  /**
+   * Who at BOARD is told when this form is submitted.
+   *
+   * Per form, because the people waiting on one are not the people
+   * waiting on another — the venue's safety questionnaire and a
+   * marketing profile go to different desks.
+   *
+   * The list is also the switch: no addresses, no email. A form
+   * nobody is waiting on should not generate one, and an empty list
+   * says that more plainly than a separate toggle would.
+   */
+  notifyEmails?: string[];
   fields: FormField[];
 }
 

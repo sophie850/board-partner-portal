@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 
 import { requireSupabase } from '@/lib/db/client';
 import { getDb, getDbOrError } from '@/lib/db/store';
-import { notifyFormSubmitted } from '@/lib/notify';
+import { notifyFormSubmitted, notifySubmissionRecipients } from '@/lib/notify';
 import { completeLinkedTasks } from '@/lib/taskCompletion';
 import { validateForm, visibleFields } from '@/lib/resolvers';
 import type { FormSubmission, FormValues, Id } from '@/lib/types';
@@ -164,9 +164,12 @@ export async function submitForm(
     // so the partner never has to tick something off twice.
     await completeLinkedTasks(participationId, 'form', submittedBy, [formId]);
 
-    // After the write, and unable to fail it: the form is submitted
-    // whether or not the confirmation reaches them.
+    // After the write, and unable to fail either: the form is
+    // submitted whether or not the email reaches anybody. The
+    // partner hears that it arrived; whoever is waiting on this
+    // particular form hears that it is in, with the answers.
     await notifyFormSubmitted(participationId, formId);
+    await notifySubmissionRecipients(participationId, formId);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Could not submit the form.' };
   }

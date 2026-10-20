@@ -1,21 +1,21 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
-import { PartnerConfigure } from "@/components/partners/PartnerConfigure";
-import { Eyebrow, PageTitle, Rise } from "@/components/ui/primitives";
-import { getDb } from "@/lib/db/store";
-import { moduleCatalogue, terms } from "@/lib/resolvers";
-import { requireArea } from "@/lib/auth/session";
+import { PartnerConfigure } from '@/components/partners/PartnerConfigure';
+import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
+import { getDb } from '@/lib/db/store';
+import { moduleCatalogue, terms } from '@/lib/resolvers';
+import { requireArea } from '@/lib/auth/session';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export default async function ConfigurePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireArea("partners", "/organiser/partners/[id]/configure");
+  await requireArea('partners', '/organiser/partners/[id]/configure');
 
   const { id } = await params;
   const db = await getDb();

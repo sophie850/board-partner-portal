@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { clsx } from "clsx";
-import { ArrowDown, ArrowUp, Eye, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { clsx } from 'clsx';
+import { ArrowDown, ArrowUp, Eye, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useMemo, useState, useTransition } from 'react';
 
 import {
   BlockRenderer,
   blocksToText,
-} from "@/components/content/BlockRenderer";
-import { FileUpload } from "@/components/ui/FileUpload";
-import { VisibilityEditor } from "@/components/ui/VisibilityEditor";
+} from '@/components/content/BlockRenderer';
+import { FileUpload } from '@/components/ui/FileUpload';
+import { VisibilityEditor } from '@/components/ui/VisibilityEditor';
 import {
   Button,
   Callout,
@@ -21,8 +21,8 @@ import {
   Panel,
   Select,
   TextInput,
-} from "@/components/ui/primitives";
-import { fmtDate, gradientFor, visibilityLabel } from "@/lib/resolvers";
+} from '@/components/ui/primitives';
+import { fmtDate, gradientFor, visibilityLabel } from '@/lib/resolvers';
 import type {
   ContentBlock,
   ContentCategory,
@@ -30,9 +30,9 @@ import type {
   Entitlement,
   Partner,
   VisibilityRule,
-} from "@/lib/types";
+} from '@/lib/types';
 
-import type { ContentPageInput } from "@/app/organiser/content/actions";
+import type { ContentPageInput } from '@/app/organiser/content/actions';
 
 /* ============================================================
    The block editor
@@ -49,34 +49,34 @@ const GRADIENTS = Array.from(
   (_, i) => `/assets/board-bg-${i + 1}.png`,
 );
 
-type BlockKind = ContentBlock["type"];
+type BlockKind = ContentBlock['type'];
 
 const ADDABLE: Array<{ kind: BlockKind; label: string }> = [
-  { kind: "heading", label: "Heading" },
-  { kind: "paragraph", label: "Text" },
-  { kind: "image", label: "Image" },
-  { kind: "list", label: "List" },
-  { kind: "quote", label: "Quote" },
-  { kind: "callout", label: "Callout" },
-  { kind: "video", label: "Video" },
-  { kind: "download", label: "Download" },
-  { kind: "timeline", label: "Key dates" },
-  { kind: "table", label: "Table" },
-  { kind: "divider", label: "Divider" },
+  { kind: 'heading', label: 'Heading' },
+  { kind: 'paragraph', label: 'Text' },
+  { kind: 'image', label: 'Image' },
+  { kind: 'list', label: 'List' },
+  { kind: 'quote', label: 'Quote' },
+  { kind: 'callout', label: 'Callout' },
+  { kind: 'video', label: 'Video' },
+  { kind: 'download', label: 'Download' },
+  { kind: 'timeline', label: 'Key dates' },
+  { kind: 'table', label: 'Table' },
+  { kind: 'divider', label: 'Divider' },
 ];
 
 const BLOCK_LABEL: Record<BlockKind, string> = {
-  heading: "Heading",
-  paragraph: "Text",
-  image: "Image",
-  list: "List",
-  quote: "Quote",
-  callout: "Callout",
-  divider: "Divider",
-  video: "Video",
-  download: "Download",
-  timeline: "Key dates",
-  table: "Table",
+  heading: 'Heading',
+  paragraph: 'Text',
+  image: 'Image',
+  list: 'List',
+  quote: 'Quote',
+  callout: 'Callout',
+  divider: 'Divider',
+  video: 'Video',
+  download: 'Download',
+  timeline: 'Key dates',
+  table: 'Table',
 };
 
 function formatBytes(bytes: number): string {
@@ -86,41 +86,41 @@ function formatBytes(bytes: number): string {
 }
 
 function extensionOf(name: string): string {
-  const ext = name.split(".").pop();
-  return ext ? ext.toUpperCase() : "File";
+  const ext = name.split('.').pop();
+  return ext ? ext.toUpperCase() : 'File';
 }
 
 function emptyBlock(kind: BlockKind): ContentBlock {
   switch (kind) {
-    case "heading":
-      return { type: "heading", text: "" };
-    case "paragraph":
-      return { type: "paragraph", text: "" };
-    case "image":
-      return { type: "image", src: "", caption: "" };
-    case "list":
-      return { type: "list", items: [""] };
-    case "quote":
-      return { type: "quote", text: "", cite: "" };
-    case "callout":
-      return { type: "callout", tone: "info", text: "" };
-    case "video":
-      return { type: "video", url: "", caption: "" };
-    case "table":
+    case 'heading':
+      return { type: 'heading', text: '' };
+    case 'paragraph':
+      return { type: 'paragraph', text: '' };
+    case 'image':
+      return { type: 'image', src: '', caption: '' };
+    case 'list':
+      return { type: 'list', items: [''] };
+    case 'quote':
+      return { type: 'quote', text: '', cite: '' };
+    case 'callout':
+      return { type: 'callout', tone: 'info', text: '' };
+    case 'video':
+      return { type: 'video', url: '', caption: '' };
+    case 'table':
       // Two columns and a row to type into: an empty grid gives an
       // author nothing to aim at.
       return {
-        type: "table",
-        columns: ["", ""],
-        rows: [["", ""]],
-        caption: "",
+        type: 'table',
+        columns: ['', ''],
+        rows: [['', '']],
+        caption: '',
       };
-    case "download":
-      return { type: "download", name: "", note: "" };
-    case "timeline":
-      return { type: "timeline", items: [] };
-    case "divider":
-      return { type: "divider" };
+    case 'download':
+      return { type: 'download', name: '', note: '' };
+    case 'timeline':
+      return { type: 'timeline', items: [] };
+    case 'divider':
+      return { type: 'divider' };
   }
 }
 
@@ -144,14 +144,14 @@ export function ContentEditor({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [title, setTitle] = useState(page?.title ?? "");
+  const [title, setTitle] = useState(page?.title ?? '');
   const [categoryId, setCategoryId] = useState(
-    page?.categoryId ?? categories[0]?.id ?? "",
+    page?.categoryId ?? categories[0]?.id ?? '',
   );
   const [blocks, setBlocks] = useState<ContentBlock[]>(page?.blocks ?? []);
   const [cover, setCover] = useState<string | null>(page?.cover ?? null);
   const [visibility, setVisibility] = useState<VisibilityRule>(
-    page?.visibility ?? { type: "all" },
+    page?.visibility ?? { type: 'all' },
   );
   const [requireAck, setRequireAck] = useState(page?.requireAck ?? false);
   const [published, setPublished] = useState(page?.published !== false);
@@ -159,7 +159,7 @@ export function ContentEditor({
   const [error, setError] = useState<string | null>(null);
 
   const autoCover = useMemo(
-    () => gradientFor(categoryId || "default"),
+    () => gradientFor(categoryId || 'default'),
     [categoryId],
   );
 
@@ -207,10 +207,10 @@ export function ContentEditor({
       });
 
       if (!result.ok) {
-        setError(result.error ?? "Could not save the page.");
+        setError(result.error ?? 'Could not save the page.');
         return;
       }
-      router.push("/organiser/content");
+      router.push('/organiser/content');
       router.refresh();
     });
   }
@@ -225,10 +225,10 @@ export function ContentEditor({
     startTransition(async () => {
       const result = await onDelete(page.id);
       if (!result.ok) {
-        setError(result.error ?? "Could not delete the page.");
+        setError(result.error ?? 'Could not delete the page.');
         return;
       }
-      router.push("/organiser/content");
+      router.push('/organiser/content');
       router.refresh();
     });
   }
@@ -238,13 +238,13 @@ export function ContentEditor({
       <Eyebrow className="mb-2">Organiser · Content</Eyebrow>
 
       <div className="mb-6 flex items-start justify-between gap-4">
-        <PageTitle>{page ? "Edit page" : "New information page"}</PageTitle>
+        <PageTitle>{page ? 'Edit page' : 'New information page'}</PageTitle>
         <button
           onClick={() => setPreview((v) => !v)}
           className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-pill border border-line-4 px-4 py-[7px] text-[12px] tracking-[0.04em] text-ink-2 uppercase transition-colors hover:border-accent-line hover:text-ink"
         >
           {preview ? <Pencil size={14} /> : <Eye size={14} />}
-          {preview ? "Edit" : "Preview"}
+          {preview ? 'Edit' : 'Preview'}
         </button>
       </div>
 
@@ -269,7 +269,7 @@ export function ContentEditor({
               </span>
             </Eyebrow>
             <span className="text-[11.5px] text-ink-4">
-              {published ? "Seen by" : "Unpublished — would be seen by"}{" "}
+              {published ? 'Seen by' : 'Unpublished — would be seen by'}{' '}
               {visibilityLabel({ partners, entitlements }, visibility)}.
             </span>
           </div>
@@ -287,7 +287,7 @@ export function ContentEditor({
             )}
 
             <h1 className="text-[26px] leading-tight font-light text-ink">
-              {title || "Untitled page"}
+              {title || 'Untitled page'}
             </h1>
             <div className="mt-2 mb-7 text-[12px] text-ink-4">
               Last updated {fmtDate(new Date().toISOString().slice(0, 10))}
@@ -455,11 +455,11 @@ export function ContentEditor({
       {/* ---- actions ---- */}
       <div className="flex flex-wrap items-center gap-3 border-t border-line-2 pt-5">
         <Button onClick={save} disabled={pending}>
-          {pending ? "Saving…" : page ? "Save changes" : "Create page"}
+          {pending ? 'Saving…' : page ? 'Save changes' : 'Create page'}
         </Button>
         <Button
           variant="ghost"
-          onClick={() => router.push("/organiser/content")}
+          onClick={() => router.push('/organiser/content')}
           disabled={pending}
         >
           Cancel
@@ -497,7 +497,7 @@ function BlockEditor({
   onRemove: () => void;
 }) {
   const iconBtn =
-    "flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-xs border border-line-3 bg-transparent text-ink-3 transition-colors hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed";
+    'flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-xs border border-line-3 bg-transparent text-ink-3 transition-colors hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed';
 
   return (
     <div className="rounded-xl border border-line-3 bg-inset px-[13px] py-3">
@@ -547,10 +547,10 @@ function BlockFields({
   onChange: (b: ContentBlock) => void;
 }) {
   const small =
-    "w-full rounded-sm border border-line-3 bg-panel px-[11px] py-[9px] text-[13.5px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line";
+    'w-full rounded-sm border border-line-3 bg-panel px-[11px] py-[9px] text-[13.5px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line';
 
   switch (block.type) {
-    case "heading":
+    case 'heading':
       return (
         <input
           className={small}
@@ -561,10 +561,10 @@ function BlockFields({
         />
       );
 
-    case "paragraph":
+    case 'paragraph':
       return (
         <textarea
-          className={clsx(small, "resize-y")}
+          className={clsx(small, 'resize-y')}
           rows={3}
           value={block.text}
           onChange={(e) => onChange({ ...block, text: e.target.value })}
@@ -573,11 +573,11 @@ function BlockFields({
         />
       );
 
-    case "quote":
+    case 'quote':
       return (
         <div className="flex flex-col gap-2">
           <textarea
-            className={clsx(small, "resize-y")}
+            className={clsx(small, 'resize-y')}
             rows={2}
             value={block.text}
             onChange={(e) => onChange({ ...block, text: e.target.value })}
@@ -586,7 +586,7 @@ function BlockFields({
           />
           <input
             className={small}
-            value={block.cite ?? ""}
+            value={block.cite ?? ''}
             onChange={(e) => onChange({ ...block, cite: e.target.value })}
             placeholder="Attribution (optional)"
             aria-label={`Quote attribution, block ${index + 1}`}
@@ -594,11 +594,11 @@ function BlockFields({
         </div>
       );
 
-    case "callout":
+    case 'callout':
       return (
         <div className="flex flex-col gap-2">
           <textarea
-            className={clsx(small, "resize-y")}
+            className={clsx(small, 'resize-y')}
             rows={2}
             value={block.text}
             onChange={(e) => onChange({ ...block, text: e.target.value })}
@@ -609,17 +609,17 @@ function BlockFields({
             onClick={() =>
               onChange({
                 ...block,
-                tone: block.tone === "warn" ? "info" : "warn",
+                tone: block.tone === 'warn' ? 'info' : 'warn',
               })
             }
             className="self-start cursor-pointer rounded-pill border border-line-3 px-3 py-[5px] text-[12px] text-ink-3 hover:text-ink"
           >
-            Tone: {block.tone === "warn" ? "Warning" : "Info"}
+            Tone: {block.tone === 'warn' ? 'Warning' : 'Info'}
           </button>
         </div>
       );
 
-    case "image":
+    case 'image':
       return (
         <div className="flex flex-col gap-2">
           {block.src && (
@@ -627,19 +627,19 @@ function BlockFields({
               className="h-[92px] rounded-sm border border-line-3 bg-cover bg-center"
               style={{ backgroundImage: `url('${block.src}')` }}
               role="img"
-              aria-label={block.caption || "Selected image"}
+              aria-label={block.caption || 'Selected image'}
             />
           )}
           <FileUpload
             purpose="image"
             folder="content"
-            label={block.src ? "Replace image" : "Upload an image"}
+            label={block.src ? 'Replace image' : 'Upload an image'}
             compact
             onUploaded={(f) => onChange({ ...block, src: f.url })}
           />
           <select
-            className={clsx(small, "cursor-pointer")}
-            value={GRADIENTS.includes(block.src) ? block.src : ""}
+            className={clsx(small, 'cursor-pointer')}
+            value={GRADIENTS.includes(block.src) ? block.src : ''}
             onChange={(e) => onChange({ ...block, src: e.target.value })}
             aria-label={`Or choose a BOARD gradient, block ${index + 1}`}
           >
@@ -652,7 +652,7 @@ function BlockFields({
           </select>
           <input
             className={small}
-            value={block.caption ?? ""}
+            value={block.caption ?? ''}
             onChange={(e) => onChange({ ...block, caption: e.target.value })}
             placeholder="Caption (optional)"
             aria-label={`Image caption, block ${index + 1}`}
@@ -660,21 +660,21 @@ function BlockFields({
         </div>
       );
 
-    case "list":
+    case 'list':
       return (
         <textarea
-          className={clsx(small, "resize-y")}
+          className={clsx(small, 'resize-y')}
           rows={3}
-          value={block.items.join("\n")}
+          value={block.items.join('\n')}
           onChange={(e) =>
-            onChange({ ...block, items: e.target.value.split("\n") })
+            onChange({ ...block, items: e.target.value.split('\n') })
           }
           placeholder="One item per line"
           aria-label={`List items, block ${index + 1}`}
         />
       );
 
-    case "video":
+    case 'video':
       return (
         <div className="flex flex-col gap-2">
           <input
@@ -686,7 +686,7 @@ function BlockFields({
           />
           <input
             className={small}
-            value={block.caption ?? ""}
+            value={block.caption ?? ''}
             onChange={(e) => onChange({ ...block, caption: e.target.value })}
             placeholder="Caption (optional)"
             aria-label={`Video caption, block ${index + 1}`}
@@ -694,13 +694,13 @@ function BlockFields({
         </div>
       );
 
-    case "download":
+    case 'download':
       return (
         <div className="flex flex-col gap-2">
           <FileUpload
             purpose="document"
             folder="downloads"
-            label={block.url ? "Replace file" : "Upload the file"}
+            label={block.url ? 'Replace file' : 'Upload the file'}
             compact
             onUploaded={(f) =>
               onChange({
@@ -724,7 +724,7 @@ function BlockFields({
           />
           <input
             className={small}
-            value={block.note ?? ""}
+            value={block.note ?? ''}
             onChange={(e) => onChange({ ...block, note: e.target.value })}
             placeholder="Note e.g. 2.4 MB · PDF"
             aria-label={`Download note, block ${index + 1}`}
@@ -738,13 +738,13 @@ function BlockFields({
         </div>
       );
 
-    case "divider":
+    case 'divider':
       return <div className="text-[12px] text-ink-4">Horizontal divider</div>;
 
-    case "timeline":
+    case 'timeline':
       return <TimelineFields block={block} onChange={onChange} />;
 
-    case "table":
+    case 'table':
       return <TableFields block={block} onChange={onChange} index={index} />;
   }
 }
@@ -763,26 +763,26 @@ function TableFields({
   onChange,
   index,
 }: {
-  block: Extract<ContentBlock, { type: "table" }>;
+  block: Extract<ContentBlock, { type: 'table' }>;
   onChange: (b: ContentBlock) => void;
   index: number;
 }) {
   const small =
-    "w-full rounded-xs border border-line-3 bg-inset px-[9px] py-2 text-[12.5px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line";
+    'w-full rounded-xs border border-line-3 bg-inset px-[9px] py-2 text-[12.5px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line';
 
   const grid = [block.columns, ...block.rows]
-    .map((r) => r.join("\t"))
-    .join("\n");
+    .map((r) => r.join('\t'))
+    .join('\n');
 
   function parse(text: string) {
-    const lines = text.split("\n");
-    const [head = "", ...rest] = lines;
-    const columns = head.split("\t");
+    const lines = text.split('\n');
+    const [head = '', ...rest] = lines;
+    const columns = head.split('\t');
     // Every row padded to the header width, so a short line does not
     // silently lose the cells to its right.
     const rows = rest.map((line) => {
-      const cells = line.split("\t");
-      return columns.map((_, i) => cells[i] ?? "");
+      const cells = line.split('\t');
+      return columns.map((_, i) => cells[i] ?? '');
     });
     onChange({ ...block, columns, rows });
   }
@@ -790,7 +790,7 @@ function TableFields({
   return (
     <div className="flex flex-col gap-2">
       <textarea
-        className={clsx(small, "resize-y font-mono text-[12px]")}
+        className={clsx(small, 'resize-y font-mono text-[12px]')}
         rows={Math.min(12, block.rows.length + 2)}
         value={grid}
         onChange={(e) => parse(e.target.value)}
@@ -802,7 +802,7 @@ function TableFields({
       </Help>
       <input
         className={small}
-        value={block.caption ?? ""}
+        value={block.caption ?? ''}
         onChange={(e) => onChange({ ...block, caption: e.target.value })}
         placeholder="Caption (optional)"
         aria-label={`Table caption, block ${index + 1}`}
@@ -815,11 +815,11 @@ function TimelineFields({
   block,
   onChange,
 }: {
-  block: Extract<ContentBlock, { type: "timeline" }>;
+  block: Extract<ContentBlock, { type: 'timeline' }>;
   onChange: (b: ContentBlock) => void;
 }) {
   const small =
-    "w-full rounded-xs border border-line-3 bg-inset px-[9px] py-2 text-[12.5px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line";
+    'w-full rounded-xs border border-line-3 bg-inset px-[9px] py-2 text-[12.5px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line';
 
   function update(i: number, patch: Partial<(typeof block.items)[number]>) {
     onChange({
@@ -837,7 +837,7 @@ function TimelineFields({
         >
           <input
             type="date"
-            className={clsx(small, "w-[140px] shrink-0 max-md:w-full")}
+            className={clsx(small, 'w-[140px] shrink-0 max-md:w-full')}
             value={item.date}
             onChange={(e) => update(i, { date: e.target.value })}
             aria-label={`Milestone ${i + 1} date`}
@@ -851,8 +851,8 @@ function TimelineFields({
               aria-label={`Milestone ${i + 1} title`}
             />
             <input
-              className={clsx(small, "text-ink-3")}
-              value={item.note ?? ""}
+              className={clsx(small, 'text-ink-3')}
+              value={item.note ?? ''}
               onChange={(e) => update(i, { note: e.target.value })}
               placeholder="Note (optional)"
               aria-label={`Milestone ${i + 1} note`}
@@ -876,7 +876,7 @@ function TimelineFields({
         onClick={() =>
           onChange({
             ...block,
-            items: [...block.items, { date: "", title: "", note: "" }],
+            items: [...block.items, { date: '', title: '', note: '' }],
           })
         }
         className="inline-flex cursor-pointer items-center gap-[5px] self-start rounded-pill border border-accent-line bg-accent-fill px-[13px] py-[6px] text-[12px] text-accent"
@@ -910,8 +910,8 @@ function CoverSwatch({
       title={title}
       aria-pressed={selected}
       className={clsx(
-        "relative h-12 w-[74px] cursor-pointer overflow-hidden rounded-md border-2 bg-cover bg-center p-0",
-        selected ? "border-accent" : "border-transparent hover:border-line-4",
+        'relative h-12 w-[74px] cursor-pointer overflow-hidden rounded-md border-2 bg-cover bg-center p-0',
+        selected ? 'border-accent' : 'border-transparent hover:border-line-4',
       )}
       style={{ backgroundImage: `url('${src}')` }}
     >
@@ -947,13 +947,13 @@ function Toggle({
         aria-label={label}
         onClick={() => onChange(!checked)}
         className={clsx(
-          "relative mt-[2px] h-[22px] w-10 shrink-0 cursor-pointer rounded-pill border-none p-0 transition-colors",
-          checked ? "bg-brand" : "bg-chip",
+          'relative mt-[2px] h-[22px] w-10 shrink-0 cursor-pointer rounded-pill border-none p-0 transition-colors',
+          checked ? 'bg-brand' : 'bg-chip',
         )}
       >
         <span
           className="absolute top-[2px] h-[18px] w-[18px] rounded-pill bg-board-off-white transition-all"
-          style={{ left: checked ? "20px" : "2px" }}
+          style={{ left: checked ? '20px' : '2px' }}
         />
       </button>
       <div>

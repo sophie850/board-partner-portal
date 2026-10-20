@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { Eye, Pencil, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
 
 import {
   FieldListEditor,
   Switch,
   assignKeys,
-} from "@/components/forms/FieldListEditor";
-import { FormPreview } from "@/components/forms/FormPreview";
-import { VisibilityEditor } from "@/components/ui/VisibilityEditor";
+} from '@/components/forms/FieldListEditor';
+import { FormPreview } from '@/components/forms/FormPreview';
+import { VisibilityEditor } from '@/components/ui/VisibilityEditor';
 import {
   Button,
   Callout,
@@ -19,16 +19,16 @@ import {
   Label,
   PageTitle,
   TextInput,
-} from "@/components/ui/primitives";
+} from '@/components/ui/primitives';
 import type {
   Entitlement,
   FormDef,
   FormField,
   Partner,
   VisibilityRule,
-} from "@/lib/types";
+} from '@/lib/types';
 
-import type { FormInput } from "@/app/organiser/forms/actions";
+import type { FormInput } from '@/app/organiser/forms/actions';
 
 /* ============================================================
    The form builder
@@ -52,17 +52,18 @@ export function FormBuilder({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [title, setTitle] = useState(form?.title ?? "");
-  const [category, setCategory] = useState(form?.category ?? "");
-  const [description, setDescription] = useState(form?.description ?? "");
-  const [dueDate, setDueDate] = useState(form?.dueDate ?? "");
+  const [title, setTitle] = useState(form?.title ?? '');
+  const [category, setCategory] = useState(form?.category ?? '');
+  const [description, setDescription] = useState(form?.description ?? '');
+  const [dueDate, setDueDate] = useState(form?.dueDate ?? '');
   const [assign, setAssign] = useState<VisibilityRule>(
-    form?.assign ?? { type: "all" },
+    form?.assign ?? { type: 'all' },
   );
   const [allowResubmit, setAllowResubmit] = useState(
     form?.allowResubmit ?? false,
   );
   const [fields, setFields] = useState<FormField[]>(form?.fields ?? []);
+  const [notify, setNotify] = useState((form?.notifyEmails ?? []).join(', '));
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
 
@@ -83,11 +84,16 @@ export function FormBuilder({
         dueDate: dueDate || null,
         assign,
         allowResubmit,
+        // Commas or newlines, because people paste from both.
+        notifyEmails: notify
+          .split(/[,\n;]/)
+          .map((a) => a.trim())
+          .filter(Boolean),
         fields: prepared,
       });
 
       if (!result.ok) {
-        setError(result.error ?? "Could not save the form.");
+        setError(result.error ?? 'Could not save the form.');
         return;
       }
       router.push(`/organiser/forms/${result.id}`);
@@ -105,10 +111,10 @@ export function FormBuilder({
     startTransition(async () => {
       const result = await onDelete(form.id);
       if (!result.ok) {
-        setError(result.error ?? "Could not delete the form.");
+        setError(result.error ?? 'Could not delete the form.');
         return;
       }
-      router.push("/organiser/forms");
+      router.push('/organiser/forms');
       router.refresh();
     });
   }
@@ -118,13 +124,13 @@ export function FormBuilder({
       <Eyebrow className="mb-2">Organiser · Forms</Eyebrow>
 
       <div className="mb-6 flex items-start justify-between gap-4">
-        <PageTitle>{form ? "Edit form" : "New form"}</PageTitle>
+        <PageTitle>{form ? 'Edit form' : 'New form'}</PageTitle>
         <button
           onClick={() => setPreview((v) => !v)}
           className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-pill border border-line-4 px-4 py-[7px] text-[12px] tracking-[0.04em] text-ink-2 uppercase transition-colors hover:border-accent-line hover:text-ink"
         >
           {preview ? <Pencil size={14} /> : <Eye size={14} />}
-          {preview ? "Edit" : "Preview"}
+          {preview ? 'Edit' : 'Preview'}
         </button>
       </div>
 
@@ -212,6 +218,24 @@ export function FormBuilder({
             />
           </div>
 
+          {/* ---- who hears about it ---- */}
+          <div className="mb-4">
+            <Label htmlFor="form-notify">
+              Tell these people when it is submitted
+            </Label>
+            <TextInput
+              id="form-notify"
+              value={notify}
+              onChange={(e) => setNotify(e.target.value)}
+              placeholder="anna@boardsummits.com, technical@grimaldiforum.mc"
+            />
+            <Help>
+              {notify.trim()
+                ? 'Each gets their own email, with the answers in it and a link to review. They are not copied to each other.'
+                : 'Nobody is told. The answers wait in Forms until somebody looks — fine for a form you are watching, less so for one with a return date.'}
+            </Help>
+          </div>
+
           {/* ---- resubmission ---- */}
           <div className="mb-7 flex items-center gap-4 rounded-xl border border-line-2 bg-panel px-4 py-[13px]">
             <div className="flex-1">
@@ -246,13 +270,13 @@ export function FormBuilder({
       {/* ---- actions ---- */}
       <div className="flex flex-wrap items-center gap-3 border-t border-line-2 pt-5">
         <Button onClick={save} disabled={pending}>
-          {pending ? "Saving…" : form ? "Save changes" : "Create form"}
+          {pending ? 'Saving…' : form ? 'Save changes' : 'Create form'}
         </Button>
         <Button
           variant="ghost"
           onClick={() =>
             router.push(
-              form ? `/organiser/forms/${form.id}` : "/organiser/forms",
+              form ? `/organiser/forms/${form.id}` : '/organiser/forms',
             )
           }
           disabled={pending}

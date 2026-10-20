@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { clsx } from "clsx";
-import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { clsx } from 'clsx';
+import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
+import { useState } from 'react';
 
-import { VisibilityEditor } from "@/components/ui/VisibilityEditor";
-import type { Entitlement, FieldType, FormField, Partner } from "@/lib/types";
+import { VisibilityEditor } from '@/components/ui/VisibilityEditor';
+import type { Entitlement, FieldType, FormField, Partner } from '@/lib/types';
 
 /* ============================================================
    Building a list of questions
@@ -22,39 +22,39 @@ import type { Entitlement, FieldType, FormField, Partner } from "@/lib/types";
    ============================================================ */
 
 export const FIELD_TYPES: Array<{ type: FieldType; label: string }> = [
-  { type: "short_text", label: "Short text" },
-  { type: "long_text", label: "Long text" },
-  { type: "number", label: "Number" },
-  { type: "email", label: "Email" },
-  { type: "telephone", label: "Telephone" },
-  { type: "url", label: "Website" },
-  { type: "date", label: "Date" },
-  { type: "time", label: "Time" },
-  { type: "single_select", label: "Choose one" },
-  { type: "multi_select", label: "Choose several" },
-  { type: "yes_no", label: "Yes / no" },
-  { type: "contact", label: "Contact" },
-  { type: "acknowledgement", label: "Acknowledgement" },
-  { type: "document_upload", label: "Document upload" },
-  { type: "image_upload", label: "Image upload" },
-  { type: "section_heading", label: "Section heading" },
-  { type: "guidance", label: "Guidance text" },
+  { type: 'short_text', label: 'Short text' },
+  { type: 'long_text', label: 'Long text' },
+  { type: 'number', label: 'Number' },
+  { type: 'email', label: 'Email' },
+  { type: 'telephone', label: 'Telephone' },
+  { type: 'url', label: 'Website' },
+  { type: 'date', label: 'Date' },
+  { type: 'time', label: 'Time' },
+  { type: 'single_select', label: 'Choose one' },
+  { type: 'multi_select', label: 'Choose several' },
+  { type: 'yes_no', label: 'Yes / no' },
+  { type: 'contact', label: 'Contact' },
+  { type: 'acknowledgement', label: 'Acknowledgement' },
+  { type: 'document_upload', label: 'Document upload' },
+  { type: 'image_upload', label: 'Image upload' },
+  { type: 'section_heading', label: 'Section heading' },
+  { type: 'guidance', label: 'Guidance text' },
 ];
 
 const TYPE_LABEL = new Map(FIELD_TYPES.map((t) => [t.type, t.label]));
 
 const HAS_OPTIONS = new Set<FieldType>([
-  "single_select",
-  "multi_select",
-  "radio",
-  "checkboxes",
+  'single_select',
+  'multi_select',
+  'radio',
+  'checkboxes',
 ]);
 
 /** Types whose answer can drive another field's condition. */
 const CAN_DRIVE_CONDITION = new Set<FieldType>([
-  "yes_no",
-  "single_select",
-  "radio",
+  'yes_no',
+  'single_select',
+  'radio',
 ]);
 
 /** Derive a stable key from a label, so authors never see key fields. */
@@ -62,9 +62,9 @@ export function keyFromLabel(label: string, taken: Set<string>): string {
   const base =
     label
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
-      .slice(0, 40) || "field";
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 40) || 'field';
 
   if (!taken.has(base)) return base;
   let n = 2;
@@ -106,7 +106,7 @@ export function FieldListEditor({
   entitlements,
   partners,
   /** What an empty list should say. */
-  emptyText = "No fields yet — add one below.",
+  emptyText = 'No fields yet — add one below.',
   /** Hidden where a rule would not apply, as on a request type. */
   allowVisibility = true,
 }: {
@@ -119,15 +119,15 @@ export function FieldListEditor({
 }) {
   function addField(type: FieldType) {
     const taken = new Set(fields.map((f) => f.key));
-    const label = TYPE_LABEL.get(type) ?? "Field";
+    const label = TYPE_LABEL.get(type) ?? 'Field';
     onChange([
       ...fields,
       {
         key: keyFromLabel(`${label} ${fields.length + 1}`, taken),
-        label: "",
+        label: '',
         type,
-        required: type !== "section_heading" && type !== "guidance",
-        options: HAS_OPTIONS.has(type) ? ["Option 1", "Option 2"] : undefined,
+        required: type !== 'section_heading' && type !== 'guidance',
+        options: HAS_OPTIONS.has(type) ? ['Option 1', 'Option 2'] : undefined,
       },
     ]);
   }
@@ -238,13 +238,13 @@ function FieldRow({
   );
 
   const iconBtn =
-    "flex h-[30px] w-[30px] shrink-0 cursor-pointer items-center justify-center rounded-sm border border-line-3 bg-transparent text-ink-3 transition-colors hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed";
+    'flex h-[30px] w-[30px] shrink-0 cursor-pointer items-center justify-center rounded-sm border border-line-3 bg-transparent text-ink-3 transition-colors hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed';
 
   const small =
-    "w-full rounded-sm border border-line-3 bg-panel px-[10px] py-2 text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line";
+    'w-full rounded-sm border border-line-3 bg-panel px-[10px] py-2 text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line';
 
   const isPresentational =
-    field.type === "section_heading" || field.type === "guidance";
+    field.type === 'section_heading' || field.type === 'guidance';
 
   // Only an earlier field with a closed set of answers can drive a
   // condition — you cannot branch reliably on free text.
@@ -261,14 +261,14 @@ function FieldRow({
         <input
           className={clsx(
             small,
-            "min-w-0 flex-1 max-md:order-3 max-md:w-full max-md:flex-none",
+            'min-w-0 flex-1 max-md:order-3 max-md:w-full max-md:flex-none',
           )}
           value={field.label}
           onChange={(e) => onChange({ label: e.target.value })}
           placeholder={
-            field.type === "guidance"
-              ? "Guidance text shown to the partner"
-              : "Question label"
+            field.type === 'guidance'
+              ? 'Guidance text shown to the partner'
+              : 'Question label'
           }
           aria-label={`Field ${index + 1} label`}
         />
@@ -312,12 +312,12 @@ function FieldRow({
 
         {HAS_OPTIONS.has(field.type) && (
           <input
-            className={clsx(small, "min-w-[220px] flex-1")}
-            value={(field.options ?? []).join(", ")}
+            className={clsx(small, 'min-w-[220px] flex-1')}
+            value={(field.options ?? []).join(', ')}
             onChange={(e) =>
               onChange({
                 options: e.target.value
-                  .split(",")
+                  .split(',')
                   .map((s) => s.trim())
                   .filter(Boolean),
               })
@@ -332,10 +332,10 @@ function FieldRow({
           className="ml-auto cursor-pointer text-[12px] text-ink-4 hover:text-ink"
         >
           {showAdvanced
-            ? "Hide"
+            ? 'Hide'
             : allowVisibility
-              ? "Visibility & logic"
-              : "Logic & help"}
+              ? 'Visibility & logic'
+              : 'Logic & help'}
         </button>
       </div>
 
@@ -348,9 +348,9 @@ function FieldRow({
               </div>
               <VisibilityEditor
                 id={`field-vis-${index}`}
-                value={field.visibility ?? { type: "all" }}
+                value={field.visibility ?? { type: 'all' }}
                 onChange={(v) =>
-                  onChange({ visibility: v.type === "all" ? undefined : v })
+                  onChange({ visibility: v.type === 'all' ? undefined : v })
                 }
                 entitlements={entitlements}
                 partners={partners}
@@ -389,7 +389,7 @@ function FieldRow({
               </div>
               <input
                 className={small}
-                value={field.help ?? ""}
+                value={field.help ?? ''}
                 onChange={(e) => onChange({ help: e.target.value })}
                 placeholder="Shown under the field, e.g. 60 words max."
                 aria-label={`Field ${index + 1} help text`}
@@ -415,27 +415,27 @@ function ConditionEditor({
 }) {
   const source = sources.find((s) => s.key === field.condition?.field);
   const values = source
-    ? source.type === "yes_no"
+    ? source.type === 'yes_no'
       ? [
-          { value: "true", label: "Yes" },
-          { value: "false", label: "No" },
+          { value: 'true', label: 'Yes' },
+          { value: 'false', label: 'No' },
         ]
       : (source.options ?? []).map((o) => ({ value: o, label: o }))
     : [];
 
   const control =
-    "rounded-sm border border-line-3 bg-panel px-[9px] py-[6px] text-[12px] text-ink outline-none focus:border-accent-line focus:ring-2 focus:ring-accent-line";
+    'rounded-sm border border-line-3 bg-panel px-[9px] py-[6px] text-[12px] text-ink outline-none focus:border-accent-line focus:ring-2 focus:ring-accent-line';
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-[12px] text-ink-4">Show when</span>
       <select
-        className={clsx(control, "max-w-[200px] cursor-pointer")}
-        value={field.condition?.field ?? ""}
+        className={clsx(control, 'max-w-[200px] cursor-pointer')}
+        value={field.condition?.field ?? ''}
         onChange={(e) => {
           const key = e.target.value;
           if (!key) return onChange({ condition: undefined });
-          onChange({ condition: { field: key, equals: "" } });
+          onChange({ condition: { field: key, equals: '' } });
         }}
         aria-label={`Field ${index + 1} condition source`}
       >
@@ -451,14 +451,14 @@ function ConditionEditor({
         <>
           <span className="text-[12px] text-ink-4">equals</span>
           <select
-            className={clsx(control, "cursor-pointer text-accent")}
-            value={String(field.condition.equals ?? "")}
+            className={clsx(control, 'cursor-pointer text-accent')}
+            value={String(field.condition.equals ?? '')}
             onChange={(e) => {
               const raw = e.target.value;
               // yes/no answers are stored as real booleans, so the
               // condition has to compare against a boolean too.
               const parsed =
-                raw === "true" ? true : raw === "false" ? false : raw;
+                raw === 'true' ? true : raw === 'false' ? false : raw;
               onChange({
                 condition: { field: field.condition!.field, equals: parsed },
               });
@@ -508,9 +508,9 @@ export function Switch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={clsx(
-        "relative shrink-0 rounded-pill border-none p-0 transition-colors",
-        disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
-        checked ? "bg-brand" : "bg-chip",
+        'relative shrink-0 rounded-pill border-none p-0 transition-colors',
+        disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer',
+        checked ? 'bg-brand' : 'bg-chip',
       )}
       style={{ width: w, height: small ? 20 : 22 }}
     >

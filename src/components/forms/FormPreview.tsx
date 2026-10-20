@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { Eye, Lock } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Eye, Lock } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
-import { assignKeys } from "@/components/forms/FieldListEditor";
-import { FieldRenderer } from "@/components/forms/FieldRenderer";
-import { Eyebrow, Panel } from "@/components/ui/primitives";
+import { assignKeys } from '@/components/forms/FieldListEditor';
+import { FieldRenderer } from '@/components/forms/FieldRenderer';
+import { Eyebrow, Panel } from '@/components/ui/primitives';
 import {
   conditionHolds,
   fmtDate,
   NO_DATE_LABEL,
   visibilityLabel,
-} from "@/lib/resolvers";
+} from '@/lib/resolvers';
 import type {
   Entitlement,
   FieldValue,
@@ -19,7 +19,7 @@ import type {
   FormValues,
   Partner,
   VisibilityRule,
-} from "@/lib/types";
+} from '@/lib/types';
 
 /* ============================================================
    The form, as a partner will meet it
@@ -91,7 +91,7 @@ export function FormPreview({
           </span>
         </Eyebrow>
         <span className="text-[11.5px] text-ink-4">
-          Nothing here is saved, and nothing can be submitted. Goes to:{" "}
+          Nothing here is saved, and nothing can be submitted. Goes to:{' '}
           {audience}.
         </span>
       </div>
@@ -100,7 +100,7 @@ export function FormPreview({
         {category && <Eyebrow className="mb-2">{category}</Eyebrow>}
 
         <h1 className="text-[26px] leading-tight font-light text-ink">
-          {title || "Untitled form"}
+          {title || 'Untitled form'}
         </h1>
 
         {description && (
@@ -121,7 +121,7 @@ export function FormPreview({
           <div className="flex flex-col gap-5">
             {visible.map((field) => (
               <div key={field.key}>
-                {field.visibility && field.visibility.type !== "all" && (
+                {field.visibility && field.visibility.type !== 'all' && (
                   <div className="mb-[6px] inline-flex items-center gap-[5px] rounded-pill border border-line-4 px-[9px] py-[3px] text-[10.5px] tracking-[0.04em] text-ink-4 uppercase">
                     <Lock size={10} />
                     {visibilityLabel(
@@ -144,7 +144,7 @@ export function FormPreview({
         {keyed.length > visible.length && (
           <p className="mt-7 border-t border-line-2 pt-4 text-[11.5px] text-ink-4">
             {keyed.length - visible.length} field
-            {keyed.length - visible.length === 1 ? "" : "s"} hidden by a
+            {keyed.length - visible.length === 1 ? '' : 's'} hidden by a
             condition, and will appear as the answers above change — exactly as
             they will for a partner.
           </p>

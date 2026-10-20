@@ -1,18 +1,18 @@
-"use server";
+'use server';
 
-import { actorName, guardOrganiser } from "@/lib/auth/session";
-import { revalidatePath } from "next/cache";
+import { actorName, guardOrganiser } from '@/lib/auth/session';
+import { revalidatePath } from 'next/cache';
 
-import { requireSupabase } from "@/lib/db/client";
-import { inventoryToRow, requestedFileToRow } from "@/lib/db/mappers";
-import { getDb, mintId } from "@/lib/db/store";
-import { nextReference } from "@/lib/resolvers";
+import { requireSupabase } from '@/lib/db/client';
+import { inventoryToRow, requestedFileToRow } from '@/lib/db/mappers';
+import { getDb, mintId } from '@/lib/db/store';
+import { nextReference } from '@/lib/resolvers';
 import type {
   BillingDetails,
   Id,
   InventoryItem,
   RequestedFile,
-} from "@/lib/types";
+} from '@/lib/types';
 
 /* ============================================================
    Partner configuration — write operations
@@ -26,10 +26,10 @@ import type {
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 function revalidatePartner(partnerId: Id) {
-  revalidatePath(`/organiser/partners/${partnerId}`, "layout");
-  revalidatePath("/organiser/partners");
-  revalidatePath("/organiser");
-  revalidatePath(`/portal/${partnerId}`, "layout");
+  revalidatePath(`/organiser/partners/${partnerId}`, 'layout');
+  revalidatePath('/organiser/partners');
+  revalidatePath('/organiser');
+  revalidatePath(`/portal/${partnerId}`, 'layout');
 }
 
 /* ---------------------------------------------------------------
@@ -40,27 +40,27 @@ export async function savePartnerDetails(
   partnerId: Id,
   input: { name: string; sector: string; billing: BillingDetails },
 ): Promise<ActionResult> {
-  const refused = await guardOrganiser("partners");
+  const refused = await guardOrganiser('partners');
   if (refused) return refused;
 
   if (!input.name.trim())
-    return { ok: false, error: "The organisation needs a name." };
+    return { ok: false, error: 'The organisation needs a name.' };
 
   try {
     const { error } = await requireSupabase()
-      .from("partner_organisations")
+      .from('partner_organisations')
       .update({
         name: input.name.trim(),
         sector: input.sector.trim(),
         billing: input.billing,
       })
-      .eq("id", partnerId);
+      .eq('id', partnerId);
 
     if (error) return { ok: false, error: error.message };
   } catch (e) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Could not save the details.",
+      error: e instanceof Error ? e.message : 'Could not save the details.',
     };
   }
 
@@ -92,12 +92,12 @@ export async function saveParticipation(
     moduleOverrides: Record<string, boolean>;
   },
 ): Promise<ActionResult> {
-  const refused = await guardOrganiser("partners");
+  const refused = await guardOrganiser('partners');
   if (refused) return refused;
 
   try {
     const { error } = await requireSupabase()
-      .from("event_participations")
+      .from('event_participations')
       .update({
         added_entitlements: input.addedEntitlements,
         // Entitlements are toggled directly, so nothing is ever in
@@ -115,14 +115,14 @@ export async function saveParticipation(
         stand_ref: input.standRef || null,
         module_overrides: onlyOff(input.moduleOverrides),
       })
-      .eq("id", participationId);
+      .eq('id', participationId);
 
     if (error) return { ok: false, error: error.message };
   } catch (e) {
     return {
       ok: false,
       error:
-        e instanceof Error ? e.message : "Could not save the configuration.",
+        e instanceof Error ? e.message : 'Could not save the configuration.',
     };
   }
 
@@ -163,14 +163,14 @@ export async function saveInventory(
   participationId: Id,
   items: InventoryItem[],
 ): Promise<ActionResult> {
-  const refused = await guardOrganiser("partners");
+  const refused = await guardOrganiser('partners');
   if (refused) return refused;
 
   const named = items.filter((i) => i.name.trim() || i.passType);
   if (named.length !== items.length) {
     return {
       ok: false,
-      error: "Every package item needs a name before saving.",
+      error: 'Every package item needs a name before saving.',
     };
   }
 
@@ -179,7 +179,7 @@ export async function saveInventory(
 
     const rows = items.map((item, i) =>
       inventoryToRow(
-        { ...item, id: item.id || mintId("inv") },
+        { ...item, id: item.id || mintId('inv') },
         participationId,
         i,
       ),
@@ -189,21 +189,21 @@ export async function saveInventory(
     // leaves a stale row rather than an empty package.
     if (rows.length) {
       const { error } = await client
-        .from("partner_inventory")
-        .upsert(rows, { onConflict: "id" });
+        .from('partner_inventory')
+        .upsert(rows, { onConflict: 'id' });
       if (error) return { ok: false, error: error.message };
     }
 
     const keep = rows.map((r) => r.id as string);
     let removal = client
-      .from("partner_inventory")
+      .from('partner_inventory')
       .delete()
-      .eq("participation_id", participationId);
+      .eq('participation_id', participationId);
     if (keep.length) {
       removal = removal.not(
-        "id",
-        "in",
-        `(${keep.map((k) => `"${k}"`).join(",")})`,
+        'id',
+        'in',
+        `(${keep.map((k) => `"${k}"`).join(',')})`,
       );
     }
     const { error: deleteError } = await removal;
@@ -211,7 +211,7 @@ export async function saveInventory(
   } catch (e) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Could not save the package.",
+      error: e instanceof Error ? e.message : 'Could not save the package.',
     };
   }
 
@@ -228,11 +228,11 @@ export async function saveRequestedFiles(
   participationId: Id,
   files: RequestedFile[],
 ): Promise<ActionResult> {
-  const refused = await guardOrganiser("partners");
+  const refused = await guardOrganiser('partners');
   if (refused) return refused;
 
   if (files.some((f) => !f.label.trim())) {
-    return { ok: false, error: "Every requested file needs a label." };
+    return { ok: false, error: 'Every requested file needs a label.' };
   }
 
   try {
@@ -240,7 +240,7 @@ export async function saveRequestedFiles(
 
     const rows = files.map((file, i) =>
       requestedFileToRow(
-        { ...file, id: file.id || mintId("rf") },
+        { ...file, id: file.id || mintId('rf') },
         participationId,
         i,
       ),
@@ -248,21 +248,21 @@ export async function saveRequestedFiles(
 
     if (rows.length) {
       const { error } = await client
-        .from("partner_requested_files")
-        .upsert(rows, { onConflict: "id" });
+        .from('partner_requested_files')
+        .upsert(rows, { onConflict: 'id' });
       if (error) return { ok: false, error: error.message };
     }
 
     const keep = rows.map((r) => r.id as string);
     let removal = client
-      .from("partner_requested_files")
+      .from('partner_requested_files')
       .delete()
-      .eq("participation_id", participationId);
+      .eq('participation_id', participationId);
     if (keep.length) {
       removal = removal.not(
-        "id",
-        "in",
-        `(${keep.map((k) => `"${k}"`).join(",")})`,
+        'id',
+        'in',
+        `(${keep.map((k) => `"${k}"`).join(',')})`,
       );
     }
     const { error: deleteError } = await removal;
@@ -270,7 +270,7 @@ export async function saveRequestedFiles(
   } catch (e) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Could not save the files.",
+      error: e instanceof Error ? e.message : 'Could not save the files.',
     };
   }
 
@@ -287,23 +287,23 @@ export async function saveContract(
   participationId: Id,
   contract: { name: string; url: string } | null,
 ): Promise<ActionResult> {
-  const refused = await guardOrganiser("partners");
+  const refused = await guardOrganiser('partners');
   if (refused) return refused;
 
   try {
     const { error } = await requireSupabase()
-      .from("event_participations")
+      .from('event_participations')
       .update({
         contract_name: contract?.name ?? null,
         contract_url: contract?.url ?? null,
       })
-      .eq("id", participationId);
+      .eq('id', participationId);
 
     if (error) return { ok: false, error: error.message };
   } catch (e) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Could not save the contract.",
+      error: e instanceof Error ? e.message : 'Could not save the contract.',
     };
   }
 
@@ -320,51 +320,51 @@ export async function saveLead(
   leadUserId: Id | null,
   input: { name: string; email: string; telephone: string },
 ): Promise<ActionResult> {
-  const refused = await guardOrganiser("partners");
+  const refused = await guardOrganiser('partners');
   if (refused) return refused;
 
   const email = input.email.trim().toLowerCase();
   if (!input.name.trim())
-    return { ok: false, error: "The contact needs a name." };
-  if (!email || !email.includes("@"))
-    return { ok: false, error: "That email does not look right." };
+    return { ok: false, error: 'The contact needs a name.' };
+  if (!email || !email.includes('@'))
+    return { ok: false, error: 'That email does not look right.' };
 
   try {
     const client = requireSupabase();
 
     if (leadUserId) {
       const { error } = await client
-        .from("partner_users")
+        .from('partner_users')
         .update({
           name: input.name.trim(),
           email,
           telephone: input.telephone.trim(),
         })
-        .eq("id", leadUserId);
+        .eq('id', leadUserId);
       if (error) return { ok: false, error: error.message };
     } else {
-      const id = mintId("u");
-      const { error } = await client.from("partner_users").insert({
+      const id = mintId('u');
+      const { error } = await client.from('partner_users').insert({
         id,
         partner_id: partnerId,
         name: input.name.trim(),
         email,
         telephone: input.telephone.trim(),
-        role: "lead",
-        permissions: "all",
+        role: 'lead',
+        permissions: 'all',
       });
       if (error) return { ok: false, error: error.message };
 
       const { error: linkError } = await client
-        .from("event_participations")
+        .from('event_participations')
         .update({ lead_user_id: id })
-        .eq("partner_id", partnerId);
+        .eq('partner_id', partnerId);
       if (linkError) return { ok: false, error: linkError.message };
     }
   } catch (e) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Could not save the contact.",
+      error: e instanceof Error ? e.message : 'Could not save the contact.',
     };
   }
 
@@ -411,7 +411,7 @@ export interface NewPartnerInput {
 export async function createPartner(
   input: NewPartnerInput,
 ): Promise<CreateResult> {
-  const refused = await guardOrganiser("partners");
+  const refused = await guardOrganiser('partners');
   if (refused) return refused;
 
   const name = input.name.trim();
@@ -420,13 +420,13 @@ export async function createPartner(
   const leadName = input.leadName.trim();
   const leadEmail = input.leadEmail.trim().toLowerCase();
 
-  if (!name) return { ok: false, error: "Enter the organisation’s name." };
+  if (!name) return { ok: false, error: 'Enter the organisation’s name.' };
   if (!leadName)
-    return { ok: false, error: "Enter the name of their main contact." };
-  if (!leadEmail || !leadEmail.includes("@")) {
+    return { ok: false, error: 'Enter the name of their main contact.' };
+  if (!leadEmail || !leadEmail.includes('@')) {
     return {
       ok: false,
-      error: "Enter a valid email address for their main contact.",
+      error: 'Enter a valid email address for their main contact.',
     };
   }
 
@@ -468,24 +468,24 @@ export async function createPartner(
       return {
         ok: false,
         error:
-          "That email address already belongs to somebody on another partner’s team.",
+          'That email address already belongs to somebody on another partner’s team.',
       };
     }
 
-    const partnerId = existingOrg?.id ?? mintId("part");
-    const leadId = mintId("pu");
+    const partnerId = existingOrg?.id ?? mintId('part');
+    const leadId = mintId('pu');
     const createdOrg = !existingOrg;
 
     /* ---- 1. the organisation ---- */
 
     if (createdOrg) {
-      const { error } = await client.from("partner_organisations").insert({
+      const { error } = await client.from('partner_organisations').insert({
         id: partnerId,
         name,
         sector,
         country,
         billing: {},
-        logo: "",
+        logo: '',
       });
       if (error) return { ok: false, error: error.message };
     } else {
@@ -501,22 +501,22 @@ export async function createPartner(
 
       if (Object.keys(patch).length) {
         await client
-          .from("partner_organisations")
+          .from('partner_organisations')
           .update(patch)
-          .eq("id", partnerId);
+          .eq('id', partnerId);
       }
     }
 
     /* ---- 2. the Partner Lead ---- */
 
-    const { error: userError } = await client.from("partner_users").insert({
+    const { error: userError } = await client.from('partner_users').insert({
       id: leadId,
       partner_id: partnerId,
       name: leadName,
       email: leadEmail,
-      telephone: "",
-      role: "lead",
-      permissions: "all",
+      telephone: '',
+      role: 'lead',
+      permissions: 'all',
       invited_at: new Date().toISOString(),
       // Not accepted until they actually sign in.
       accepted_at: null,
@@ -524,12 +524,12 @@ export async function createPartner(
 
     if (userError) {
       if (createdOrg) {
-        await client.from("partner_organisations").delete().eq("id", partnerId);
+        await client.from('partner_organisations').delete().eq('id', partnerId);
       }
       return {
         ok: false,
-        error: userError.message.includes("duplicate")
-          ? "That email address is already in use."
+        error: userError.message.includes('duplicate')
+          ? 'That email address is already in use.'
           : userError.message,
       };
     }
@@ -539,9 +539,9 @@ export async function createPartner(
     const reference = nextReference(db.participations.map((p) => p.reference));
 
     const { error: partError } = await client
-      .from("event_participations")
+      .from('event_participations')
       .insert({
-        id: mintId("ep"),
+        id: mintId('ep'),
         event_id: db.event.id,
         partner_id: partnerId,
         reference,
@@ -556,8 +556,8 @@ export async function createPartner(
         task_due_dates: {},
         task_state: {},
         form_state: {},
-        partner_notes: "",
-        internal_notes: "",
+        partner_notes: '',
+        internal_notes: '',
         lead_user_id: leadId,
         pass_allocation: 0,
         marketing: {},
@@ -565,15 +565,15 @@ export async function createPartner(
       });
 
     if (partError) {
-      await client.from("partner_users").delete().eq("id", leadId);
+      await client.from('partner_users').delete().eq('id', leadId);
       if (createdOrg) {
-        await client.from("partner_organisations").delete().eq("id", partnerId);
+        await client.from('partner_organisations').delete().eq('id', partnerId);
       }
       return { ok: false, error: partError.message };
     }
 
-    await client.from("audit_log").insert({
-      id: mintId("a"),
+    await client.from('audit_log').insert({
+      id: mintId('a'),
       event_id: db.event.id,
       partner_id: partnerId,
       actor: await actorName(),
@@ -581,14 +581,14 @@ export async function createPartner(
       created_at: new Date().toISOString(),
     });
 
-    revalidatePath("/organiser/partners");
-    revalidatePath("/organiser");
+    revalidatePath('/organiser/partners');
+    revalidatePath('/organiser');
 
     return { ok: true, partnerId, reference };
   } catch (e) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Could not add the partner.",
+      error: e instanceof Error ? e.message : 'Could not add the partner.',
     };
   }
 }

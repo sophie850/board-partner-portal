@@ -294,6 +294,7 @@ export function rowToForm(r: Row, fields: FormField[]): FormDef {
     dueDate: r.due_date,
     assign: r.assign || { type: 'all' },
     allowResubmit: !!r.allow_resubmit,
+    notifyEmails: arr<string>(r.notify_emails),
     fields,
   };
 }
@@ -308,6 +309,7 @@ export function formToRow(f: FormDef): Row {
     due_date: f.dueDate,
     assign: f.assign,
     allow_resubmit: !!f.allowResubmit,
+    notify_emails: f.notifyEmails ?? [],
   };
 }
 

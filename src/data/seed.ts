@@ -829,6 +829,7 @@ const forms: FormDef[] = [
     dueDate: null,
     assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
     allowResubmit: true,
+    notifyEmails: ['anna@boardsummits.com'],
     fields: [
       { key: 'company_heading', label: 'Exhibiting company', type: 'section_heading' },
       { key: 'company_name', label: 'Company name', type: 'short_text', required: true, help: 'Legal entity name.' },
@@ -878,6 +879,7 @@ const forms: FormDef[] = [
     dueDate: null,
     assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
     allowResubmit: true,
+    notifyEmails: ['anna@boardsummits.com'],
     fields: [
       { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
       { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true, help: 'e.g. B14' },
@@ -906,6 +908,7 @@ const forms: FormDef[] = [
     dueDate: null,
     assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
     allowResubmit: true,
+    notifyEmails: ['anna@boardsummits.com'],
     fields: [
       { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
       { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true },
@@ -953,6 +956,7 @@ const forms: FormDef[] = [
     dueDate: null,
     assign: { type: 'entitlement', keys: ['has_raw_space'] },
     allowResubmit: true,
+    notifyEmails: ['anna@boardsummits.com'],
     fields: [
       { key: 'contractor_heading', label: 'Stand & contractor', type: 'section_heading' },
       { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
@@ -1007,6 +1011,7 @@ const forms: FormDef[] = [
     dueDate: null,
     assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
     allowResubmit: true,
+    notifyEmails: ['anna@boardsummits.com'],
     fields: [
       { key: 'company_heading', label: 'Company', type: 'section_heading' },
       { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
@@ -1049,6 +1054,7 @@ const forms: FormDef[] = [
     dueDate: null,
     assign: { type: 'entitlement', keys: ['has_raw_space'] },
     allowResubmit: true,
+    notifyEmails: ['anna@boardsummits.com'],
     fields: [
       { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
       { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true },
@@ -1093,6 +1099,7 @@ const forms: FormDef[] = [
     dueDate: null,
     assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
     allowResubmit: true,
+    notifyEmails: ['anna@boardsummits.com'],
     fields: [
       { key: 'company_heading', label: 'Company', type: 'section_heading' },
       { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
@@ -1129,6 +1136,7 @@ const forms: FormDef[] = [
     dueDate: null,
     assign: { type: 'entitlement', keys: ['has_exhibition_space'] },
     allowResubmit: true,
+    notifyEmails: ['anna@boardsummits.com'],
     fields: [
       { key: 'company_name', label: 'Company name', type: 'short_text', required: true },
       { key: 'stand_number', label: 'Stand number', type: 'short_text', required: true },

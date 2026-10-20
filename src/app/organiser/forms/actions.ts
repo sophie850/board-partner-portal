@@ -24,6 +24,8 @@ export interface FormInput {
   dueDate: string | null;
   assign: VisibilityRule;
   allowResubmit: boolean;
+  /** Who at BOARD hears about a submission. Empty means nobody. */
+  notifyEmails: string[];
   fields: FormField[];
 }
 
@@ -49,7 +51,8 @@ function validate(input: FormInput): string | null {
 
   const seen = new Set<string>();
   for (const key of keys) {
-    if (seen.has(key)) return `Two fields share the key "${key}". Field keys must be unique.`;
+    if (seen.has(key))
+      return `Two fields share the key "${key}". Field keys must be unique.`;
     seen.add(key);
   }
 
@@ -88,6 +91,13 @@ export async function saveForm(input: FormInput): Promise<ActionResult> {
     dueDate: input.dueDate || null,
     assign: input.assign,
     allowResubmit: input.allowResubmit,
+    // Lower-cased and de-duplicated: the same address typed twice,
+    // or once with a capital, should not mean two emails.
+    notifyEmails: [
+      ...new Set(
+        input.notifyEmails.map((a) => a.trim().toLowerCase()).filter(Boolean),
+      ),
+    ],
     fields: input.fields,
   };
 
@@ -114,12 +124,19 @@ export async function saveForm(input: FormInput): Promise<ActionResult> {
     const keepIds = rows.map((r) => r.id as string);
     let removal = client.from('form_fields').delete().eq('form_id', id);
     if (keepIds.length) {
-      removal = removal.not('id', 'in', `(${keepIds.map((k) => `"${k}"`).join(',')})`);
+      removal = removal.not(
+        'id',
+        'in',
+        `(${keepIds.map((k) => `"${k}"`).join(',')})`,
+      );
     }
     const { error: deleteError } = await removal;
     if (deleteError) return { ok: false, error: deleteError.message };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Could not save the form.' };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Could not save the form.',
+    };
   }
 
   revalidateForms(id);
@@ -136,10 +153,16 @@ export async function deleteForm(id: Id): Promise<ActionResult> {
   if (refused) return refused;
 
   try {
-    const { error } = await requireSupabase().from('forms').delete().eq('id', id);
+    const { error } = await requireSupabase()
+      .from('forms')
+      .delete()
+      .eq('id', id);
     if (error) return { ok: false, error: error.message };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Could not delete the form.' };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Could not delete the form.',
+    };
   }
 
   revalidateForms();
@@ -171,7 +194,8 @@ export async function reviewSubmission(
   if (decision === 'changes_required' && !feedback.trim()) {
     return {
       ok: false,
-      error: 'Say what needs changing — the partner sees this message and nothing else.',
+      error:
+        'Say what needs changing — the partner sees this message and nothing else.',
     };
   }
 
@@ -186,7 +210,10 @@ export async function reviewSubmission(
 
     if (error) return { ok: false, error: error.message };
 
-    const formState = (data?.form_state ?? {}) as Record<string, Record<string, unknown>>;
+    const formState = (data?.form_state ?? {}) as Record<
+      string,
+      Record<string, unknown>
+    >;
     const existing = formState[formId] ?? {};
 
     formState[formId] = {
@@ -214,7 +241,10 @@ export async function reviewSubmission(
       await notifyChangesRequired(participationId, formId, feedback);
     }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Could not record the review.' };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Could not record the review.',
+    };
   }
 
   revalidateForms(formId);

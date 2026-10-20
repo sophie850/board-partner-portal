@@ -5,6 +5,7 @@ import { getDb } from '@/lib/db/store';
 import { sendEmail } from '@/lib/email';
 import { env } from '@/lib/env';
 import { mergeValuesFor, renderTemplate } from '@/lib/mergeFields';
+import { submissionNotice } from '@/lib/submissionNotice';
 import type { Db, Id, Participation, PartnerUser } from '@/lib/types';
 
 /* ============================================================
@@ -46,7 +47,10 @@ function portalLink(path: string): string {
 }
 
 /** The partner user acting right now, when there is one. */
-async function actingPartnerUser(db: Db, partnerId: Id): Promise<PartnerUser | null> {
+async function actingPartnerUser(
+  db: Db,
+  partnerId: Id,
+): Promise<PartnerUser | null> {
   const session = await getSession();
   if (session?.kind !== 'partner') return null;
   const user = db.partnerUsers.find((u) => u.id === session.user.id);
@@ -74,7 +78,10 @@ function reachable(user: PartnerUser | null): user is PartnerUser {
    Form submitted
    --------------------------------------------------------------- */
 
-export async function notifyFormSubmitted(participationId: Id, formId: Id): Promise<void> {
+export async function notifyFormSubmitted(
+  participationId: Id,
+  formId: Id,
+): Promise<void> {
   try {
     const db = await getDb();
 
@@ -172,7 +179,11 @@ export async function notifyChangesRequired(
       portalLink: portalLink(`/portal/${part.partnerId}/forms/${form.id}`),
     });
 
-    const { subject, text } = renderTemplate(template, values, CHANGES_FALLBACK);
+    const { subject, text } = renderTemplate(
+      template,
+      values,
+      CHANGES_FALLBACK,
+    );
 
     /*
      * The reviewer's message is appended rather than merged through a
@@ -180,7 +191,9 @@ export async function notifyChangesRequired(
      * putting it in a token would let a stray "[due]" in their
      * feedback be substituted — quietly changing what they said.
      */
-    const body = feedback.trim() ? `${text}\n\n---\n\n${feedback.trim()}` : text;
+    const body = feedback.trim()
+      ? `${text}\n\n---\n\n${feedback.trim()}`
+      : text;
 
     await sendEmail({
       to: user.email,
@@ -272,3 +285,65 @@ const ORDER_FALLBACK = {
     '[signature]',
   ].join('\n'),
 };
+
+/* ---------------------------------------------------------------
+   Telling BOARD a form has arrived
+   --------------------------------------------------------------- */
+
+/**
+ * The people waiting on this form, told that it is in.
+ *
+ * Separate from the partner's confirmation on purpose. They are
+ * different messages to different people with different urgency,
+ * and an organiser who switches off partner confirmations has not
+ * asked to stop hearing about submissions themselves.
+ *
+ * The recipient list on the form is the only control. No addresses,
+ * no email — so a form nobody is waiting on stays quiet, and there
+ * is no second toggle to leave in the wrong state.
+ *
+ * The answers travel in the body rather than only a link. A venue
+ * questionnaire that says "a form was submitted" and nothing else
+ * makes somebody open a browser to learn one fact, and the email is
+ * also then a record in its own right, which is the point of having
+ * one at all.
+ */
+export async function notifySubmissionRecipients(
+  participationId: Id,
+  formId: Id,
+): Promise<void> {
+  try {
+    const db = await getDb();
+
+    const part = db.participations.find((p) => p.id === participationId);
+    const form = db.forms.find((f) => f.id === formId);
+    if (!part || !form) return;
+
+    const to = (form.notifyEmails ?? []).map((a) => a.trim()).filter(Boolean);
+    if (!to.length) return;
+
+    const { subject, text } = submissionNotice(
+      db,
+      form,
+      part,
+      portalLink(`/organiser/forms/${form.id}`),
+    );
+
+    /*
+     * One message each rather than everybody on one To line. A
+     * recipient list is not something the people on it agreed to
+     * share, and a reply-all between the venue and BOARD about a
+     * partner's answers is not a thread anybody wants.
+     */
+    for (const address of to) {
+      await sendEmail({
+        to: address,
+        subject,
+        text,
+        partnerId: part.partnerId,
+      });
+    }
+  } catch (e) {
+    console.error('[notify] submission notification failed:', e);
+  }
+}

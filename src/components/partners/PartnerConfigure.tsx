@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { clsx } from "clsx";
-import { Check, FileText, Plus, X } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { clsx } from 'clsx';
+import { Check, FileText, Plus, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
 
-import { Switch } from "@/components/forms/FieldListEditor";
-import { FileUpload } from "@/components/ui/FileUpload";
+import { Switch } from '@/components/forms/FieldListEditor';
+import { FileUpload } from '@/components/ui/FileUpload';
 import {
   Button,
   Callout,
@@ -16,7 +16,7 @@ import {
   Select,
   TextArea,
   TextInput,
-} from "@/components/ui/primitives";
+} from '@/components/ui/primitives';
 import type {
   BillingDetails,
   Entitlement,
@@ -28,8 +28,8 @@ import type {
   PartnerUser,
   RequestedFile,
   TaskTemplate,
-} from "@/lib/types";
-import type { ModuleState } from "@/lib/resolvers";
+} from '@/lib/types';
+import type { ModuleState } from '@/lib/resolvers';
 
 import {
   saveContract,
@@ -38,7 +38,7 @@ import {
   saveParticipation,
   savePartnerDetails,
   saveRequestedFiles,
-} from "@/app/organiser/partners/actions";
+} from '@/app/organiser/partners/actions';
 
 /* ============================================================
    Partner configuration
@@ -50,28 +50,28 @@ import {
    ============================================================ */
 
 const SECTORS = [
-  "Enterprise Tech & AI",
-  "Management Consultancy",
-  "Investment",
-  "Financial services",
-  "Industrial",
-  "Healthcare",
-  "Legal",
-  "Other",
+  'Enterprise Tech & AI',
+  'Management Consultancy',
+  'Investment',
+  'Financial services',
+  'Industrial',
+  'Healthcare',
+  'Legal',
+  'Other',
 ];
 
 const INVENTORY_TYPES: InventoryType[] = [
-  "Dedicated Space",
-  "Curated Introductions",
-  "Branding",
-  "Bespoke",
-  "Delegate Passes",
+  'Dedicated Space',
+  'Curated Introductions',
+  'Branding',
+  'Bespoke',
+  'Delegate Passes',
 ];
 
 /** Pass types autofill their description — they are fixed products. */
 const PASS_TYPES: Record<string, string> = {
-  "Associate Pass": "Full show access",
-  "Service Pass": "For service staff working on stands only",
+  'Associate Pass': 'Full show access',
+  'Service Pass': 'For service staff working on stands only',
 };
 
 export function PartnerConfigure({
@@ -155,7 +155,7 @@ function Section({
     startTransition(async () => {
       const result = await onSave();
       if (!result.ok) {
-        setError(result.error ?? "Could not save.");
+        setError(result.error ?? 'Could not save.');
         return;
       }
       setSaved(true);
@@ -193,7 +193,7 @@ function Section({
             onClick={save}
             disabled={pending || dirty === false}
           >
-            {pending ? "Saving…" : "Save"}
+            {pending ? 'Saving…' : 'Save'}
           </Button>
           {saved && (
             <span className="flex items-center gap-[6px] text-[12px] text-accent">
@@ -214,12 +214,12 @@ function CompanyDetails({ partner }: { partner: Partner }) {
   const [name, setName] = useState(partner.name);
   const [sector, setSector] = useState(partner.sector);
   const [billing, setBilling] = useState<BillingDetails>({
-    entity: partner.billing?.entity ?? "",
-    address: partner.billing?.address ?? "",
-    city: partner.billing?.city ?? "",
-    postcode: partner.billing?.postcode ?? "",
-    country: partner.billing?.country ?? "",
-    vat: partner.billing?.vat ?? "",
+    entity: partner.billing?.entity ?? '',
+    address: partner.billing?.address ?? '',
+    city: partner.billing?.city ?? '',
+    postcode: partner.billing?.postcode ?? '',
+    country: partner.billing?.country ?? '',
+    vat: partner.billing?.vat ?? '',
   });
 
   const patch = (p: Partial<BillingDetails>) =>
@@ -330,9 +330,9 @@ function LeadContact({
   partnerId: string;
   lead: PartnerUser | null;
 }) {
-  const [name, setName] = useState(lead?.name ?? "");
-  const [email, setEmail] = useState(lead?.email ?? "");
-  const [telephone, setTelephone] = useState(lead?.telephone ?? "");
+  const [name, setName] = useState(lead?.name ?? '');
+  const [email, setEmail] = useState(lead?.email ?? '');
+  const [telephone, setTelephone] = useState(lead?.telephone ?? '');
 
   return (
     <Section
@@ -427,7 +427,7 @@ function Contract({
             onClick={() => {
               if (
                 window.confirm(
-                  "Remove the signed agreement? The partner will no longer see it.",
+                  'Remove the signed agreement? The partner will no longer see it.',
                 )
               )
                 store(null);
@@ -472,13 +472,13 @@ function Package({
     setItems((xs) => [
       ...xs,
       {
-        id: "",
-        type: "Dedicated Space",
-        name: "",
-        description: "",
+        id: '',
+        type: 'Dedicated Space',
+        name: '',
+        description: '',
         cost: 0,
         quantity: 1,
-        standNumber: "",
+        standNumber: '',
         refs: [],
       },
     ]);
@@ -541,13 +541,13 @@ function InventoryRow({
   onChange: (p: Partial<InventoryItem>) => void;
   onRemove: () => void;
 }) {
-  const isPasses = item.type === "Delegate Passes";
-  const isSpace = item.type === "Dedicated Space";
+  const isPasses = item.type === 'Delegate Passes';
+  const isSpace = item.type === 'Dedicated Space';
 
   const small =
-    "w-full rounded-sm border border-line-4 bg-panel px-[11px] py-[9px] text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line";
+    'w-full rounded-sm border border-line-4 bg-panel px-[11px] py-[9px] text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line';
 
-  function toggleRef(kind: "task" | "form", id: string) {
+  function toggleRef(kind: 'task' | 'form', id: string) {
     const has = (item.refs ?? []).some((r) => r.kind === kind && r.id === id);
     onChange({
       refs: has
@@ -562,7 +562,7 @@ function InventoryRow({
         <select
           className={clsx(
             small,
-            "w-[190px] shrink-0 cursor-pointer max-md:w-full",
+            'w-[190px] shrink-0 cursor-pointer max-md:w-full',
           )}
           value={item.type}
           onChange={(e) => {
@@ -570,13 +570,13 @@ function InventoryRow({
             // Switching to passes replaces the free-text name with a
             // fixed product, so clear anything that no longer applies.
             onChange(
-              type === "Delegate Passes"
+              type === 'Delegate Passes'
                 ? {
                     type,
-                    passType: "Associate Pass",
-                    name: "Associate Pass",
-                    description: PASS_TYPES["Associate Pass"],
-                    standNumber: "",
+                    passType: 'Associate Pass',
+                    name: 'Associate Pass',
+                    description: PASS_TYPES['Associate Pass'],
+                    standNumber: '',
                   }
                 : { type, passType: undefined },
             );
@@ -592,13 +592,13 @@ function InventoryRow({
 
         {isPasses ? (
           <select
-            className={clsx(small, "min-w-0 flex-1 cursor-pointer")}
-            value={item.passType ?? "Associate Pass"}
+            className={clsx(small, 'min-w-0 flex-1 cursor-pointer')}
+            value={item.passType ?? 'Associate Pass'}
             onChange={(e) =>
               onChange({
                 passType: e.target.value,
                 name: e.target.value,
-                description: PASS_TYPES[e.target.value] ?? "",
+                description: PASS_TYPES[e.target.value] ?? '',
               })
             }
             aria-label={`Item ${index + 1} pass type`}
@@ -611,7 +611,7 @@ function InventoryRow({
           </select>
         ) : (
           <input
-            className={clsx(small, "min-w-0 flex-1")}
+            className={clsx(small, 'min-w-0 flex-1')}
             value={item.name}
             onChange={(e) => onChange({ name: e.target.value })}
             placeholder="Item name, e.g. Corner stand · 6m × 4m"
@@ -633,7 +633,7 @@ function InventoryRow({
           <Label htmlFor={`stand-${index}`}>Stand number</Label>
           <input
             id={`stand-${index}`}
-            className={clsx(small, "w-[180px]")}
+            className={clsx(small, 'w-[180px]')}
             value={item.standNumber}
             onChange={(e) => onChange({ standNumber: e.target.value })}
             placeholder="e.g. A12"
@@ -645,7 +645,7 @@ function InventoryRow({
         <div className="mb-3 text-[12.5px] text-ink-3">{item.description}</div>
       ) : (
         <textarea
-          className={clsx(small, "mb-3 resize-y")}
+          className={clsx(small, 'mb-3 resize-y')}
           rows={2}
           value={item.description}
           onChange={(e) => onChange({ description: e.target.value })}
@@ -682,22 +682,22 @@ function InventoryRow({
       </div>
 
       <div>
-        <Label>Related {`${"tasks"} & forms`}</Label>
+        <Label>Related {`${'tasks'} & forms`}</Label>
         <div className="flex flex-wrap gap-2">
           {tasks.map((t) => {
             const on = (item.refs ?? []).some(
-              (r) => r.kind === "task" && r.id === t.id,
+              (r) => r.kind === 'task' && r.id === t.id,
             );
             return (
               <button
                 key={t.id}
-                onClick={() => toggleRef("task", t.id)}
+                onClick={() => toggleRef('task', t.id)}
                 aria-pressed={on}
                 className={clsx(
-                  "cursor-pointer rounded-pill border px-[11px] py-[5px] text-[11.5px]",
+                  'cursor-pointer rounded-pill border px-[11px] py-[5px] text-[11.5px]',
                   on
-                    ? "border-accent-line bg-accent-fill text-accent"
-                    : "border-line-3 text-ink-4 hover:text-ink",
+                    ? 'border-accent-line bg-accent-fill text-accent'
+                    : 'border-line-3 text-ink-4 hover:text-ink',
                 )}
               >
                 {t.title}
@@ -706,18 +706,18 @@ function InventoryRow({
           })}
           {forms.map((f) => {
             const on = (item.refs ?? []).some(
-              (r) => r.kind === "form" && r.id === f.id,
+              (r) => r.kind === 'form' && r.id === f.id,
             );
             return (
               <button
                 key={f.id}
-                onClick={() => toggleRef("form", f.id)}
+                onClick={() => toggleRef('form', f.id)}
                 aria-pressed={on}
                 className={clsx(
-                  "cursor-pointer rounded-pill border px-[11px] py-[5px] text-[11.5px]",
+                  'cursor-pointer rounded-pill border px-[11px] py-[5px] text-[11.5px]',
                   on
-                    ? "border-brand-line bg-brand-fill text-info"
-                    : "border-line-3 text-ink-4 hover:text-ink",
+                    ? 'border-brand-line bg-brand-fill text-info'
+                    : 'border-line-3 text-ink-4 hover:text-ink',
                 )}
               >
                 {f.title}
@@ -784,10 +784,10 @@ function Entitlements({
               }
               aria-pressed={on}
               className={clsx(
-                "cursor-pointer rounded-pill border px-[13px] py-[7px] text-[12.5px] transition-colors",
+                'cursor-pointer rounded-pill border px-[13px] py-[7px] text-[12.5px] transition-colors',
                 on
-                  ? "border-accent-line bg-accent-fill text-accent"
-                  : "border-line-3 bg-transparent text-ink-3 hover:text-ink",
+                  ? 'border-accent-line bg-accent-fill text-accent'
+                  : 'border-line-3 bg-transparent text-ink-3 hover:text-ink',
               )}
             >
               {e.label}
@@ -797,7 +797,7 @@ function Entitlements({
       </div>
       <Help>
         {keys.length === 0
-          ? "No entitlements — this partner will see only the always-on modules."
+          ? 'No entitlements — this partner will see only the always-on modules.'
           : `${keys.length} of ${entitlements.length} enabled.`}
       </Help>
     </Section>
@@ -819,7 +819,7 @@ function Deadlines({
   forms: FormDef[];
   tasks: TaskTemplate[];
 }) {
-  const [facet, setFacet] = useState<"forms" | "tasks">("forms");
+  const [facet, setFacet] = useState<'forms' | 'tasks'>('forms');
   const [formDates, setFormDates] = useState<Record<string, string>>(
     participation.formDueDates ?? {},
   );
@@ -828,12 +828,12 @@ function Deadlines({
   );
 
   const rows =
-    facet === "forms"
+    facet === 'forms'
       ? forms.map((f) => ({ id: f.id, title: f.title, fallback: f.dueDate }))
       : tasks.map((t) => ({ id: t.id, title: t.title, fallback: t.dueDate }));
 
-  const dates = facet === "forms" ? formDates : taskDates;
-  const setDates = facet === "forms" ? setFormDates : setTaskDates;
+  const dates = facet === 'forms' ? formDates : taskDates;
+  const setDates = facet === 'forms' ? setFormDates : setTaskDates;
 
   return (
     <Section
@@ -856,15 +856,15 @@ function Deadlines({
       }
       action={
         <div className="flex shrink-0 gap-2">
-          {(["forms", "tasks"] as const).map((f) => (
+          {(['forms', 'tasks'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFacet(f)}
               className={clsx(
-                "cursor-pointer rounded-pill border px-[14px] py-[6px] text-[12px] capitalize",
+                'cursor-pointer rounded-pill border px-[14px] py-[6px] text-[12px] capitalize',
                 facet === f
-                  ? "border-accent-line bg-accent-fill text-accent"
-                  : "border-line-3 text-ink-3 hover:text-ink",
+                  ? 'border-accent-line bg-accent-fill text-accent'
+                  : 'border-line-3 text-ink-3 hover:text-ink',
               )}
             >
               {f}
@@ -875,7 +875,7 @@ function Deadlines({
     >
       <div className="flex flex-col gap-[9px]">
         {rows.map((row) => {
-          const override = dates[row.id] ?? "";
+          const override = dates[row.id] ?? '';
           return (
             <div
               key={row.id}
@@ -885,10 +885,10 @@ function Deadlines({
                 <div className="text-[13px] text-ink">{row.title}</div>
                 <div className="mt-[2px] text-[11.5px] text-ink-4">
                   {override
-                    ? "Set for this partner"
+                    ? 'Set for this partner'
                     : row.fallback
                       ? `Event default · ${row.fallback}`
-                      : "No date set — “Date to be confirmed”"}
+                      : 'No date set — “Date to be confirmed”'}
                 </div>
               </div>
               <input
@@ -938,7 +938,7 @@ function RequestedFiles({
   );
 
   const small =
-    "w-full rounded-sm border border-line-4 bg-panel px-[11px] py-[9px] text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line";
+    'w-full rounded-sm border border-line-4 bg-panel px-[11px] py-[9px] text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line';
 
   return (
     <Section
@@ -950,7 +950,7 @@ function RequestedFiles({
           onClick={() =>
             setFiles((xs) => [
               ...xs,
-              { id: "", label: "", due: null, required: true, file: null },
+              { id: '', label: '', due: null, required: true, file: null },
             ])
           }
           className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-pill bg-brand px-4 py-2 text-[12.5px] text-on-brand"
@@ -992,7 +992,7 @@ function RequestedFiles({
               </div>
               <input
                 type="date"
-                value={f.due ?? ""}
+                value={f.due ?? ''}
                 onChange={(e) =>
                   setFiles((xs) =>
                     xs.map((x, k) =>
@@ -1030,10 +1030,10 @@ function Notes({
   participation: Participation;
 }) {
   const [partnerNotes, setPartnerNotes] = useState(
-    participation.partnerNotes ?? "",
+    participation.partnerNotes ?? '',
   );
   const [internalNotes, setInternalNotes] = useState(
-    participation.internalNotes ?? "",
+    participation.internalNotes ?? '',
   );
 
   return (
@@ -1148,12 +1148,12 @@ function Modules({
                 <div className="text-[13.5px] text-ink">{m.label}</div>
                 <div className="mt-[2px] text-[11.5px] text-ink-4">
                   {m.required
-                    ? "Always on — it is where they land when they sign in."
+                    ? 'Always on — it is where they land when they sign in.'
                     : !m.inPackage
-                      ? "Not in their package, so it is already hidden."
+                      ? 'Not in their package, so it is already hidden.'
                       : switchedOff
-                        ? "Hidden from this partner."
-                        : "Visible to this partner."}
+                        ? 'Hidden from this partner.'
+                        : 'Visible to this partner.'}
                 </div>
               </div>
               <Switch
@@ -1175,7 +1175,7 @@ function Modules({
       </div>
       <Help>
         {hiddenCount === 0
-          ? "Nothing hidden — this partner sees everything their package includes."
+          ? 'Nothing hidden — this partner sees everything their package includes.'
           : `${hiddenCount} hidden. Their package is unchanged, so switching one back on restores it with everything it held.`}
       </Help>
     </Section>
