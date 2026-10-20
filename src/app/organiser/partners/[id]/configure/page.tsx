@@ -1,21 +1,21 @@
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-import { PartnerConfigure } from '@/components/partners/PartnerConfigure';
-import { Eyebrow, PageTitle, Rise } from '@/components/ui/primitives';
-import { getDb } from '@/lib/db/store';
-import { terms } from '@/lib/resolvers';
-import { requireArea } from '@/lib/auth/session';
+import { PartnerConfigure } from "@/components/partners/PartnerConfigure";
+import { Eyebrow, PageTitle, Rise } from "@/components/ui/primitives";
+import { getDb } from "@/lib/db/store";
+import { moduleCatalogue, terms } from "@/lib/resolvers";
+import { requireArea } from "@/lib/auth/session";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function ConfigurePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireArea('partners', '/organiser/partners/[id]/configure');
+  await requireArea("partners", "/organiser/partners/[id]/configure");
 
   const { id } = await params;
   const db = await getDb();
@@ -25,7 +25,8 @@ export default async function ConfigurePage({
   if (!partner || !participation) notFound();
 
   const t = terms(db);
-  const lead = db.partnerUsers.find((u) => u.id === participation.leadUserId) ?? null;
+  const lead =
+    db.partnerUsers.find((u) => u.id === participation.leadUserId) ?? null;
 
   return (
     <Rise className="max-w-[880px]">
@@ -43,8 +44,9 @@ export default async function ConfigurePage({
           </Eyebrow>
           <PageTitle>Configure</PageTitle>
           <p className="mt-2 max-w-[62ch] text-[13.5px] leading-relaxed text-ink-3">
-            What {partner.name} has bought and what you need from them. Everything here
-            shapes the portal they see — each section saves on its own.
+            What {partner.name} has bought and what you need from them.
+            Everything here shapes the portal they see — each section saves on
+            its own.
           </p>
         </div>
         <Link
@@ -62,6 +64,7 @@ export default async function ConfigurePage({
         entitlements={db.entitlements}
         forms={db.forms}
         tasks={db.taskTemplates}
+        modules={moduleCatalogue(db, participation)}
       />
     </Rise>
   );

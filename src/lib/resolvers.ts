@@ -28,7 +28,7 @@ import type {
   TaskTemplate,
   Terminology,
   VisibilityRule,
-} from './types';
+} from "./types";
 
 /* ---------------------------------------------------------------
    Entitlements
@@ -57,11 +57,11 @@ export function hasEnt(db: Db, part: Participation, key: string): boolean {
 export function entitlementsWithSource(
   db: Db,
   part: Participation,
-): Array<{ key: string; source: 'override' }> {
-  const out: Array<{ key: string; source: 'override' }> = [];
+): Array<{ key: string; source: "override" }> {
+  const out: Array<{ key: string; source: "override" }> = [];
   new Set(part.addedEntitlements || []).forEach((k) => {
     if ((part.removedEntitlements || []).includes(k)) return;
-    out.push({ key: k, source: 'override' });
+    out.push({ key: k, source: "override" });
   });
   return out;
 }
@@ -79,7 +79,11 @@ export function entKeys(rule: VisibilityRule | undefined | null): string[] {
 }
 
 /** ANY-of: the partner needs at least one of the listed keys. */
-export function hasAnyEnt(db: Db, part: Participation, keys: string[]): boolean {
+export function hasAnyEnt(
+  db: Db,
+  part: Participation,
+  keys: string[],
+): boolean {
   if (!keys || !keys.length) return true;
   return keys.some((k) => hasEnt(db, part, k));
 }
@@ -99,13 +103,17 @@ export function ruleMatches(
   rule: VisibilityRule | undefined | null,
   part: Participation,
 ): boolean {
-  if (!rule || rule.type === 'all' || Object.keys(rule).length === 0) return true;
-  if (rule.type === 'entitlement' || rule.requires || rule.keys) {
+  if (!rule || rule.type === "all" || Object.keys(rule).length === 0)
+    return true;
+  if (rule.type === "entitlement" || rule.requires || rule.keys) {
     return hasAnyEnt(db, part, entKeys(rule));
   }
-  if (rule.type === 'package') return (rule.packages || []).includes(part.packageId ?? '');
-  if (rule.type === 'partner') return (rule.partners || []).includes(part.partnerId);
-  if (rule.type === 'except') return !(rule.partners || []).includes(part.partnerId);
+  if (rule.type === "package")
+    return (rule.packages || []).includes(part.packageId ?? "");
+  if (rule.type === "partner")
+    return (rule.partners || []).includes(part.partnerId);
+  if (rule.type === "except")
+    return !(rule.partners || []).includes(part.partnerId);
   return true;
 }
 
@@ -123,34 +131,43 @@ export function ruleMatches(
  * the same words the organiser pages use.
  */
 export function visibilityLabel(
-  db: Pick<Db, 'partners' | 'entitlements'>,
+  db: Pick<Db, "partners" | "entitlements">,
   rule: VisibilityRule | undefined | null,
 ): string {
-  if (!rule || rule.type === 'all' || Object.keys(rule).length === 0) return 'All partners';
+  if (!rule || rule.type === "all" || Object.keys(rule).length === 0)
+    return "All partners";
 
   const named = (ids: string[]) =>
-    ids.map((id) => db.partners.find((p) => p.id === id)?.name).filter(Boolean) as string[];
+    ids
+      .map((id) => db.partners.find((p) => p.id === id)?.name)
+      .filter(Boolean) as string[];
 
-  if (rule.type === 'partner') {
+  if (rule.type === "partner") {
     const names = named(rule.partners ?? []);
-    return names.length ? `Only ${names.join(', ')}` : 'Specific partners';
+    return names.length ? `Only ${names.join(", ")}` : "Specific partners";
   }
 
-  if (rule.type === 'except') {
+  if (rule.type === "except") {
     const names = named(rule.partners ?? []);
-    return names.length ? `Everyone except ${names.join(', ')}` : 'All partners';
+    return names.length
+      ? `Everyone except ${names.join(", ")}`
+      : "All partners";
   }
 
   const labels = entKeys(rule).map(
     (k) => db.entitlements.find((e) => e.key === k)?.label ?? k,
   );
 
-  if (!labels.length) return 'All partners';
+  if (!labels.length) return "All partners";
   // ANY-of semantics: the partner needs at least one of these.
-  return labels.join(' or ');
+  return labels.join(" or ");
 }
 
-export function productVisible(db: Db, product: Product, part: Participation): boolean {
+export function productVisible(
+  db: Db,
+  product: Product,
+  part: Participation,
+): boolean {
   if (!product.active) return false;
   return ruleMatches(db, product.visibility, part);
 }
@@ -165,7 +182,10 @@ export function productVisible(db: Db, product: Product, part: Participation): b
  *
  * A product with no deadline never closes.
  */
-export function orderingClosed(product: Product, now: Date = new Date()): boolean {
+export function orderingClosed(
+  product: Product,
+  now: Date = new Date(),
+): boolean {
   if (!product.orderDeadline) return false;
   return daysUntil(product.orderDeadline, now) < 0;
 }
@@ -198,7 +218,11 @@ export function productOrderable(
  * Per partner, because two partners see different catalogues: an
  * exhibitor's shop can close a fortnight after a sponsor's.
  */
-export function shopOpen(db: Db, part: Participation, now: Date = new Date()): boolean {
+export function shopOpen(
+  db: Db,
+  part: Participation,
+  now: Date = new Date(),
+): boolean {
   return db.products.some((p) => productOrderable(db, p, part, now));
 }
 
@@ -239,7 +263,12 @@ export function supplierClosesOn(
   if (!theirs.length) return null;
   if (theirs.some((p) => !p.orderDeadline)) return null;
 
-  return theirs.map((p) => p.orderDeadline!).sort().at(-1) ?? null;
+  return (
+    theirs
+      .map((p) => p.orderDeadline!)
+      .sort()
+      .at(-1) ?? null
+  );
 }
 
 /** Partner-specific price beats the catalogue price. */
@@ -263,7 +292,10 @@ export function priceFor(part: Participation, product: Product): number | null {
  */
 export function conditionHolds(field: FormField, values?: FormValues): boolean {
   if (!field.condition) return true;
-  return (values ? values[field.condition.field] : undefined) === field.condition.equals;
+  return (
+    (values ? values[field.condition.field] : undefined) ===
+    field.condition.equals
+  );
 }
 
 /** A field is shown when its visibility rule passes AND its condition holds. */
@@ -273,11 +305,16 @@ export function fieldVisible(
   part: Participation,
   values?: FormValues,
 ): boolean {
-  if (field.visibility && !ruleMatches(db, field.visibility, part)) return false;
+  if (field.visibility && !ruleMatches(db, field.visibility, part))
+    return false;
   return conditionHolds(field, values);
 }
 
-export function formApplies(db: Db, form: FormDef, part: Participation): boolean {
+export function formApplies(
+  db: Db,
+  form: FormDef,
+  part: Participation,
+): boolean {
   return ruleMatches(db, form.assign, part);
 }
 
@@ -289,8 +326,16 @@ export function contentVisible(
   return ruleMatches(db, page.visibility, part);
 }
 
-export function taskApplies(db: Db, tpl: TaskTemplate, part: Participation): boolean {
-  const keys = Array.isArray(tpl.requires) ? tpl.requires : tpl.requires ? [tpl.requires] : [];
+export function taskApplies(
+  db: Db,
+  tpl: TaskTemplate,
+  part: Participation,
+): boolean {
+  const keys = Array.isArray(tpl.requires)
+    ? tpl.requires
+    : tpl.requires
+      ? [tpl.requires]
+      : [];
   return hasAnyEnt(db, part, keys);
 }
 
@@ -327,7 +372,9 @@ export function resolveForms(db: Db, part: Participation): ResolvedForm[] {
   return db.forms
     .filter((f) => formApplies(db, f, part))
     .map((f) => {
-      const st = (part.formState && part.formState[f.id]) || { status: 'not_started' as const };
+      const st = (part.formState && part.formState[f.id]) || {
+        status: "not_started" as const,
+      };
       const override = part.formDueDates && part.formDueDates[f.id];
       const dueDate = override || f.dueDate || null;
       return { ...f, dueDate, deadlineOverridden: !!override, state: st };
@@ -360,13 +407,16 @@ export function formsCoveredByTasks(db: Db, part: Participation): Set<Id> {
   const covered = new Set<Id>();
   resolveTasks(db, part).forEach((t) => {
     if (t.completed) return;
-    if (t.link?.type === 'form' && t.link.target) covered.add(t.link.target);
+    if (t.link?.type === "form" && t.link.target) covered.add(t.link.target);
   });
   return covered;
 }
 
 /** Forms that should fire their own reminder — i.e. have no linked task. */
-export function formsNeedingReminder(db: Db, part: Participation): ResolvedForm[] {
+export function formsNeedingReminder(
+  db: Db,
+  part: Participation,
+): ResolvedForm[] {
   const covered = formsCoveredByTasks(db, part);
   return resolveForms(db, part).filter(
     (f) => !covered.has(f.id) && !isFormSettled(f.state.status),
@@ -384,13 +434,19 @@ export function formsNeedingReminder(db: Db, part: Participation): ResolvedForm[
 export function actionCounts(
   db: Db,
   part: Participation,
-): { tasks: number; forms: number; requests: number; total: number; overdue: number } {
+): {
+  tasks: number;
+  forms: number;
+  requests: number;
+  total: number;
+  overdue: number;
+} {
   const tasks = resolveTasks(db, part);
   const outstanding = tasks.filter((t) => !t.completed);
 
   const covered = new Set(
     outstanding
-      .filter((t) => t.link?.type === 'form' && t.link.target)
+      .filter((t) => t.link?.type === "form" && t.link.target)
       .map((t) => t.link.target as string),
   );
 
@@ -399,7 +455,7 @@ export function actionCounts(
   ).length;
 
   const requests = db.requests.filter(
-    (r) => r.participationId === part.id && r.status === 'more_info',
+    (r) => r.participationId === part.id && r.status === "more_info",
   ).length;
 
   const overdue = tasks.filter((t) => taskOverdue(t)).length;
@@ -414,12 +470,18 @@ export function actionCounts(
 }
 
 export function isFormSettled(status: string): boolean {
-  return status === 'approved' || status === 'submitted' || status === 'under_review';
+  return (
+    status === "approved" || status === "submitted" || status === "under_review"
+  );
 }
 
 /** A form still needs the partner to do something. */
 export function isFormActionable(status: string): boolean {
-  return status === 'not_started' || status === 'in_progress' || status === 'changes_required';
+  return (
+    status === "not_started" ||
+    status === "in_progress" ||
+    status === "changes_required"
+  );
 }
 
 /* ---------------------------------------------------------------
@@ -433,51 +495,78 @@ export interface ModuleDef {
 }
 
 const BASE_MODULES: ModuleDef[] = [
-  { key: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
-  { key: 'timeline', label: 'Timeline', icon: 'calendar-clock' },
-  { key: 'participation', label: 'My participation', icon: 'package' },
-  { key: 'tasks', label: 'Tasks', icon: 'circle-check' },
-  { key: 'forms', label: 'Forms', icon: 'file-text' },
-  { key: 'requests', label: 'Requests', icon: 'message-square-warning' },
-  { key: 'information', label: 'Information', icon: 'book-open' },
-  { key: 'shop', label: 'Shop', icon: 'shopping-bag' },
-  { key: 'orders', label: 'Orders', icon: 'receipt' },
-  { key: 'files', label: 'Files & assets', icon: 'folder' },
-  { key: 'promote', label: 'Promote', icon: 'megaphone' },
-  { key: 'team', label: 'Team', icon: 'users' },
+  { key: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
+  { key: "timeline", label: "Timeline", icon: "calendar-clock" },
+  { key: "participation", label: "My participation", icon: "package" },
+  { key: "tasks", label: "Tasks", icon: "circle-check" },
+  { key: "forms", label: "Forms", icon: "file-text" },
+  { key: "requests", label: "Requests", icon: "message-square-warning" },
+  { key: "information", label: "Information", icon: "book-open" },
+  { key: "shop", label: "Shop", icon: "shopping-bag" },
+  { key: "orders", label: "Orders", icon: "receipt" },
+  { key: "files", label: "Files & assets", icon: "folder" },
+  { key: "promote", label: "Promote", icon: "megaphone" },
+  { key: "team", label: "Team", icon: "users" },
 ];
 
 /** Entitlements that give a partner something to buy. */
 const SHOP_KEYS = [
-  'can_order_av',
-  'can_order_furniture',
-  'can_order_signage',
-  'can_order_catering',
-  'has_exhibition_space',
-  'has_hospitality_activation',
-  'has_branding_inventory',
+  "can_order_av",
+  "can_order_furniture",
+  "can_order_signage",
+  "can_order_catering",
+  "has_exhibition_space",
+  "has_hospitality_activation",
+  "has_branding_inventory",
 ];
 
 /** Info-only modules are always on; the rest map to a permission key. */
-const ALWAYS_ON = new Set(['dashboard', 'timeline', 'information', 'files']);
+const ALWAYS_ON = new Set(["dashboard", "timeline", "information", "files"]);
 
-const PERMISSION_KEY: Record<string, keyof import('./types').PartnerPermissions> = {
-  tasks: 'tasks',
-  forms: 'forms',
-  requests: 'requests',
-  shop: 'shop',
-  orders: 'orders',
-  participation: 'profile',
-  promote: 'profile',
-  team: 'team',
+const PERMISSION_KEY: Record<
+  string,
+  keyof import("./types").PartnerPermissions
+> = {
+  tasks: "tasks",
+  forms: "forms",
+  requests: "requests",
+  shop: "shop",
+  orders: "orders",
+  participation: "profile",
+  promote: "profile",
+  team: "team",
 };
 
+/** A module, and why this partner does or does not have it. */
+export interface ModuleState extends ModuleDef {
+  /** Their package allows it, ignoring any switch set against them. */
+  inPackage: boolean;
+  /** Switched off for this partner specifically. */
+  hidden: boolean;
+  /** Hiding this one would leave them nowhere to land. */
+  required: boolean;
+}
+
 /**
- * The modules this partner — and this signed-in user — can see.
+ * Every module, with its state for one partner.
  *
- * Gating here is presentation. The same checks must be enforced
- * server-side: hiding a nav item is not access control.
+ * The organiser's view of the same decision `visibleModules` makes,
+ * but answering "why" rather than "which" — so a switch can say
+ * "their package does not include this" instead of silently doing
+ * nothing when it is turned on.
  */
+export function moduleCatalogue(db: Db, part: Participation): ModuleState[] {
+  const canShop = SHOP_KEYS.some((k) => hasEnt(db, part, k));
+
+  return BASE_MODULES.map((m) => ({
+    ...m,
+    inPackage: m.key === "shop" || m.key === "orders" ? canShop : true,
+    hidden: part.moduleOverrides?.[m.key] === false,
+    // The dashboard is where every sign-in lands.
+    required: m.key === "dashboard",
+  }));
+}
+
 /**
  * The modules to show this partner.
  *
@@ -494,17 +583,18 @@ export function visibleModules(
   now: Date | null = new Date(),
 ): ModuleDef[] {
   const canShop = SHOP_KEYS.some((k) => hasEnt(db, part, k));
-  const perm = user && user.permissions !== 'all' ? user.permissions : null;
+  const perm = user && user.permissions !== "all" ? user.permissions : null;
 
   return BASE_MODULES.filter((m) => {
-    if (part.moduleOverrides && part.moduleOverrides[m.key] === false) return false;
-    if ((m.key === 'shop' || m.key === 'orders') && !canShop) return false;
+    if (part.moduleOverrides && part.moduleOverrides[m.key] === false)
+      return false;
+    if ((m.key === "shop" || m.key === "orders") && !canShop) return false;
     /*
      * Deliberately only the shop. Orders stays: what a partner has
      * already bought does not stop mattering when ordering closes —
      * that is exactly when they start checking on it.
      */
-    if (m.key === 'shop' && now && !shopOpen(db, part, now)) return false;
+    if (m.key === "shop" && now && !shopOpen(db, part, now)) return false;
     if (perm && !ALWAYS_ON.has(m.key)) {
       const k = PERMISSION_KEY[m.key];
       if (k && !perm[k]) return false;
@@ -522,8 +612,10 @@ export function visibleModules(
  * Changing the event currency reformats every price in the product.
  */
 export function money(db: Db, n: number | null | undefined): string {
-  const sym = db.event?.currencySymbol || '€';
-  return sym + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
+  const sym = db.event?.currencySymbol || "€";
+  return (
+    sym + Number(n || 0).toLocaleString("en-GB", { maximumFractionDigits: 0 })
+  );
 }
 
 /* ---------------------------------------------------------------
@@ -542,33 +634,40 @@ export function daysUntil(dueIso: string, now: Date = new Date()): number {
   const due = Date.parse(`${dueIso.slice(0, 10)}T00:00:00Z`);
   if (Number.isNaN(due)) return NaN;
 
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const today = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
   return Math.round((due - today) / 86_400_000);
 }
 
 /** "Date to be confirmed" — used wherever no deadline resolves. */
-export const NO_DATE_LABEL = 'Date to be confirmed';
+export const NO_DATE_LABEL = "Date to be confirmed";
 
 export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
 export function fmtDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return "—";
   const d = new Date(iso);
   return (
-    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
-    ', ' +
-    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) +
+    ", " +
+    d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
   );
 }
 
-export function daysLeft(iso: string | null | undefined, now: Date = new Date()): number | null {
+export function daysLeft(
+  iso: string | null | undefined,
+  now: Date = new Date(),
+): number | null {
   if (!iso) return null;
   return Math.round((new Date(iso).getTime() - now.getTime()) / 86_400_000);
 }
@@ -595,13 +694,19 @@ export function isOverdue(
  * rather than calling isOverdue directly, so the rule holds in the
  * counts, the badges, both portals and the reminder run at once.
  */
-export function taskOverdue(task: ResolvedTask, now: Date = new Date()): boolean {
+export function taskOverdue(
+  task: ResolvedTask,
+  now: Date = new Date(),
+): boolean {
   if (!task.required) return false;
   return isOverdue(task.dueDate, task.completed, now);
 }
 
 /** Upcoming only — the dashboard deadline list never shows past dates. */
-export function isUpcoming(iso: string | null | undefined, now: Date = new Date()): boolean {
+export function isUpcoming(
+  iso: string | null | undefined,
+  now: Date = new Date(),
+): boolean {
   return !!iso && new Date(iso) >= now;
 }
 
@@ -610,37 +715,37 @@ export function isUpcoming(iso: string | null | undefined, now: Date = new Date(
    --------------------------------------------------------------- */
 
 /** Maps a status to a semantic token, not a raw hex, so themes hold. */
-export type StatusTone = 'good' | 'warn' | 'neutral' | 'muted';
+export type StatusTone = "good" | "warn" | "neutral" | "muted";
 
 const STATUS_TONE: Record<string, StatusTone> = {
-  confirmed: 'good',
-  approved: 'good',
-  completed: 'good',
-  delivered: 'good',
-  partially_confirmed: 'good',
-  in_fulfilment: 'good',
-  submitted: 'neutral',
-  under_review: 'warn',
-  more_info: 'warn',
-  quote_requested: 'warn',
-  awaiting_information: 'warn',
-  changes_required: 'warn',
-  quoted: 'warn',
-  failed: 'warn',
-  rejected: 'muted',
-  cancelled: 'muted',
-  draft: 'muted',
-  closed: 'muted',
-  not_started: 'muted',
-  in_progress: 'neutral',
+  confirmed: "good",
+  approved: "good",
+  completed: "good",
+  delivered: "good",
+  partially_confirmed: "good",
+  in_fulfilment: "good",
+  submitted: "neutral",
+  under_review: "warn",
+  more_info: "warn",
+  quote_requested: "warn",
+  awaiting_information: "warn",
+  changes_required: "warn",
+  quoted: "warn",
+  failed: "warn",
+  rejected: "muted",
+  cancelled: "muted",
+  draft: "muted",
+  closed: "muted",
+  not_started: "muted",
+  in_progress: "neutral",
 };
 
 export function statusTone(status: string): StatusTone {
-  return STATUS_TONE[status] || 'neutral';
+  return STATUS_TONE[status] || "neutral";
 }
 
 export function statusLabel(s: string | null | undefined): string {
-  const raw = String(s || '').replace(/_/g, ' ');
+  const raw = String(s || "").replace(/_/g, " ");
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
@@ -653,23 +758,23 @@ export function statusLabel(s: string | null | undefined): string {
  * The organiser edits singulars only.
  */
 export function plural(singular: string): string {
-  const s = (singular || '').trim();
-  if (!s) return '';
-  if (/[^aeiou]y$/i.test(s)) return s.slice(0, -1) + 'ies';
-  if (/(s|x|z|ch|sh)$/i.test(s)) return s + 'es';
-  return s + 's';
+  const s = (singular || "").trim();
+  if (!s) return "";
+  if (/[^aeiou]y$/i.test(s)) return s.slice(0, -1) + "ies";
+  if (/(s|x|z|ch|sh)$/i.test(s)) return s + "es";
+  return s + "s";
 }
 
 /** Falls back to the product's own vocabulary if a key is missing. */
 const DEFAULT_TERMS: Terminology = {
-  partner: 'Partner',
-  partnerPlural: 'Partners',
-  partnerPortal: 'Partner Portal',
-  participation: 'Participation',
-  task: 'Task',
-  taskPlural: 'Tasks',
-  request: 'Request',
-  requestPlural: 'Requests',
+  partner: "Partner",
+  partnerPlural: "Partners",
+  partnerPortal: "Partner Portal",
+  participation: "Participation",
+  task: "Task",
+  taskPlural: "Tasks",
+  request: "Request",
+  requestPlural: "Requests",
 };
 
 /**
@@ -722,11 +827,11 @@ export function terms(db: Db) {
  */
 export function nextReference(existing: string[]): string {
   const highest = existing.reduce((max, ref) => {
-    const match = /^BP-(\d+)$/.exec(String(ref ?? '').trim());
+    const match = /^BP-(\d+)$/.exec(String(ref ?? "").trim());
     return match ? Math.max(max, Number(match[1])) : max;
   }, 0);
 
-  return `BP-${String(highest + 1).padStart(3, '0')}`;
+  return `BP-${String(highest + 1).padStart(3, "0")}`;
 }
 
 /* ---------------------------------------------------------------
@@ -742,14 +847,17 @@ export function orderTotal(db: Db, orderId: Id): number {
 
 /** Value of everything the partner bought up front, exc. tax. */
 export function packageValue(part: Participation): number {
-  return (part.inventory || []).reduce((a, i) => a + i.cost * (i.quantity || 1), 0);
+  return (part.inventory || []).reduce(
+    (a, i) => a + i.cost * (i.quantity || 1),
+    0,
+  );
 }
 
 /** The next deadline across a set of linked tasks and forms. */
 export function nextDeadline(
   db: Db,
   part: Participation,
-  refs: Array<{ kind: 'task' | 'form'; id: Id }>,
+  refs: Array<{ kind: "task" | "form"; id: Id }>,
   now: Date = new Date(),
 ): IsoDate | null {
   const tasks = resolveTasks(db, part);
@@ -757,12 +865,13 @@ export function nextDeadline(
   const dates: string[] = [];
 
   refs.forEach((r) => {
-    if (r.kind === 'task') {
+    if (r.kind === "task") {
       const t = tasks.find((x) => x.id === r.id);
       if (t && !t.completed && t.dueDate) dates.push(t.dueDate);
     } else {
       const f = forms.find((x) => x.id === r.id);
-      if (f && !isFormSettled(f.state.status) && f.dueDate) dates.push(f.dueDate);
+      if (f && !isFormSettled(f.state.status) && f.dueDate)
+        dates.push(f.dueDate);
     }
   });
 
@@ -771,7 +880,10 @@ export function nextDeadline(
 }
 
 /** Progress across a partner's required tasks, for the "Eight of 12" copy. */
-export function taskProgress(db: Db, part: Participation): { done: number; total: number } {
+export function taskProgress(
+  db: Db,
+  part: Participation,
+): { done: number; total: number } {
   const tasks = resolveTasks(db, part);
   return { done: tasks.filter((t) => t.completed).length, total: tasks.length };
 }
@@ -780,7 +892,10 @@ export function taskProgress(db: Db, part: Participation): { done: number; total
    Deterministic gradient assignment
    --------------------------------------------------------------- */
 
-const GRADIENTS = Array.from({ length: 9 }, (_, i) => `/assets/board-bg-${i + 1}.png`);
+const GRADIENTS = Array.from(
+  { length: 9 },
+  (_, i) => `/assets/board-bg-${i + 1}.png`,
+);
 
 /**
  * Pick a BOARD gradient for a record with no uploaded image. Stable
@@ -798,10 +913,10 @@ export function gradientFor(key: string): string {
 
 /** Strip inline markdown, for card snippets and plain-text contexts. */
 export function stripMarkdown(text: string): string {
-  return (text || '')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/_([^_]+)_/g, '$1');
+  return (text || "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/_([^_]+)_/g, "$1");
 }
 
 /* ---------------------------------------------------------------
@@ -809,11 +924,15 @@ export function stripMarkdown(text: string): string {
    --------------------------------------------------------------- */
 
 export function isUploadField(type: string): boolean {
-  return type === 'file_upload' || type === 'image_upload' || type === 'document_upload';
+  return (
+    type === "file_upload" ||
+    type === "image_upload" ||
+    type === "document_upload"
+  );
 }
 
 export function isPresentationField(type: string): boolean {
-  return type === 'section_heading' || type === 'guidance';
+  return type === "section_heading" || type === "guidance";
 }
 
 /**
@@ -824,12 +943,12 @@ export function isPresentationField(type: string): boolean {
  * contact should read as one line rather than three fields.
  */
 export function answerText(value: FieldValue): string {
-  if (value === null || value === undefined || value === '') return '—';
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
-  if (typeof value === 'object') {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+  if (typeof value === "object") {
     const parts = [value.name, value.email, value.phone].filter(Boolean);
-    return parts.length ? parts.join(' · ') : '—';
+    return parts.length ? parts.join(" · ") : "—";
   }
   // Uploads are stored as "Original name.pdf|/api/files/<key>".
   const upload = uploadAnswer(value);
@@ -846,8 +965,8 @@ export function answerText(value: FieldValue): string {
 export function uploadAnswer(
   value: FieldValue,
 ): { name: string; url: string } | null {
-  if (typeof value !== 'string') return null;
-  const at = value.indexOf('|/api/files/');
+  if (typeof value !== "string") return null;
+  const at = value.indexOf("|/api/files/");
   if (at <= 0) return null;
   return { name: value.slice(0, at), url: value.slice(at + 1) };
 }
@@ -855,11 +974,11 @@ export function uploadAnswer(
 /** Whether a required field has been answered. */
 export function hasValue(v: FieldValue): boolean {
   if (v === null || v === undefined) return false;
-  if (typeof v === 'string') return v.trim().length > 0;
-  if (typeof v === 'boolean') return true;
-  if (typeof v === 'number') return true;
+  if (typeof v === "string") return v.trim().length > 0;
+  if (typeof v === "boolean") return true;
+  if (typeof v === "number") return true;
   if (Array.isArray(v)) return v.length > 0;
-  if (typeof v === 'object') return Object.values(v).some((x) => !!x);
+  if (typeof v === "object") return Object.values(v).some((x) => !!x);
   return false;
 }
 
@@ -895,11 +1014,12 @@ export function validateFields(
     .forEach((f) => {
       if (isPresentationField(f.type)) return;
       if (!f.required) return;
-      if (f.type === 'acknowledgement') {
-        if (values[f.key] !== true) errors[f.key] = 'Please confirm to continue.';
+      if (f.type === "acknowledgement") {
+        if (values[f.key] !== true)
+          errors[f.key] = "Please confirm to continue.";
         return;
       }
-      if (!hasValue(values[f.key])) errors[f.key] = 'This field is required.';
+      if (!hasValue(values[f.key])) errors[f.key] = "This field is required.";
     });
   return errors;
 }

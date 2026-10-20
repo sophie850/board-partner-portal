@@ -1,11 +1,12 @@
-'use client';
+"use client";
 
-import { clsx } from 'clsx';
-import { Check, FileText, Plus, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { clsx } from "clsx";
+import { Check, FileText, Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
-import { FileUpload } from '@/components/ui/FileUpload';
+import { Switch } from "@/components/forms/FieldListEditor";
+import { FileUpload } from "@/components/ui/FileUpload";
 import {
   Button,
   Callout,
@@ -15,7 +16,7 @@ import {
   Select,
   TextArea,
   TextInput,
-} from '@/components/ui/primitives';
+} from "@/components/ui/primitives";
 import type {
   BillingDetails,
   Entitlement,
@@ -27,7 +28,8 @@ import type {
   PartnerUser,
   RequestedFile,
   TaskTemplate,
-} from '@/lib/types';
+} from "@/lib/types";
+import type { ModuleState } from "@/lib/resolvers";
 
 import {
   saveContract,
@@ -36,7 +38,7 @@ import {
   saveParticipation,
   savePartnerDetails,
   saveRequestedFiles,
-} from '@/app/organiser/partners/actions';
+} from "@/app/organiser/partners/actions";
 
 /* ============================================================
    Partner configuration
@@ -48,28 +50,28 @@ import {
    ============================================================ */
 
 const SECTORS = [
-  'Enterprise Tech & AI',
-  'Management Consultancy',
-  'Investment',
-  'Financial services',
-  'Industrial',
-  'Healthcare',
-  'Legal',
-  'Other',
+  "Enterprise Tech & AI",
+  "Management Consultancy",
+  "Investment",
+  "Financial services",
+  "Industrial",
+  "Healthcare",
+  "Legal",
+  "Other",
 ];
 
 const INVENTORY_TYPES: InventoryType[] = [
-  'Dedicated Space',
-  'Curated Introductions',
-  'Branding',
-  'Bespoke',
-  'Delegate Passes',
+  "Dedicated Space",
+  "Curated Introductions",
+  "Branding",
+  "Bespoke",
+  "Delegate Passes",
 ];
 
 /** Pass types autofill their description — they are fixed products. */
 const PASS_TYPES: Record<string, string> = {
-  'Associate Pass': 'Full show access',
-  'Service Pass': 'For service staff working on stands only',
+  "Associate Pass": "Full show access",
+  "Service Pass": "For service staff working on stands only",
 };
 
 export function PartnerConfigure({
@@ -79,6 +81,7 @@ export function PartnerConfigure({
   entitlements,
   forms,
   tasks,
+  modules,
 }: {
   partner: Partner;
   participation: Participation;
@@ -86,17 +89,28 @@ export function PartnerConfigure({
   entitlements: Entitlement[];
   forms: FormDef[];
   tasks: TaskTemplate[];
+  modules: ModuleState[];
 }) {
   return (
     <div className="flex flex-col gap-[18px]">
       <CompanyDetails partner={partner} />
       <LeadContact partnerId={partner.id} lead={lead} />
       <Contract partnerId={partner.id} participation={participation} />
-      <Package partnerId={partner.id} participation={participation} forms={forms} tasks={tasks} />
+      <Package
+        partnerId={partner.id}
+        participation={participation}
+        forms={forms}
+        tasks={tasks}
+      />
       <Entitlements
         partnerId={partner.id}
         participation={participation}
         entitlements={entitlements}
+      />
+      <Modules
+        partnerId={partner.id}
+        participation={participation}
+        modules={modules}
       />
       <Deadlines
         partnerId={partner.id}
@@ -141,7 +155,7 @@ function Section({
     startTransition(async () => {
       const result = await onSave();
       if (!result.ok) {
-        setError(result.error ?? 'Could not save.');
+        setError(result.error ?? "Could not save.");
         return;
       }
       setSaved(true);
@@ -174,8 +188,12 @@ function Section({
 
       {onSave && (
         <div className="mt-4 flex items-center gap-3 border-t border-line pt-4">
-          <Button size="sm" onClick={save} disabled={pending || dirty === false}>
-            {pending ? 'Saving…' : 'Save'}
+          <Button
+            size="sm"
+            onClick={save}
+            disabled={pending || dirty === false}
+          >
+            {pending ? "Saving…" : "Save"}
           </Button>
           {saved && (
             <span className="flex items-center gap-[6px] text-[12px] text-accent">
@@ -196,15 +214,16 @@ function CompanyDetails({ partner }: { partner: Partner }) {
   const [name, setName] = useState(partner.name);
   const [sector, setSector] = useState(partner.sector);
   const [billing, setBilling] = useState<BillingDetails>({
-    entity: partner.billing?.entity ?? '',
-    address: partner.billing?.address ?? '',
-    city: partner.billing?.city ?? '',
-    postcode: partner.billing?.postcode ?? '',
-    country: partner.billing?.country ?? '',
-    vat: partner.billing?.vat ?? '',
+    entity: partner.billing?.entity ?? "",
+    address: partner.billing?.address ?? "",
+    city: partner.billing?.city ?? "",
+    postcode: partner.billing?.postcode ?? "",
+    country: partner.billing?.country ?? "",
+    vat: partner.billing?.vat ?? "",
   });
 
-  const patch = (p: Partial<BillingDetails>) => setBilling((b) => ({ ...b, ...p }));
+  const patch = (p: Partial<BillingDetails>) =>
+    setBilling((b) => ({ ...b, ...p }));
 
   return (
     <Section
@@ -216,12 +235,22 @@ function CompanyDetails({ partner }: { partner: Partner }) {
           <Label htmlFor="org-name" required>
             Organisation name
           </Label>
-          <TextInput id="org-name" value={name} onChange={(e) => setName(e.target.value)} />
+          <TextInput
+            id="org-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </div>
         <div>
           <Label htmlFor="org-sector">Sector</Label>
-          <Select id="org-sector" value={sector} onChange={(e) => setSector(e.target.value)}>
-            {!SECTORS.includes(sector) && sector && <option value={sector}>{sector}</option>}
+          <Select
+            id="org-sector"
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+          >
+            {!SECTORS.includes(sector) && sector && (
+              <option value={sector}>{sector}</option>
+            )}
             {SECTORS.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -294,16 +323,24 @@ function CompanyDetails({ partner }: { partner: Partner }) {
    Partner lead
    --------------------------------------------------------------- */
 
-function LeadContact({ partnerId, lead }: { partnerId: string; lead: PartnerUser | null }) {
-  const [name, setName] = useState(lead?.name ?? '');
-  const [email, setEmail] = useState(lead?.email ?? '');
-  const [telephone, setTelephone] = useState(lead?.telephone ?? '');
+function LeadContact({
+  partnerId,
+  lead,
+}: {
+  partnerId: string;
+  lead: PartnerUser | null;
+}) {
+  const [name, setName] = useState(lead?.name ?? "");
+  const [email, setEmail] = useState(lead?.email ?? "");
+  const [telephone, setTelephone] = useState(lead?.telephone ?? "");
 
   return (
     <Section
       title="Main contact & portal access"
       description="The Partner Lead. They can invite colleagues and set what each can see."
-      onSave={() => saveLead(partnerId, lead?.id ?? null, { name, email, telephone })}
+      onSave={() =>
+        saveLead(partnerId, lead?.id ?? null, { name, email, telephone })
+      }
     >
       <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
         <div className="col-span-2 max-md:col-span-1">
@@ -339,8 +376,9 @@ function LeadContact({ partnerId, lead }: { partnerId: string; lead: PartnerUser
         </div>
       </div>
       <Help>
-        Invitations are not sent yet — that needs the email provider and magic-link sign-in.
-        Saving the contact now means it is ready when they are.
+        Invitations are not sent yet — that needs the email provider and
+        magic-link sign-in. Saving the contact now means it is ready when they
+        are.
       </Help>
     </Section>
   );
@@ -387,7 +425,11 @@ function Contract({
           </a>
           <button
             onClick={() => {
-              if (window.confirm('Remove the signed agreement? The partner will no longer see it.'))
+              if (
+                window.confirm(
+                  "Remove the signed agreement? The partner will no longer see it.",
+                )
+              )
                 store(null);
             }}
             className="shrink-0 cursor-pointer border-none bg-transparent text-[12px] text-warn"
@@ -422,19 +464,21 @@ function Package({
   forms: FormDef[];
   tasks: TaskTemplate[];
 }) {
-  const [items, setItems] = useState<InventoryItem[]>(participation.inventory ?? []);
+  const [items, setItems] = useState<InventoryItem[]>(
+    participation.inventory ?? [],
+  );
 
   function add() {
     setItems((xs) => [
       ...xs,
       {
-        id: '',
-        type: 'Dedicated Space',
-        name: '',
-        description: '',
+        id: "",
+        type: "Dedicated Space",
+        name: "",
+        description: "",
         cost: 0,
         quantity: 1,
-        standNumber: '',
+        standNumber: "",
         refs: [],
       },
     ]);
@@ -460,8 +504,8 @@ function Package({
     >
       {items.length === 0 ? (
         <p className="text-[12.5px] text-ink-4">
-          No items yet. Add dedicated space, introductions, branding, bespoke or delegate
-          passes.
+          No items yet. Add dedicated space, introductions, branding, bespoke or
+          delegate passes.
         </p>
       ) : (
         <div className="flex flex-col gap-[14px]">
@@ -497,13 +541,13 @@ function InventoryRow({
   onChange: (p: Partial<InventoryItem>) => void;
   onRemove: () => void;
 }) {
-  const isPasses = item.type === 'Delegate Passes';
-  const isSpace = item.type === 'Dedicated Space';
+  const isPasses = item.type === "Delegate Passes";
+  const isSpace = item.type === "Dedicated Space";
 
   const small =
-    'w-full rounded-sm border border-line-4 bg-panel px-[11px] py-[9px] text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line';
+    "w-full rounded-sm border border-line-4 bg-panel px-[11px] py-[9px] text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line";
 
-  function toggleRef(kind: 'task' | 'form', id: string) {
+  function toggleRef(kind: "task" | "form", id: string) {
     const has = (item.refs ?? []).some((r) => r.kind === kind && r.id === id);
     onChange({
       refs: has
@@ -516,20 +560,23 @@ function InventoryRow({
     <div className="rounded-lg border border-line-3 bg-inset px-[18px] py-4">
       <div className="mb-3 flex items-start gap-3 max-md:flex-wrap">
         <select
-          className={clsx(small, 'w-[190px] shrink-0 cursor-pointer max-md:w-full')}
+          className={clsx(
+            small,
+            "w-[190px] shrink-0 cursor-pointer max-md:w-full",
+          )}
           value={item.type}
           onChange={(e) => {
             const type = e.target.value as InventoryType;
             // Switching to passes replaces the free-text name with a
             // fixed product, so clear anything that no longer applies.
             onChange(
-              type === 'Delegate Passes'
+              type === "Delegate Passes"
                 ? {
                     type,
-                    passType: 'Associate Pass',
-                    name: 'Associate Pass',
-                    description: PASS_TYPES['Associate Pass'],
-                    standNumber: '',
+                    passType: "Associate Pass",
+                    name: "Associate Pass",
+                    description: PASS_TYPES["Associate Pass"],
+                    standNumber: "",
                   }
                 : { type, passType: undefined },
             );
@@ -545,13 +592,13 @@ function InventoryRow({
 
         {isPasses ? (
           <select
-            className={clsx(small, 'min-w-0 flex-1 cursor-pointer')}
-            value={item.passType ?? 'Associate Pass'}
+            className={clsx(small, "min-w-0 flex-1 cursor-pointer")}
+            value={item.passType ?? "Associate Pass"}
             onChange={(e) =>
               onChange({
                 passType: e.target.value,
                 name: e.target.value,
-                description: PASS_TYPES[e.target.value] ?? '',
+                description: PASS_TYPES[e.target.value] ?? "",
               })
             }
             aria-label={`Item ${index + 1} pass type`}
@@ -564,7 +611,7 @@ function InventoryRow({
           </select>
         ) : (
           <input
-            className={clsx(small, 'min-w-0 flex-1')}
+            className={clsx(small, "min-w-0 flex-1")}
             value={item.name}
             onChange={(e) => onChange({ name: e.target.value })}
             placeholder="Item name, e.g. Corner stand · 6m × 4m"
@@ -586,7 +633,7 @@ function InventoryRow({
           <Label htmlFor={`stand-${index}`}>Stand number</Label>
           <input
             id={`stand-${index}`}
-            className={clsx(small, 'w-[180px]')}
+            className={clsx(small, "w-[180px]")}
             value={item.standNumber}
             onChange={(e) => onChange({ standNumber: e.target.value })}
             placeholder="e.g. A12"
@@ -598,7 +645,7 @@ function InventoryRow({
         <div className="mb-3 text-[12.5px] text-ink-3">{item.description}</div>
       ) : (
         <textarea
-          className={clsx(small, 'mb-3 resize-y')}
+          className={clsx(small, "mb-3 resize-y")}
           rows={2}
           value={item.description}
           onChange={(e) => onChange({ description: e.target.value })}
@@ -627,26 +674,30 @@ function InventoryRow({
             min={1}
             className={small}
             value={item.quantity}
-            onChange={(e) => onChange({ quantity: Number(e.target.value) || 1 })}
+            onChange={(e) =>
+              onChange({ quantity: Number(e.target.value) || 1 })
+            }
           />
         </div>
       </div>
 
       <div>
-        <Label>Related {`${'tasks'} & forms`}</Label>
+        <Label>Related {`${"tasks"} & forms`}</Label>
         <div className="flex flex-wrap gap-2">
           {tasks.map((t) => {
-            const on = (item.refs ?? []).some((r) => r.kind === 'task' && r.id === t.id);
+            const on = (item.refs ?? []).some(
+              (r) => r.kind === "task" && r.id === t.id,
+            );
             return (
               <button
                 key={t.id}
-                onClick={() => toggleRef('task', t.id)}
+                onClick={() => toggleRef("task", t.id)}
                 aria-pressed={on}
                 className={clsx(
-                  'cursor-pointer rounded-pill border px-[11px] py-[5px] text-[11.5px]',
+                  "cursor-pointer rounded-pill border px-[11px] py-[5px] text-[11.5px]",
                   on
-                    ? 'border-accent-line bg-accent-fill text-accent'
-                    : 'border-line-3 text-ink-4 hover:text-ink',
+                    ? "border-accent-line bg-accent-fill text-accent"
+                    : "border-line-3 text-ink-4 hover:text-ink",
                 )}
               >
                 {t.title}
@@ -654,17 +705,19 @@ function InventoryRow({
             );
           })}
           {forms.map((f) => {
-            const on = (item.refs ?? []).some((r) => r.kind === 'form' && r.id === f.id);
+            const on = (item.refs ?? []).some(
+              (r) => r.kind === "form" && r.id === f.id,
+            );
             return (
               <button
                 key={f.id}
-                onClick={() => toggleRef('form', f.id)}
+                onClick={() => toggleRef("form", f.id)}
                 aria-pressed={on}
                 className={clsx(
-                  'cursor-pointer rounded-pill border px-[11px] py-[5px] text-[11.5px]',
+                  "cursor-pointer rounded-pill border px-[11px] py-[5px] text-[11.5px]",
                   on
-                    ? 'border-brand-line bg-brand-fill text-info'
-                    : 'border-line-3 text-ink-4 hover:text-ink',
+                    ? "border-brand-line bg-brand-fill text-info"
+                    : "border-line-3 text-ink-4 hover:text-ink",
                 )}
               >
                 {f.title}
@@ -673,8 +726,8 @@ function InventoryRow({
           })}
         </div>
         <Help>
-          These become clickable chips on the partner&rsquo;s package card, and set the
-          &ldquo;next deadline&rdquo; shown against the item.
+          These become clickable chips on the partner&rsquo;s package card, and
+          set the &ldquo;next deadline&rdquo; shown against the item.
         </Help>
       </div>
     </div>
@@ -694,7 +747,9 @@ function Entitlements({
   participation: Participation;
   entitlements: Entitlement[];
 }) {
-  const [keys, setKeys] = useState<string[]>(participation.addedEntitlements ?? []);
+  const [keys, setKeys] = useState<string[]>(
+    participation.addedEntitlements ?? [],
+  );
 
   return (
     <Section
@@ -709,6 +764,10 @@ function Entitlements({
           internalNotes: participation.internalNotes,
           passAllocation: participation.passAllocation,
           standRef: participation.standRef,
+          // Carried through untouched: this section is not the one
+          // that decides modules, and saving it must not quietly
+          // switch one back on.
+          moduleOverrides: participation.moduleOverrides ?? {},
         })
       }
     >
@@ -719,14 +778,16 @@ function Entitlements({
             <button
               key={e.key}
               onClick={() =>
-                setKeys((ks) => (on ? ks.filter((k) => k !== e.key) : [...ks, e.key]))
+                setKeys((ks) =>
+                  on ? ks.filter((k) => k !== e.key) : [...ks, e.key],
+                )
               }
               aria-pressed={on}
               className={clsx(
-                'cursor-pointer rounded-pill border px-[13px] py-[7px] text-[12.5px] transition-colors',
+                "cursor-pointer rounded-pill border px-[13px] py-[7px] text-[12.5px] transition-colors",
                 on
-                  ? 'border-accent-line bg-accent-fill text-accent'
-                  : 'border-line-3 bg-transparent text-ink-3 hover:text-ink',
+                  ? "border-accent-line bg-accent-fill text-accent"
+                  : "border-line-3 bg-transparent text-ink-3 hover:text-ink",
               )}
             >
               {e.label}
@@ -736,7 +797,7 @@ function Entitlements({
       </div>
       <Help>
         {keys.length === 0
-          ? 'No entitlements — this partner will see only the always-on modules.'
+          ? "No entitlements — this partner will see only the always-on modules."
           : `${keys.length} of ${entitlements.length} enabled.`}
       </Help>
     </Section>
@@ -758,7 +819,7 @@ function Deadlines({
   forms: FormDef[];
   tasks: TaskTemplate[];
 }) {
-  const [facet, setFacet] = useState<'forms' | 'tasks'>('forms');
+  const [facet, setFacet] = useState<"forms" | "tasks">("forms");
   const [formDates, setFormDates] = useState<Record<string, string>>(
     participation.formDueDates ?? {},
   );
@@ -767,12 +828,12 @@ function Deadlines({
   );
 
   const rows =
-    facet === 'forms'
+    facet === "forms"
       ? forms.map((f) => ({ id: f.id, title: f.title, fallback: f.dueDate }))
       : tasks.map((t) => ({ id: t.id, title: t.title, fallback: t.dueDate }));
 
-  const dates = facet === 'forms' ? formDates : taskDates;
-  const setDates = facet === 'forms' ? setFormDates : setTaskDates;
+  const dates = facet === "forms" ? formDates : taskDates;
+  const setDates = facet === "forms" ? setFormDates : setTaskDates;
 
   return (
     <Section
@@ -787,19 +848,23 @@ function Deadlines({
           internalNotes: participation.internalNotes,
           passAllocation: participation.passAllocation,
           standRef: participation.standRef,
+          // Carried through untouched: this section is not the one
+          // that decides modules, and saving it must not quietly
+          // switch one back on.
+          moduleOverrides: participation.moduleOverrides ?? {},
         })
       }
       action={
         <div className="flex shrink-0 gap-2">
-          {(['forms', 'tasks'] as const).map((f) => (
+          {(["forms", "tasks"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFacet(f)}
               className={clsx(
-                'cursor-pointer rounded-pill border px-[14px] py-[6px] text-[12px] capitalize',
+                "cursor-pointer rounded-pill border px-[14px] py-[6px] text-[12px] capitalize",
                 facet === f
-                  ? 'border-accent-line bg-accent-fill text-accent'
-                  : 'border-line-3 text-ink-3 hover:text-ink',
+                  ? "border-accent-line bg-accent-fill text-accent"
+                  : "border-line-3 text-ink-3 hover:text-ink",
               )}
             >
               {f}
@@ -810,7 +875,7 @@ function Deadlines({
     >
       <div className="flex flex-col gap-[9px]">
         {rows.map((row) => {
-          const override = dates[row.id] ?? '';
+          const override = dates[row.id] ?? "";
           return (
             <div
               key={row.id}
@@ -820,16 +885,18 @@ function Deadlines({
                 <div className="text-[13px] text-ink">{row.title}</div>
                 <div className="mt-[2px] text-[11.5px] text-ink-4">
                   {override
-                    ? 'Set for this partner'
+                    ? "Set for this partner"
                     : row.fallback
                       ? `Event default · ${row.fallback}`
-                      : 'No date set — “Date to be confirmed”'}
+                      : "No date set — “Date to be confirmed”"}
                 </div>
               </div>
               <input
                 type="date"
                 value={override}
-                onChange={(e) => setDates((d) => ({ ...d, [row.id]: e.target.value }))}
+                onChange={(e) =>
+                  setDates((d) => ({ ...d, [row.id]: e.target.value }))
+                }
                 aria-label={`${row.title} deadline`}
                 className="w-[150px] shrink-0 rounded-sm border border-line-4 bg-panel px-[10px] py-[7px] text-[12.5px] text-ink outline-none focus:border-accent-line focus:ring-2 focus:ring-accent-line"
               />
@@ -866,10 +933,12 @@ function RequestedFiles({
   partnerId: string;
   participation: Participation;
 }) {
-  const [files, setFiles] = useState<RequestedFile[]>(participation.requestedFiles ?? []);
+  const [files, setFiles] = useState<RequestedFile[]>(
+    participation.requestedFiles ?? [],
+  );
 
   const small =
-    'w-full rounded-sm border border-line-4 bg-panel px-[11px] py-[9px] text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line';
+    "w-full rounded-sm border border-line-4 bg-panel px-[11px] py-[9px] text-[13px] text-ink outline-none placeholder:text-ink-4 focus:border-accent-line focus:ring-2 focus:ring-accent-line";
 
   return (
     <Section
@@ -881,7 +950,7 @@ function RequestedFiles({
           onClick={() =>
             setFiles((xs) => [
               ...xs,
-              { id: '', label: '', due: null, required: true, file: null },
+              { id: "", label: "", due: null, required: true, file: null },
             ])
           }
           className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-pill bg-brand px-4 py-2 text-[12.5px] text-on-brand"
@@ -891,7 +960,9 @@ function RequestedFiles({
       }
     >
       {files.length === 0 ? (
-        <p className="text-[12.5px] text-ink-4">Nothing requested from this partner yet.</p>
+        <p className="text-[12.5px] text-ink-4">
+          Nothing requested from this partner yet.
+        </p>
       ) : (
         <div className="flex flex-col gap-[9px]">
           {files.map((f, i) => (
@@ -905,7 +976,9 @@ function RequestedFiles({
                   value={f.label}
                   onChange={(e) =>
                     setFiles((xs) =>
-                      xs.map((x, k) => (k === i ? { ...x, label: e.target.value } : x)),
+                      xs.map((x, k) =>
+                        k === i ? { ...x, label: e.target.value } : x,
+                      ),
                     )
                   }
                   placeholder="e.g. Public liability insurance certificate"
@@ -919,10 +992,12 @@ function RequestedFiles({
               </div>
               <input
                 type="date"
-                value={f.due ?? ''}
+                value={f.due ?? ""}
                 onChange={(e) =>
                   setFiles((xs) =>
-                    xs.map((x, k) => (k === i ? { ...x, due: e.target.value || null } : x)),
+                    xs.map((x, k) =>
+                      k === i ? { ...x, due: e.target.value || null } : x,
+                    ),
                   )
                 }
                 aria-label={`Requested file ${i + 1} due date`}
@@ -954,8 +1029,12 @@ function Notes({
   partnerId: string;
   participation: Participation;
 }) {
-  const [partnerNotes, setPartnerNotes] = useState(participation.partnerNotes ?? '');
-  const [internalNotes, setInternalNotes] = useState(participation.internalNotes ?? '');
+  const [partnerNotes, setPartnerNotes] = useState(
+    participation.partnerNotes ?? "",
+  );
+  const [internalNotes, setInternalNotes] = useState(
+    participation.internalNotes ?? "",
+  );
 
   return (
     <Section
@@ -969,6 +1048,10 @@ function Notes({
           internalNotes,
           passAllocation: participation.passAllocation,
           standRef: participation.standRef,
+          // Carried through untouched: this section is not the one
+          // that decides modules, and saving it must not quietly
+          // switch one back on.
+          moduleOverrides: participation.moduleOverrides ?? {},
         })
       }
     >
@@ -993,9 +1076,108 @@ function Notes({
             placeholder="Only your team sees this…"
             className="border-warn-line focus:border-warn-line"
           />
-          <Help>Never shown to the partner, in the portal or in any email.</Help>
+          <Help>
+            Never shown to the partner, in the portal or in any email.
+          </Help>
         </div>
       </div>
+    </Section>
+  );
+}
+
+/* ---------------------------------------------------------------
+   Modules
+   --------------------------------------------------------------- */
+
+/**
+ * Which parts of the portal this partner actually sees.
+ *
+ * The data model has carried per-partner module switches since the
+ * beginning and nothing ever exposed them, so the only way to hide a
+ * section from one partner was to take away an entitlement — which
+ * also takes away the forms, pages and products that hang off it.
+ * The shop is the case that forces the issue: it opens on
+ * `has_exhibition_space`, so every sponsor with a stand gets a shop
+ * whether or not there is anything to sell them yet.
+ *
+ * Off is stored, on is absent. See onlyOff() in the action.
+ */
+function Modules({
+  partnerId,
+  participation,
+  modules,
+}: {
+  partnerId: string;
+  participation: Participation;
+  modules: ModuleState[];
+}) {
+  const [off, setOff] = useState<Record<string, boolean>>(
+    participation.moduleOverrides ?? {},
+  );
+
+  const hiddenCount = modules.filter((m) => off[m.key] === false).length;
+
+  return (
+    <Section
+      title="Modules"
+      description="Which sections of the portal this partner sees. Switching one off hides it from their navigation and closes the pages behind it."
+      onSave={() =>
+        saveParticipation(partnerId, participation.id, {
+          addedEntitlements: participation.addedEntitlements ?? [],
+          formDueDates: participation.formDueDates ?? {},
+          taskDueDates: participation.taskDueDates ?? {},
+          partnerNotes: participation.partnerNotes,
+          internalNotes: participation.internalNotes,
+          passAllocation: participation.passAllocation,
+          standRef: participation.standRef,
+          moduleOverrides: off,
+        })
+      }
+    >
+      <div className="flex flex-col gap-[2px]">
+        {modules.map((m) => {
+          const switchedOff = off[m.key] === false;
+          const on = !switchedOff;
+
+          return (
+            <div
+              key={m.key}
+              className="flex items-center gap-4 border-b border-line py-[10px] last:border-b-0"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] text-ink">{m.label}</div>
+                <div className="mt-[2px] text-[11.5px] text-ink-4">
+                  {m.required
+                    ? "Always on — it is where they land when they sign in."
+                    : !m.inPackage
+                      ? "Not in their package, so it is already hidden."
+                      : switchedOff
+                        ? "Hidden from this partner."
+                        : "Visible to this partner."}
+                </div>
+              </div>
+              <Switch
+                checked={on && m.inPackage}
+                disabled={m.required || !m.inPackage}
+                label={`Show ${m.label}`}
+                onChange={(next) =>
+                  setOff((prev) => {
+                    const copy = { ...prev };
+                    if (next) delete copy[m.key];
+                    else copy[m.key] = false;
+                    return copy;
+                  })
+                }
+              />
+            </div>
+          );
+        })}
+      </div>
+      <Help>
+        {hiddenCount === 0
+          ? "Nothing hidden — this partner sees everything their package includes."
+          : `${hiddenCount} hidden. Their package is unchanged, so switching one back on restores it with everything it held.`}
+      </Help>
     </Section>
   );
 }
