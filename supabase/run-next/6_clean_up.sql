@@ -1,27 +1,17 @@
--- 2. Clear the fixtures, and stop the chasing
+-- STEP 6 of 7 — Remove the test data, switch reminders off
 --
--- Run 01_preview.sql first and read what it returns.
+-- DESTRUCTIVE. Supabase will warn you. The warning is correct.
+-- Run step 5 first and read what it returns.
 --
--- DESTRUCTIVE. The console will warn you, and it is right to.
+-- Removes: the 3 test companies and their people, the 5 fictional
+-- suppliers and their 12 catalogue lines. Switches the two chasing
+-- emails off.
+--
+-- KEEPS: Grimaldi Forum (your real venue) and its 9 products,
+-- Anna's 8 forms, the information sheets, and all history.
+--
 -- Safe to run twice.
 --
--- Three things, in an order that matters: the sponsors go first
--- because order_items hold their suppliers with "on delete restrict",
--- so a supplier cannot be removed while a fixture order still points
--- at it.
---
--- Grimaldi Forum is deliberately kept. It is the venue, not a
--- fixture, and it carries the nine real catalogue lines including
--- the six from Anna's Form 6.2.
-
--- ------------------------------------------------------------
--- The three fictional sponsors
---
--- Everything hanging off them goes with them: their people, their
--- participation, package lines, file requests, price overrides,
--- orders and requests all cascade. Audit entries and sent email
--- survive with the partner column emptied, so the history of what
--- was done is not rewritten.
 -- ------------------------------------------------------------
 
 delete from partner_organisations

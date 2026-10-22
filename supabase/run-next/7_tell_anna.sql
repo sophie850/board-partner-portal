@@ -1,15 +1,16 @@
--- 3. Tell Anna when a venue form comes in
+-- STEP 7 of 7 — Email Anna when a venue form comes in
 --
--- Run migrations/0007_form_notifications.sql first — it adds the
--- column this sets.
+-- Needs step 4 done first.
 --
--- Until now a submitted form told the partner it had arrived and
--- told nobody at BOARD. The answers sat in the organiser's Forms
--- screen waiting to be noticed, which is fine for a form somebody is
--- watching and useless for a venue questionnaire with a return date.
+-- Points all eight Grimaldi forms at anna@boardsummits.com. She
+-- gets the answers in the email, not just a link.
 --
--- Safe to run twice. Changeable afterwards per form, on the form's
--- own edit screen, without coming back here.
+-- Changeable afterwards on each form's own edit screen — you will
+-- not need to come back to SQL for this again.
+--
+-- Safe to run twice.
+--
+-- ------------------------------------------------------------
 
 update forms
    set notify_emails = array['anna@boardsummits.com'],

@@ -46,7 +46,19 @@ create index if not exists reminder_claims_participation_idx
 
 alter table reminder_claims enable row level security;
 
-revoke all on reminder_claims from anon, authenticated;
+-- Guarded, so this file also runs on a plain PostgreSQL where the
+-- Supabase browser roles do not exist. On Supabase both are present
+-- and both are revoked, which is the point.
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    execute 'revoke all on reminder_claims from anon';
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'authenticated') then
+    execute 'revoke all on reminder_claims from authenticated';
+  end if;
+end;
+$$;
 
 -- ------------------------------------------------------------
 -- Re-verify the whole schema

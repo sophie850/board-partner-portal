@@ -1,7 +1,12 @@
--- 1. What the clean-up will remove. Reads only, changes nothing.
+-- STEP 5 of 7 — Look before you delete
 --
--- Run this before 02 and read the counts. If anything here is a real
--- sponsor or a real supplier, stop.
+-- Reads only. Changes nothing.
+--
+-- Shows you exactly what step 6 will remove. Read the list. If
+-- everything in it is a test company or a fictional supplier, go on
+-- to step 6. If you see anything real, STOP and tell me.
+--
+-- ------------------------------------------------------------
 
 select 'sponsor to delete'            as what,
        p.id                           as which,
