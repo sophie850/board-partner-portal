@@ -20,7 +20,7 @@ begin;
 
 -- ---- event ----
 insert into events ("id", "name", "short_name", "venue", "city", "start_date", "end_date", "currency", "currency_symbol", "timezone", "tagline", "sender", "terminology") values
-  ('board_monaco_2027', 'BOARD Monaco 2027', 'BOARD 2027', 'Grimaldi Forum', 'Monaco', '2027-03-22', '2027-03-24', 'EUR', '€', 'Europe/Monaco', 'Take your seat at the table.', '{"name":"BOARD Operations","email":"operations@boardsummits.com","signature":"BOARD Operations\nGrimaldi Forum, Monaco\nboardsummits.com","logo":""}'::jsonb, '{"partner":"Partner","partnerPlural":"Partners","partnerPortal":"Partner Portal","participation":"Participation","task":"Task","taskPlural":"Tasks","request":"Request","requestPlural":"Requests"}'::jsonb)
+  ('board_monaco_2027', 'BOARD Monaco 2027', 'BOARD 2027', 'Grimaldi Forum', 'Monaco', '2027-03-22', '2027-03-24', 'EUR', '€', 'Europe/Monaco', 'Take your seat at the table.', '{"supportEmail":"anna@boardsummits.com","name":"BOARD Operations","email":"operations@boardsummits.com","signature":"BOARD Operations\nGrimaldi Forum, Monaco\nboardsummits.com","logo":""}'::jsonb, '{"partner":"Partner","partnerPlural":"Partners","partnerPortal":"Partner Portal","participation":"Participation","task":"Task","taskPlural":"Tasks","request":"Request","requestPlural":"Requests"}'::jsonb)
 on conflict (id) do nothing;
 
 

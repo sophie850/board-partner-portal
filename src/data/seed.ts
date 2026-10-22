@@ -64,6 +64,9 @@ const event: BoardEvent = {
   timezone: 'Europe/Monaco',
   tagline: 'Take your seat at the table.',
   sender: {
+    // Shown to partners. Kept apart from the From address, which is
+    // constrained by what the email provider has verified.
+    supportEmail: 'anna@boardsummits.com',
     name: 'BOARD Operations',
     email: 'operations@boardsummits.com',
     signature: 'BOARD Operations\nGrimaldi Forum, Monaco\nboardsummits.com',

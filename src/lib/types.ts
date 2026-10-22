@@ -33,7 +33,26 @@ export interface Terminology {
 /** Default outbound-email identity, editable in Event settings. */
 export interface EventSender {
   name: string;
+  /**
+   * The From address on everything the portal sends.
+   *
+   * Constrained by the email provider: it must be on a domain that
+   * has been verified there, or every send is rejected. That makes
+   * it a poor choice for the address shown to partners, which is
+   * why supportEmail exists.
+   */
   email: string;
+  /**
+   * The address partners are told to write to, shown in the portal.
+   *
+   * Falls back to `email` when unset, which is what it did before
+   * this field existed. Kept apart because the two answer different
+   * questions — what the provider will let us send as, and who a
+   * partner should actually contact — and tying them together means
+   * a verification problem silently changes the help text, or
+   * fixing the help text takes email down.
+   */
+  supportEmail?: string;
   signature: string;
   logo: string;
 }

@@ -575,6 +575,22 @@ function EmailSection({ data, run }: { data: SettingsData; run: Runner }) {
             />
           </div>
           <div className="col-span-2 max-md:col-span-1">
+            <Label htmlFor="sn-support">Support address shown to partners</Label>
+            <TextInput
+              id="sn-support"
+              type="email"
+              value={sender.supportEmail ?? ''}
+              onChange={(e) => setSender((s) => ({ ...s, supportEmail: e.target.value }))}
+              onBlur={() => run(() => saveSender({ supportEmail: sender.supportEmail }))}
+              placeholder={sender.email || 'anna@boardsummits.com'}
+            />
+            <Help>
+              Appears as &ldquo;Need help? Contact&rdquo; in every partner&rsquo;s sidebar.
+              Separate from the From address above, which has to be on a domain your email
+              provider has verified. Leave blank to use the From address.
+            </Help>
+          </div>
+          <div className="col-span-2 max-md:col-span-1">
             <Label htmlFor="sn-sig">Signature</Label>
             <TextArea
               id="sn-sig"

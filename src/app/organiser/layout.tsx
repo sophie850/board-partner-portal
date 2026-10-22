@@ -165,7 +165,7 @@ export default async function OrganiserLayout({
       portalKind="Organiser"
       eventName={ev.name}
       eventMeta={meta}
-      supportContact={ev.sender.email}
+      supportContact={ev.sender.supportEmail || ev.sender.email}
       nav={nav}
       user={{
         name: session.user.name,
