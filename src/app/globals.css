@@ -29,6 +29,20 @@
   --board-off-white: #f1f1e4;
   --board-pure-white: #ffffff;
   --board-teal: #016972;
+
+  /*
+   * The panel the hero's text sits on, over a photograph.
+   *
+   * Deliberately the same in both themes, which is the one place in
+   * this system a colour does not flip. The rule is aqua on dark and
+   * teal on light, and it is about the *ground* — a photograph is a
+   * dark ground whatever the page around it is doing, so the scrim
+   * stays dark and its text stays light in light mode too.
+   *
+   * The brand teal, taken down far enough to hold white text at
+   * AA over a bright sky.
+   */
+  --bp-hero-scrim: rgba(3, 48, 52, 0.84);
   --board-blue: #1a4de7;
   --board-aqua: #31f9e5;
   --board-cyan: #00b7c4;
@@ -208,6 +222,7 @@
   --color-line-4: var(--bp-line-4);
   --color-line-5: var(--bp-line-5);
 
+  --color-hero-scrim: var(--bp-hero-scrim);
   --color-board-teal: var(--board-teal);
   --color-board-aqua: var(--board-aqua);
   --color-board-blue: var(--board-blue);

@@ -2,7 +2,8 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { Eyebrow, PageTitle, Panel, Rise, StatusPill } from '@/components/ui/primitives';
+import { PartnerHero } from '@/components/portal/PartnerHero';
+import { Panel, Rise, StatusPill } from '@/components/ui/primitives';
 import { getDb } from '@/lib/db/store';
 import {
   actionCounts,
@@ -78,14 +79,19 @@ export default async function PartnerDashboard({
 
   return (
     <Rise>
-      <Eyebrow className="mb-2">{t.partnerPortal}</Eyebrow>
-      <PageTitle>{partner.name}</PageTitle>
-      <p className="mt-2 text-[13.5px] text-ink-3">
-        {db.event.name} · {db.event.venue}, {db.event.city} · {fmtDate(db.event.startDate)} –{' '}
-        {fmtDate(db.event.endDate)}
-      </p>
+      {/*
+       * The eyebrow, name and event line used to sit here as plain
+       * text. They have moved into the hero rather than being
+       * duplicated above it — saying who you are twice on one screen
+       * is how a dashboard starts feeling like a form.
+       */}
+      <PartnerHero
+        eyebrow={t.partnerPortal}
+        partnerName={partner.name}
+        event={db.event}
+      />
 
-      <p className="mt-5 mb-7 max-w-[62ch] text-[14px] leading-relaxed text-ink-2">
+      <p className="mb-7 max-w-[62ch] text-[14px] leading-relaxed text-ink-2">
         {progress.total === 0
           ? `Nothing is outstanding yet. Anything the BOARD team needs from you will appear here.`
           : `${spell(progress.done)} of ${progress.total} ${t.lower.tasks} completed.` +
