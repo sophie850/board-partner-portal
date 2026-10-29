@@ -591,6 +591,22 @@ function EmailSection({ data, run }: { data: SettingsData; run: Runner }) {
             </Help>
           </div>
           <div className="col-span-2 max-md:col-span-1">
+            <Label htmlFor="sn-reply">Replies go to</Label>
+            <TextInput
+              id="sn-reply"
+              type="email"
+              value={sender.replyTo ?? ''}
+              onChange={(e) => setSender((s) => ({ ...s, replyTo: e.target.value }))}
+              onBlur={() => run(() => saveSender({ replyTo: sender.replyTo }))}
+              placeholder={sender.supportEmail || sender.email || 'anna@boardsummits.com'}
+            />
+            <Help>
+              Where a partner&rsquo;s reply lands. The From address above has to sit on a
+              domain your provider has verified, which is rarely a mailbox anybody reads.
+              Leave blank to use the support address.
+            </Help>
+          </div>
+          <div className="col-span-2 max-md:col-span-1">
             <Label htmlFor="sn-sig">Signature</Label>
             <TextArea
               id="sn-sig"

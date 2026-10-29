@@ -106,7 +106,13 @@ export function mergeValuesFor(
     event: db.event.name,
     portal_link: input.portalLink ?? '',
     sender: sender.name,
-    sender_email: sender.email,
+    /*
+     * The address a partner should actually write to, not the one
+     * the message happened to be sent from. Those were the same
+     * thing until the From address had to move onto a verified
+     * subdomain nobody reads.
+     */
+    sender_email: sender.replyTo || sender.supportEmail || sender.email,
     signature: sender.signature || sender.name,
   };
 }

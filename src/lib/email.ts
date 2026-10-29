@@ -51,6 +51,14 @@ export async function sendEmail(message: Outgoing): Promise<SendResult> {
   const fromName = sender.name || db.event.name || 'BOARD';
   const fromEmail = sender.email || env('EMAIL_FROM') || '';
 
+  /*
+   * Replies go to a mailbox somebody reads, which is not the From
+   * address: that one is pinned to a domain the provider has
+   * verified. Without this, a partner hitting Reply writes to a
+   * subdomain nobody opens.
+   */
+  const replyTo = sender.replyTo || sender.supportEmail || '';
+
   let result: SendResult;
 
   if (!emailProvider()) {
@@ -67,7 +75,7 @@ export async function sendEmail(message: Outgoing): Promise<SendResult> {
         'No sender address. Set one under Event settings → Email, or set EMAIL_FROM.',
     };
   } else {
-    result = await sendViaResend(message, fromName, fromEmail);
+    result = await sendViaResend(message, fromName, fromEmail, replyTo);
   }
 
   const sentEmailId = await record(message, fromName, fromEmail, result);
@@ -93,6 +101,7 @@ async function sendViaResend(
   message: Outgoing,
   fromName: string,
   fromEmail: string,
+  replyTo: string,
 ): Promise<SendResult> {
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -104,6 +113,8 @@ async function sendViaResend(
       body: JSON.stringify({
         from: `${fromName} <${fromEmail}>`,
         to: [message.to],
+        // Omitted entirely when unset — Resend rejects an empty one.
+        ...(replyTo ? { reply_to: [replyTo] } : {}),
         subject: message.subject,
         text: message.text,
         html: message.html ?? htmlFromText(message.text),

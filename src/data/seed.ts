@@ -67,8 +67,11 @@ const event: BoardEvent = {
     // Shown to partners. Kept apart from the From address, which is
     // constrained by what the email provider has verified.
     supportEmail: 'anna@boardsummits.com',
+    // Replies land in a real mailbox, not the verified subdomain
+    // the From address is pinned to.
+    replyTo: 'anna@boardsummits.com',
     name: 'BOARD Operations',
-    email: 'operations@boardsummits.com',
+    email: 'anna@partners.boardsummits.com',
     signature: 'BOARD Operations\nGrimaldi Forum, Monaco\nboardsummits.com',
     logo: '',
   },

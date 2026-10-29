@@ -53,6 +53,17 @@ export interface EventSender {
    * fixing the help text takes email down.
    */
   supportEmail?: string;
+  /**
+   * Where replies go.
+   *
+   * The From address has to live on a domain the email provider has
+   * verified, which is rarely a mailbox anybody reads — mail sent
+   * from partners.boardsummits.com needs replies landing at
+   * boardsummits.com. Falls back to supportEmail, because the
+   * address we tell partners to contact is the obvious place for
+   * their replies, and then to nothing at all.
+   */
+  replyTo?: string;
   signature: string;
   logo: string;
 }
