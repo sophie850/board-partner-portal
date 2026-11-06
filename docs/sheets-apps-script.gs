@@ -86,14 +86,24 @@ function writeTab(book, tab) {
   return { name: tab.name, rows: rows.length };
 }
 
+/**
+ * The signature and timestamp, however they arrived.
+ *
+ * In practice they arrive as query parameters, because an Apps
+ * Script web app cannot read custom request headers: doPost(e) is
+ * handed postData, parameter and pathInfo, and nothing else. The
+ * header lookup stays because it costs nothing and is where these
+ * belong, but the parameter branch is the one that runs.
+ *
+ * Do not "tidy" the parameter fallback away. Without it every
+ * request is refused with "Missing signature headers".
+ */
 function headerOf(e, name) {
   const headers = (e && e.headers) || {};
   const keys = Object.keys(headers);
   for (let i = 0; i < keys.length; i++) {
     if (keys[i].toLowerCase() === name) return headers[keys[i]];
   }
-  // Apps Script has exposed request headers under different shapes
-  // over the years. Parameters are the documented fallback.
   return (e && e.parameter && e.parameter[name]) || '';
 }
 

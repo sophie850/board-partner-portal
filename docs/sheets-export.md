@@ -95,6 +95,18 @@ A good run answers with the tab names and row counts. Anything else
 says what went wrong, and the commonest answer names the deployment
 access level above.
 
+## How it is signed
+
+The portal sends an HMAC-SHA256 of `timestamp.body`, and the script
+checks it before writing anything — so holding the deployment URL is
+not on its own enough to overwrite your records.
+
+It travels as two **query parameters**, not headers, because an Apps
+Script web app cannot read custom request headers at all. The
+signature is a MAC over the body rather than a secret, so a URL
+carrying it opens nothing, and the script rejects anything older than
+ten minutes.
+
 ## Running it
 
 - **Nightly**, at 02:00 UTC, by `netlify/functions/sheets-export.mts`.

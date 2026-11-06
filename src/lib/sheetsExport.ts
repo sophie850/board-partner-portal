@@ -76,14 +76,33 @@ export async function exportToSheets(now: Date = new Date()): Promise<ExportResu
   const summary = tabs.map((t) => ({ name: t.name, rows: t.rows.length }));
   const body = JSON.stringify({ event: 'workbook', exportedAt: now.toISOString(), tabs });
   const timestamp = String(Math.floor(now.getTime() / 1000));
+  const signature = sign(secret, timestamp, body);
+
+  /*
+   * The signature travels in the query string, not only in headers.
+   *
+   * An Apps Script web app cannot read custom request headers at
+   * all — doPost(e) is handed postData, parameter and pathInfo, and
+   * nothing else. Headers are sent too, because they cost nothing
+   * and are the right place if this ever points at something that
+   * can read them, but the query string is what actually arrives.
+   *
+   * Putting a signature in a URL is safe in a way putting a secret
+   * there would not be: this is a MAC over the body, it opens
+   * nothing on its own, and a replay is bounded by the timestamp
+   * the script checks.
+   */
+  const signed = new URL(url);
+  signed.searchParams.set('x-board-timestamp', timestamp);
+  signed.searchParams.set('x-board-signature', signature);
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(signed, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'x-board-timestamp': timestamp,
-        'x-board-signature': sign(secret, timestamp, body),
+        'x-board-signature': signature,
       },
       body,
       signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -103,13 +122,24 @@ export async function exportToSheets(now: Date = new Date()): Promise<ExportResu
      * the one check that catches the commonest misconfiguration.
      */
     if (!text.includes('"ok":true')) {
+      /*
+       * Two very different failures look alike from here, and
+       * guessing between them sends somebody to the wrong setting.
+       * The script answers JSON; a misconfigured deployment answers
+       * Google's sign-in page, which is HTML. So the shape of the
+       * reply decides what to say, and the script's own message is
+       * relayed rather than talked over.
+       */
+      const reachedTheScript = text.trimStart().startsWith('{');
+
       return {
         ok: false,
         tabs: summary,
-        error:
-          'Google accepted the request but did not confirm the write. The usual cause is the ' +
-          'Apps Script deployment not being set to "Anyone", so the POST reached a sign-in ' +
-          `page instead of the script. It replied: ${text}`,
+        error: reachedTheScript
+          ? `The script refused the write: ${text}`
+          : 'Google answered, but with a page rather than the script — the deployment is ' +
+            'probably not set to "Anyone", so the request reached a sign-in page. It ' +
+            `replied: ${text.slice(0, 200)}`,
       };
     }
 
