@@ -7,6 +7,7 @@ import { CURRENCIES } from '@/data/seed';
 import { requireSupabase } from '@/lib/db/client';
 import { getDb, mintId } from '@/lib/db/store';
 import { runReminders } from '@/lib/reminders';
+import { exportToSheets, sheetsConfigured } from '@/lib/sheetsExport';
 import { storageKeyFrom } from '@/lib/storage';
 import type { EventSender, Id, OrganiserPermissions, Terminology } from '@/lib/types';
 
@@ -442,6 +443,62 @@ export async function runRemindersNow(): Promise<ReminderResult> {
     return {
       ok: false,
       error: e instanceof Error ? e.message : 'The reminder run could not be completed.',
+    };
+  }
+}
+
+/* ---------------------------------------------------------------
+   The Google Sheets snapshot, on demand
+   --------------------------------------------------------------- */
+
+export type ExportResultView =
+  | { ok: true; summary: string }
+  | { ok: false; error: string };
+
+/**
+ * Send the whole portal to the backup spreadsheet, now.
+ *
+ * The schedule runs this at 02:00, which is the wrong time to find
+ * out it was never configured. Pressing it is how somebody confirms
+ * the thing works on the day they set it up, and how they get a
+ * current copy before a meeting.
+ *
+ * Safe to press repeatedly: an export replaces the sheet with the
+ * current picture, so twice leaves exactly what once did.
+ *
+ * Calls the exporter directly rather than the cron route. The route
+ * exists because a scheduler holds no cookie; an organiser already
+ * past the Settings guard does not need a shared secret as well.
+ */
+export async function exportToSheetsNow(): Promise<ExportResultView> {
+  const refused = await guardOrganiser('settings');
+  if (refused) return refused;
+
+  if (!sheetsConfigured()) {
+    return {
+      ok: false,
+      error:
+        'Not set up yet. It needs SHEETS_WEBHOOK_URL and SHEETS_WEBHOOK_SECRET in the ' +
+        'Netlify environment, and a deploy after setting them.',
+    };
+  }
+
+  try {
+    const run = await exportToSheets();
+
+    if (!run.ok) return { ok: false, error: run.error ?? 'The export could not be sent.' };
+
+    const rows = run.tabs.reduce((sum, t) => sum + t.rows, 0);
+    return {
+      ok: true,
+      summary:
+        `${run.tabs.length} ${run.tabs.length === 1 ? 'tab' : 'tabs'} written, ` +
+        `${rows} ${rows === 1 ? 'row' : 'rows'} in total.`,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'The export could not be completed.',
     };
   }
 }

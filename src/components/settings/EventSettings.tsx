@@ -35,9 +35,11 @@ import {
   setOrganiserPermission,
   createOrganiserUser,
   removeOrganiserUser,
+  exportToSheetsNow,
   runRemindersNow,
   type ReminderResult,
 } from '@/app/organiser/settings/actions';
+import type { ExportResultView } from '@/app/organiser/settings/actions';
 
 /* ============================================================
    Event settings
@@ -726,6 +728,8 @@ function EmailSection({ data, run }: { data: SettingsData; run: Runner }) {
 function RemindersPanel() {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ReminderResult | null>(null);
+  const [exporting, startExport] = useTransition();
+  const [exported, setExported] = useState<ExportResultView | null>(null);
 
   return (
     <section>
@@ -774,6 +778,44 @@ function RemindersPanel() {
         <Help>
           Pressing this is safe. Anything already sent has been claimed in the log and will
           not go out twice — it is the same run the schedule performs, not a test mode.
+        </Help>
+      </div>
+
+      {/* ---- the backup, on demand ---- */}
+      <div className="mt-4 rounded-lg border border-line-2 bg-panel px-[16px] py-[14px]">
+        <p className="mb-3 max-w-[62ch] text-[12.5px] leading-relaxed text-ink-3">
+          Every partner, answer, task, order, request, file and person, copied into a Google
+          Sheet at 02:00 each night. It is a copy, not a sync — editing the sheet changes
+          nothing here, and your edits are replaced on the next run. Press this to bring it
+          up to date now.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={exporting}
+            onClick={() =>
+              startExport(async () => {
+                setExported(null);
+                setExported(await exportToSheetsNow());
+              })
+            }
+          >
+            {exporting ? 'Exporting…' : 'Back up to the sheet now'}
+          </Button>
+
+          {exported?.ok && (
+            <span className="text-[12px] text-accent">{exported.summary}</span>
+          )}
+          {exported && !exported.ok && (
+            <span className="max-w-[46ch] text-[12px] text-warn">{exported.error}</span>
+          )}
+        </div>
+
+        <Help>
+          Safe to press as often as you like: it replaces the sheet with the current
+          picture, so twice leaves exactly what once did.
         </Help>
       </div>
     </section>
