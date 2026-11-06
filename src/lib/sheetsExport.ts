@@ -30,6 +30,27 @@ import { sign } from '@/lib/webhooks';
 /** Long: the whole event in one request, over somebody's wifi. */
 const TIMEOUT_MS = 60_000;
 
+/**
+ * JSON with every non-ASCII character escaped to \uXXXX.
+ *
+ * The signature is an HMAC over this text, and the two ends compute
+ * it in different languages. Apps Script's
+ * computeHmacSha256Signature does not guarantee UTF-8 for its
+ * string overload, so a body containing an em dash, a superscript
+ * two or a curly quote — all of which Anna's venue pack is full of
+ * — can hash to different bytes at each end and the write is
+ * refused with nothing to show for it.
+ *
+ * Escaping sidesteps the argument entirely: the signed text is
+ * ASCII, where every encoding agrees. It is still valid JSON and
+ * parses to exactly the same object, so the sheet is unaffected.
+ */
+function asciiJson(value: unknown): string {
+  return JSON.stringify(value).replace(/[\u0080-\uFFFF]/g, (ch) =>
+    `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  );
+}
+
 export interface ExportResult {
   ok: boolean;
   /** One per tab, for the organiser pressing the button. */
@@ -74,7 +95,7 @@ export async function exportToSheets(now: Date = new Date()): Promise<ExportResu
   }
 
   const summary = tabs.map((t) => ({ name: t.name, rows: t.rows.length }));
-  const body = JSON.stringify({ event: 'workbook', exportedAt: now.toISOString(), tabs });
+  const body = asciiJson({ event: 'workbook', exportedAt: now.toISOString(), tabs });
   const timestamp = String(Math.floor(now.getTime() / 1000));
   const signature = sign(secret, timestamp, body);
 
